@@ -12,8 +12,9 @@
  * SignCraftScene creates DOM overlay and mounts this editor.
  */
 
-import { Canvas, FabricText, FabricImage } from 'fabric';
+import { Canvas, FabricText, FabricImage, FabricObject } from 'fabric';
 import { generateMaterialTexture } from './signMaterials';
+import type { DecorationDef } from './signDecorations';
 
 export interface SignEditorOptions {
   container: HTMLElement;
@@ -53,6 +54,9 @@ export class SignEditor {
   private currentColor: string = SIGN_COLORS[0];
   private currentText: string = '';
 
+  // Track decorations on canvas
+  private decorations: Map<string, string> = new Map(); // object id -> decoration id
+
   constructor(options: SignEditorOptions) {
     const { container, width, height, onChange } = options;
 
@@ -90,11 +94,19 @@ export class SignEditor {
       hasBorders: true,
       lockScalingX: false,
       lockScalingY: false,
-      lockRotation: true, // No rotation for now
+      lockRotation: true, // No rotation for simplicity
+      // Mark as text object (not deletable)
+      data: { isTextObject: true },
     });
 
     this.canvas.add(this.textObject);
     this.canvas.setActiveObject(this.textObject);
+
+    // Mobile-friendly resize handles for all objects
+    Canvas.prototype.set({
+      cornerSize: 20,
+      touchCornerSize: 40,
+    });
 
     // Listen for text object changes (drag, scale, etc.)
     this.textObject.on('modified', () => {
@@ -212,7 +224,101 @@ export class SignEditor {
   }
 
   /**
+   * Add a decoration to the canvas.
+   */
+  public async addDecoration(decoration: DecorationDef): Promise<void> {
+    // Convert SVG string to data URL
+    const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(decoration.svgString);
+
+    return new Promise((resolve) => {
+      FabricImage.fromURL(dataUrl).then((img) => {
+        if (!img) {
+          console.error('[SignEditor] Failed to load decoration SVG as FabricImage');
+          resolve();
+          return;
+        }
+
+        // Center decoration on canvas initially
+        const centerX = this.canvas.width! / 2;
+        const centerY = this.canvas.height! / 2;
+
+        // Configure decoration object
+        img.set({
+          left: centerX,
+          top: centerY,
+          originX: 'center',
+          originY: 'center',
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+          lockRotation: true, // No rotation for simplicity
+          // Scale to default size
+          scaleX: decoration.defaultWidth / (img.width || 100),
+          scaleY: decoration.defaultHeight / (img.height || 100),
+          // Custom data
+          data: {
+            decorationId: decoration.id,
+          },
+        });
+
+        // Add to canvas
+        this.canvas.add(img);
+        this.canvas.setActiveObject(img);
+
+        // Track decoration
+        if (img.data && img.data.decorationId) {
+          const objId = (img as any).__uid || String(Date.now());
+          this.decorations.set(objId, img.data.decorationId);
+        }
+
+        this.canvas.renderAll();
+        this.notifyChange();
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * Remove the currently selected object (if it's a decoration).
+   * Text object cannot be removed.
+   */
+  public removeSelected(): void {
+    const activeObj = this.canvas.getActiveObject();
+
+    if (!activeObj) {
+      console.log('[SignEditor] No object selected to remove');
+      return;
+    }
+
+    // Protect text object from deletion
+    if (activeObj.data && (activeObj.data as any).isTextObject) {
+      console.log('[SignEditor] Cannot remove text object');
+      return;
+    }
+
+    // Check if it's a decoration
+    if (activeObj.data && (activeObj.data as any).decorationId) {
+      const objId = (activeObj as any).__uid;
+      this.decorations.delete(objId);
+      this.canvas.remove(activeObj);
+      this.canvas.renderAll();
+      this.notifyChange();
+      console.log('[SignEditor] Removed decoration:', (activeObj.data as any).decorationId);
+    } else {
+      console.log('[SignEditor] Selected object is not a decoration');
+    }
+  }
+
+  /**
+   * Get list of decoration IDs currently on the canvas.
+   */
+  public getDecorations(): string[] {
+    return Array.from(this.decorations.values());
+  }
+
+  /**
    * Export canvas to PNG data URL.
+   * All objects (text + decorations + background) are included automatically.
    */
   public exportToPNG(): string {
     return this.canvas.toDataURL({ format: 'png', quality: 1 });
