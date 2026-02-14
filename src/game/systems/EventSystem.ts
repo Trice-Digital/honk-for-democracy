@@ -1,0 +1,760 @@
+import Phaser from 'phaser';
+import type { GameStateManager } from './GameStateManager';
+import type { WeatherSystem } from './WeatherSystem';
+import type { DifficultyConfig } from '../config/difficultyConfig';
+import {
+  type EventType,
+  type EventScheduleConfig,
+  type CopCheckConfig,
+  type CopDialogueOption,
+  type KarmaPhase,
+  EVENT_SCHEDULE_DEFAULTS,
+  COP_CHECK_SCENARIOS,
+  KARMA_DEFAULTS,
+} from '../config/eventConfig';
+
+/**
+ * EventSystem — Schedules and executes mid-game events.
+ *
+ * Events overlay on gameplay without fully stopping traffic flow.
+ * The system uses a timer + probability model: after a minimum time,
+ * events have a chance to fire each second. Guaranteed events are
+ * forced before the session ends if they haven't triggered naturally.
+ *
+ * Integrates with:
+ * - GameStateManager (time, confidence, score, state)
+ * - WeatherSystem (rain trigger)
+ * - ConfidenceSystem (indirect, via confidence changes)
+ * - IntersectionScene (UI overlays)
+ */
+
+export type EventState = 'idle' | 'copCheck' | 'weather' | 'karma';
+
+export class EventSystem extends Phaser.Events.EventEmitter {
+  private gameState: GameStateManager;
+  private weatherSystem: WeatherSystem;
+  private config: EventScheduleConfig;
+  private difficulty: DifficultyConfig;
+  private scene: Phaser.Scene;
+
+  // Scheduling state
+  private eventsTriggered: EventType[] = [];
+  private lastEventTime: number = 0;
+  private nextEventMinTime: number;
+  private currentEventState: EventState = 'idle';
+  private isEventActive: boolean = false;
+
+  // Cop check state
+  private copCheckUI: Phaser.GameObjects.Container | null = null;
+  private copAutoResolveTimer: number = 0;
+  private activeCopScenario: CopCheckConfig | null = null;
+
+  // Karma state
+  private karmaPhaseIndex: number = 0;
+  private karmaPhaseTimer: number = 0;
+  private karmaUI: Phaser.GameObjects.Container | null = null;
+
+  constructor(
+    scene: Phaser.Scene,
+    gameState: GameStateManager,
+    weatherSystem: WeatherSystem,
+    difficulty: DifficultyConfig,
+    config?: Partial<EventScheduleConfig>,
+  ) {
+    super();
+    this.scene = scene;
+    this.gameState = gameState;
+    this.weatherSystem = weatherSystem;
+    this.difficulty = difficulty;
+    this.config = { ...EVENT_SCHEDULE_DEFAULTS, ...config };
+
+    // Randomize when first event can fire
+    this.nextEventMinTime = Phaser.Math.Between(
+      this.config.firstEventMinTime,
+      this.config.firstEventMaxTime,
+    );
+
+    console.log(`[HFD] EventSystem initialized. First event window: ${this.nextEventMinTime}s`);
+  }
+
+  /**
+   * Called every frame. Handles event scheduling and active event updates.
+   */
+  update(delta: number): void {
+    const state = this.gameState.getState();
+    if (!state.isSessionActive) return;
+
+    const deltaSec = delta / 1000;
+    const elapsed = this.gameState.getElapsed();
+
+    // Update active event
+    if (this.isEventActive) {
+      this.updateActiveEvent(deltaSec);
+      return;
+    }
+
+    // Check if we should trigger an event
+    this.checkEventTrigger(elapsed, deltaSec, state);
+  }
+
+  /**
+   * Check if conditions are met to trigger a new event.
+   */
+  private checkEventTrigger(
+    elapsed: number,
+    deltaSec: number,
+    state: Readonly<ReturnType<GameStateManager['getState']>>,
+  ): void {
+    // Haven't reached minimum time yet
+    if (elapsed < this.nextEventMinTime) return;
+
+    // Hit max events
+    if (this.eventsTriggered.length >= this.config.maxEventsPerSession) {
+      // But check if guaranteed events need to fire
+      this.checkGuaranteedEvents(elapsed, state);
+      return;
+    }
+
+    // Minimum spacing between events
+    if (elapsed - this.lastEventTime < this.config.minEventSpacing && this.lastEventTime > 0) {
+      return;
+    }
+
+    // Check for guaranteed events that need to happen before session ends
+    const timeRemaining = state.timeRemaining;
+    if (timeRemaining < 30) {
+      // Urgency: force a guaranteed event if one hasn't fired
+      for (const evt of this.config.guaranteedEvents) {
+        if (!this.eventsTriggered.includes(evt)) {
+          if (this.canTriggerEvent(evt, state, elapsed)) {
+            this.triggerEvent(evt);
+            return;
+          }
+        }
+      }
+    }
+
+    // Probability roll (scaled by difficulty)
+    const triggerChance = this.config.baseTriggerChancePerSecond
+      * this.difficulty.eventFrequencyMultiplier
+      * deltaSec;
+
+    if (Math.random() < triggerChance) {
+      const eventType = this.pickEventType(state, elapsed);
+      if (eventType) {
+        this.triggerEvent(eventType);
+      }
+    }
+  }
+
+  /**
+   * Force guaranteed events if they haven't happened yet.
+   */
+  private checkGuaranteedEvents(
+    elapsed: number,
+    state: Readonly<ReturnType<GameStateManager['getState']>>,
+  ): void {
+    const timeRemaining = state.timeRemaining;
+    if (timeRemaining > 20) return;
+
+    for (const evt of this.config.guaranteedEvents) {
+      if (!this.eventsTriggered.includes(evt)) {
+        if (this.canTriggerEvent(evt, state, elapsed)) {
+          this.triggerEvent(evt);
+          return;
+        }
+      }
+    }
+  }
+
+  /**
+   * Pick which event type to trigger based on weights and eligibility.
+   */
+  private pickEventType(
+    state: Readonly<ReturnType<GameStateManager['getState']>>,
+    elapsed: number,
+  ): EventType | null {
+    const eligible: { type: EventType; weight: number }[] = [];
+
+    for (const [type, weight] of Object.entries(this.config.eventWeights) as [EventType, number][]) {
+      if (this.canTriggerEvent(type, state, elapsed)) {
+        eligible.push({ type, weight });
+      }
+    }
+
+    if (eligible.length === 0) return null;
+
+    // Weighted random selection
+    const totalWeight = eligible.reduce((sum, e) => sum + e.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for (const e of eligible) {
+      roll -= e.weight;
+      if (roll <= 0) return e.type;
+    }
+
+    return eligible[eligible.length - 1].type;
+  }
+
+  /**
+   * Check if a specific event type can trigger right now.
+   */
+  private canTriggerEvent(
+    type: EventType,
+    state: Readonly<ReturnType<GameStateManager['getState']>>,
+    elapsed: number,
+  ): boolean {
+    switch (type) {
+      case 'copCheck':
+        // Don't pile on when player is struggling
+        return state.confidence >= this.config.copCheckMinConfidence;
+
+      case 'weather':
+        // Only one weather event per session, and not if it's already raining
+        return !this.eventsTriggered.includes('weather') && !this.weatherSystem.isRaining();
+
+      case 'karma':
+        // Karma is a mid-to-late game event, max once per session
+        return elapsed >= this.config.karmaMinTime && !this.eventsTriggered.includes('karma');
+
+      default:
+        return true;
+    }
+  }
+
+  // ============================================================
+  // EVENT TRIGGERING
+  // ============================================================
+
+  /**
+   * Trigger a specific event.
+   */
+  private triggerEvent(type: EventType): void {
+    this.eventsTriggered.push(type);
+    this.lastEventTime = this.gameState.getElapsed();
+    this.isEventActive = true;
+    this.currentEventState = type;
+
+    console.log(`[HFD] Event triggered: ${type} at ${this.lastEventTime.toFixed(1)}s`);
+    this.emit('eventStarted', type);
+
+    switch (type) {
+      case 'copCheck':
+        this.startCopCheck();
+        break;
+      case 'weather':
+        this.startWeatherEvent();
+        break;
+      case 'karma':
+        this.startKarmaEvent();
+        break;
+    }
+  }
+
+  /**
+   * Update the currently active event.
+   */
+  private updateActiveEvent(deltaSec: number): void {
+    switch (this.currentEventState) {
+      case 'copCheck':
+        this.updateCopCheck(deltaSec);
+        break;
+      case 'karma':
+        this.updateKarma(deltaSec);
+        break;
+      case 'weather':
+        // Weather runs in the background via WeatherSystem
+        // Event is "done" immediately — weather continues via its own system
+        this.endEvent();
+        break;
+    }
+  }
+
+  /**
+   * End the current event and return to idle.
+   */
+  private endEvent(): void {
+    const prevState = this.currentEventState;
+    this.isEventActive = false;
+    this.currentEventState = 'idle';
+    this.emit('eventEnded', prevState);
+  }
+
+  // ============================================================
+  // COP CHECK EVENT
+  // ============================================================
+
+  private startCopCheck(): void {
+    // Pick a random scenario
+    const scenarioIndex = Math.floor(Math.random() * COP_CHECK_SCENARIOS.length);
+    this.activeCopScenario = COP_CHECK_SCENARIOS[scenarioIndex];
+    this.copAutoResolveTimer = this.activeCopScenario.autoResolveTime;
+
+    this.showCopCheckUI(this.activeCopScenario);
+  }
+
+  private showCopCheckUI(scenario: CopCheckConfig): void {
+    const viewW = this.scene.scale.width;
+    const viewH = this.scene.scale.height;
+
+    this.copCheckUI = this.scene.add.container(0, 0);
+    this.copCheckUI.setScrollFactor(0);
+    this.copCheckUI.setDepth(180);
+
+    // Semi-transparent backdrop
+    const backdrop = this.scene.add.rectangle(viewW / 2, viewH / 2, viewW, viewH, 0x000000, 0.6);
+    this.copCheckUI.add(backdrop);
+
+    // Event card background
+    const cardW = Math.min(viewW - 40, 500);
+    const cardH = Math.min(viewH - 80, 480);
+    const cardX = viewW / 2;
+    const cardY = viewH / 2;
+
+    const card = this.scene.add.rectangle(cardX, cardY, cardW, cardH, 0x1a1a2e, 0.95);
+    card.setStrokeStyle(3, 0x3b82f6, 0.8);
+    this.copCheckUI.add(card);
+
+    // Police badge / icon label
+    const badge = this.scene.add.text(cardX, cardY - cardH / 2 + 30, 'POLICE', {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#3b82f6',
+      backgroundColor: '#1a1a2e',
+      padding: { x: 12, y: 4 },
+    });
+    badge.setOrigin(0.5);
+    this.copCheckUI.add(badge);
+
+    // Description
+    const desc = this.scene.add.text(cardX, cardY - cardH / 2 + 60, scenario.description, {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '14px',
+      color: '#9ca3af',
+    });
+    desc.setOrigin(0.5);
+    this.copCheckUI.add(desc);
+
+    // Cop's opening line
+    const copLine = this.scene.add.text(cardX, cardY - cardH / 2 + 95, scenario.openingLine, {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      wordWrap: { width: cardW - 40 },
+      align: 'center',
+    });
+    copLine.setOrigin(0.5);
+    this.copCheckUI.add(copLine);
+
+    // Response buttons
+    const btnStartY = cardY - cardH / 2 + 160;
+    const btnWidth = cardW - 50;
+    const btnHeight = 56;
+    const btnGap = 10;
+
+    scenario.options.forEach((option, index) => {
+      const btnY = btnStartY + index * (btnHeight + btnGap);
+
+      const btnBg = this.scene.add.rectangle(cardX, btnY, btnWidth, btnHeight, 0x2a2a4e);
+      btnBg.setStrokeStyle(2, 0x4a4a6e, 0.6);
+      btnBg.setInteractive({ useHandCursor: true });
+      this.copCheckUI!.add(btnBg);
+
+      const btnText = this.scene.add.text(cardX, btnY, option.text, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '13px',
+        color: '#e5e7eb',
+        wordWrap: { width: btnWidth - 20 },
+        align: 'center',
+      });
+      btnText.setOrigin(0.5);
+      this.copCheckUI!.add(btnText);
+
+      btnBg.on('pointerover', () => {
+        btnBg.setFillStyle(0x3a3a6e);
+        btnBg.setStrokeStyle(2, 0x6366f1);
+      });
+      btnBg.on('pointerout', () => {
+        btnBg.setFillStyle(0x2a2a4e);
+        btnBg.setStrokeStyle(2, 0x4a4a6e, 0.6);
+      });
+      btnBg.on('pointerdown', () => {
+        this.resolveCopCheck(option);
+      });
+    });
+
+    // Timer indicator
+    const timerText = this.scene.add.text(
+      cardX, cardY + cardH / 2 - 25,
+      `Respond within ${scenario.autoResolveTime}s...`,
+      {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '12px',
+        color: '#6b7280',
+      },
+    );
+    timerText.setOrigin(0.5);
+    timerText.setName('copTimerText');
+    this.copCheckUI.add(timerText);
+  }
+
+  private resolveCopCheck(option: CopDialogueOption): void {
+    if (!this.copCheckUI || !this.activeCopScenario) return;
+
+    // Apply effects
+    this.gameState.addConfidence(option.confidenceChange);
+    if (option.scoreChange !== 0) {
+      this.gameState.addScore(option.scoreChange);
+    }
+
+    // Show cop's reply
+    this.showCopReply(option);
+  }
+
+  private showCopReply(option: CopDialogueOption): void {
+    // Destroy old UI
+    if (this.copCheckUI) {
+      this.copCheckUI.destroy();
+      this.copCheckUI = null;
+    }
+
+    const viewW = this.scene.scale.width;
+    const viewH = this.scene.scale.height;
+
+    this.copCheckUI = this.scene.add.container(0, 0);
+    this.copCheckUI.setScrollFactor(0);
+    this.copCheckUI.setDepth(180);
+
+    const backdrop = this.scene.add.rectangle(viewW / 2, viewH / 2, viewW, viewH, 0x000000, 0.5);
+    this.copCheckUI.add(backdrop);
+
+    const cardW = Math.min(viewW - 40, 460);
+    const cardX = viewW / 2;
+    const cardY = viewH / 2 - 30;
+
+    const card = this.scene.add.rectangle(cardX, cardY, cardW, 200, 0x1a1a2e, 0.95);
+    card.setStrokeStyle(3, option.isCorrect ? 0x22c55e : 0xef4444, 0.8);
+    this.copCheckUI.add(card);
+
+    // Result label
+    const resultLabel = option.isCorrect
+      ? 'FIRST AMENDMENT PROTECTED!'
+      : 'That wasn\'t your best move...';
+    const resultColor = option.isCorrect ? '#22c55e' : '#ef4444';
+
+    const result = this.scene.add.text(cardX, cardY - 60, resultLabel, {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: resultColor,
+    });
+    result.setOrigin(0.5);
+    this.copCheckUI.add(result);
+
+    // Cop reply
+    const reply = this.scene.add.text(cardX, cardY - 15, option.copReply, {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '16px',
+      color: '#ffffff',
+      wordWrap: { width: cardW - 40 },
+      align: 'center',
+    });
+    reply.setOrigin(0.5);
+    this.copCheckUI.add(reply);
+
+    // Confidence/score change indicator
+    const changeLines: string[] = [];
+    if (option.confidenceChange > 0) changeLines.push(`Confidence +${option.confidenceChange}%`);
+    if (option.confidenceChange < 0) changeLines.push(`Confidence ${option.confidenceChange}%`);
+    if (option.scoreChange > 0) changeLines.push(`Score +${option.scoreChange}`);
+    if (option.scoreChange < 0) changeLines.push(`Score ${option.scoreChange}`);
+
+    if (changeLines.length > 0) {
+      const changes = this.scene.add.text(cardX, cardY + 25, changeLines.join('  |  '), {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: option.isCorrect ? '#22c55e' : '#ef4444',
+      });
+      changes.setOrigin(0.5);
+      this.copCheckUI.add(changes);
+    }
+
+    // Educational note for correct answer
+    if (option.isCorrect) {
+      const note = this.scene.add.text(
+        cardX, cardY + 55,
+        'The First Amendment protects peaceful protest in public spaces.',
+        {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '12px',
+          color: '#9ca3af',
+          fontStyle: 'italic',
+          wordWrap: { width: cardW - 40 },
+          align: 'center',
+        },
+      );
+      note.setOrigin(0.5);
+      this.copCheckUI.add(note);
+    }
+
+    // Auto-dismiss after time penalty
+    this.scene.time.delayedCall(option.timePenalty * 1000, () => {
+      this.dismissCopCheck();
+    });
+  }
+
+  private dismissCopCheck(): void {
+    if (this.copCheckUI) {
+      this.copCheckUI.destroy();
+      this.copCheckUI = null;
+    }
+    this.activeCopScenario = null;
+    this.endEvent();
+  }
+
+  private updateCopCheck(deltaSec: number): void {
+    if (!this.activeCopScenario) return;
+
+    this.copAutoResolveTimer -= deltaSec;
+
+    // Update timer text
+    if (this.copCheckUI) {
+      const timerText = this.copCheckUI.getByName('copTimerText') as Phaser.GameObjects.Text;
+      if (timerText) {
+        const remaining = Math.ceil(this.copAutoResolveTimer);
+        timerText.setText(`Respond within ${remaining}s...`);
+        if (remaining <= 5) {
+          timerText.setColor('#ef4444');
+        }
+      }
+    }
+
+    if (this.copAutoResolveTimer <= 0) {
+      // Auto-resolve: player froze up
+      this.gameState.addConfidence(this.activeCopScenario.autoResolvePenalty);
+      this.showCopReply({
+        text: '(You froze up)',
+        isCorrect: false,
+        confidenceChange: this.activeCopScenario.autoResolvePenalty,
+        scoreChange: 0,
+        copReply: '"...I\'ll be back." The officer walks away.',
+        timePenalty: 3,
+      });
+    }
+  }
+
+  // ============================================================
+  // WEATHER EVENT
+  // ============================================================
+
+  private startWeatherEvent(): void {
+    // Trigger rain through WeatherSystem
+    this.weatherSystem.startRain();
+
+    // Show weather notification banner
+    this.showEventBanner('It\'s starting to rain...', '#3b82f6', 3);
+  }
+
+  // ============================================================
+  // KARMA EVENT — MAGA Truck Burnout Sequence
+  // ============================================================
+
+  private startKarmaEvent(): void {
+    this.karmaPhaseIndex = 0;
+    this.karmaPhaseTimer = 0;
+    this.playKarmaPhase(0);
+  }
+
+  private playKarmaPhase(index: number): void {
+    const phases = KARMA_DEFAULTS.phases;
+    if (index >= phases.length) {
+      // Sequence complete
+      this.gameState.addConfidence(KARMA_DEFAULTS.totalConfidenceBoost);
+      this.endEvent();
+      return;
+    }
+
+    const phase = phases[index];
+    this.karmaPhaseIndex = index;
+    this.karmaPhaseTimer = phase.duration;
+
+    // Apply phase effects
+    if (phase.confidenceChange !== 0) {
+      this.gameState.addConfidence(phase.confidenceChange);
+    }
+    if (phase.scoreChange !== 0) {
+      this.gameState.addScore(phase.scoreChange);
+    }
+
+    // Show phase banner
+    this.showKarmaBanner(phase);
+  }
+
+  private showKarmaBanner(phase: KarmaPhase): void {
+    // Remove previous banner
+    if (this.karmaUI) {
+      this.karmaUI.destroy();
+      this.karmaUI = null;
+    }
+
+    const viewW = this.scene.scale.width;
+    const viewH = this.scene.scale.height;
+
+    this.karmaUI = this.scene.add.container(0, 0);
+    this.karmaUI.setScrollFactor(0);
+    this.karmaUI.setDepth(170);
+
+    // Banner across top-center
+    const bannerW = Math.min(viewW - 20, 600);
+    const bannerH = 60;
+    const bannerY = viewH * 0.2;
+
+    // Determine color based on confidence change
+    let bgColor = 0x1a1a2e;
+    let borderColor = 0xfbbf24;
+    if (phase.confidenceChange > 15) {
+      bgColor = 0x1a2e1a;
+      borderColor = 0x22c55e;
+    } else if (phase.confidenceChange < -5) {
+      bgColor = 0x2e1a1a;
+      borderColor = 0xef4444;
+    }
+
+    const bg = this.scene.add.rectangle(viewW / 2, bannerY, bannerW, bannerH, bgColor, 0.92);
+    bg.setStrokeStyle(2, borderColor, 0.8);
+    this.karmaUI.add(bg);
+
+    const text = this.scene.add.text(viewW / 2, bannerY, phase.bannerText, {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      wordWrap: { width: bannerW - 30 },
+      align: 'center',
+      stroke: '#000000',
+      strokeThickness: 2,
+    });
+    text.setOrigin(0.5);
+    this.karmaUI.add(text);
+
+    // Score popup if applicable
+    if (phase.scoreChange !== 0) {
+      const sign = phase.scoreChange > 0 ? '+' : '';
+      const scoreText = this.scene.add.text(
+        viewW / 2, bannerY + bannerH / 2 + 15,
+        `${sign}${phase.scoreChange}`,
+        {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '22px',
+          fontStyle: 'bold',
+          color: phase.scoreChange > 0 ? '#22c55e' : '#ef4444',
+          stroke: '#000000',
+          strokeThickness: 3,
+        },
+      );
+      scoreText.setOrigin(0.5);
+      this.karmaUI.add(scoreText);
+
+      this.scene.tweens.add({
+        targets: scoreText,
+        y: bannerY + bannerH / 2 + 5,
+        alpha: 0,
+        duration: 1500,
+        delay: 500,
+        ease: 'Quad.easeOut',
+      });
+    }
+  }
+
+  private updateKarma(deltaSec: number): void {
+    this.karmaPhaseTimer -= deltaSec;
+
+    if (this.karmaPhaseTimer <= 0) {
+      // Advance to next phase
+      this.playKarmaPhase(this.karmaPhaseIndex + 1);
+
+      // If all phases done, clean up karma UI
+      if (this.karmaPhaseIndex >= KARMA_DEFAULTS.phases.length) {
+        if (this.karmaUI) {
+          // Fade out the final banner
+          this.scene.tweens.add({
+            targets: this.karmaUI,
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => {
+              if (this.karmaUI) {
+                this.karmaUI.destroy();
+                this.karmaUI = null;
+              }
+            },
+          });
+        }
+      }
+    }
+  }
+
+  // ============================================================
+  // SHARED UI HELPERS
+  // ============================================================
+
+  /**
+   * Show a brief notification banner (for weather, etc).
+   */
+  private showEventBanner(text: string, color: string, duration: number): void {
+    const viewW = this.scene.scale.width;
+
+    const banner = this.scene.add.text(viewW / 2, 120, text, {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color,
+      stroke: '#000000',
+      strokeThickness: 3,
+      backgroundColor: '#1a1a2eee',
+      padding: { x: 16, y: 8 },
+    });
+    banner.setOrigin(0.5);
+    banner.setScrollFactor(0);
+    banner.setDepth(160);
+
+    this.scene.tweens.add({
+      targets: banner,
+      alpha: 0,
+      y: 100,
+      duration: 1000,
+      delay: duration * 1000,
+      ease: 'Quad.easeOut',
+      onComplete: () => banner.destroy(),
+    });
+  }
+
+  // ============================================================
+  // GETTERS
+  // ============================================================
+
+  getEventState(): EventState {
+    return this.currentEventState;
+  }
+
+  isEventInProgress(): boolean {
+    return this.isEventActive;
+  }
+
+  getEventsTriggered(): EventType[] {
+    return [...this.eventsTriggered];
+  }
+
+  destroy(): void {
+    if (this.copCheckUI) {
+      this.copCheckUI.destroy();
+      this.copCheckUI = null;
+    }
+    if (this.karmaUI) {
+      this.karmaUI.destroy();
+      this.karmaUI = null;
+    }
+    this.removeAllListeners();
+  }
+}

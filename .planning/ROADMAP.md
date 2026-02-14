@@ -6,11 +6,11 @@ Milestone 1 delivers The Intersection — the core protest simulator experience.
 
 ## Phases
 
-- [ ] **Phase 1: Scaffolding & Game Boot** - Astro + Phaser integrated, rendering on mobile
-- [ ] **Phase 2: Core Game Loop** - Visibility cone, traffic, reactions — the game exists
-- [ ] **Phase 3: Sign Crafting** - Pre-game creative expression that feeds into gameplay
-- [ ] **Phase 4: Game Systems** - Confidence meter + arm fatigue — the emotional and physical layer
-- [ ] **Phase 5: Event System** - Cop check, weather, karma — variety and real-world learning
+- [x] **Phase 1: Scaffolding & Game Boot** - Astro + Phaser integrated, rendering on mobile
+- [x] **Phase 2: Core Game Loop** - Visibility cone, traffic, reactions — the game exists
+- [x] **Phase 3: Sign Crafting** - Pre-game creative expression that feeds into gameplay
+- [x] **Phase 4: Game Systems** - Confidence meter + arm fatigue — the emotional and physical layer
+- [x] **Phase 5: Event System** - Cop check, weather, karma — variety and real-world learning
 - [ ] **Phase 6: Score & End Screens** - Session boundary, sharing, activism payload
 - [ ] **Phase 7: Landing Page, Polish & Deploy** - First impression, audio, optimization, ship it
 
@@ -26,11 +26,11 @@ Milestone 1 delivers The Intersection — the core protest simulator experience.
   3. Touch input is captured on the game canvas without triggering browser scroll/zoom/back-swipe
   4. A loading screen appears while game assets load
   5. Project builds successfully with `astro build`
-**Plans**: TBD
+**Plans**: Defined (2026-02-14)
 
 Plans:
-- [ ] 01-01: Astro project scaffold + Phaser integration
-- [ ] 01-02: Mobile viewport, touch capture, loading screen
+- [x] 01-01: Astro project scaffold + Phaser integration (2026-02-14)
+- [x] 01-02: Mobile viewport, touch capture, loading screen (2026-02-14)
 
 ### Phase 2: Core Game Loop
 **Goal**: Player can stand at an intersection, aim a visibility cone at traffic, and see reactions — this is a playable game
@@ -42,12 +42,12 @@ Plans:
   3. Traffic lights cycle in a deterministic, learnable pattern — cars spawn from green-light directions
   4. Reactions pop visually from cars (icons + score floaters) with clear positive/negative distinction
   5. A running score and session timer are visible, and the session ends when time runs out
-**Plans**: TBD
+**Plans**: Complete (2026-02-14)
 
 Plans:
-- [ ] 02-01: Intersection map rendering + traffic light system
-- [ ] 02-02: Player character + visibility cone mechanic
-- [ ] 02-03: Car spawning, movement, and reaction system
+- [x] 02-01: Intersection map rendering + traffic light system (2026-02-14)
+- [x] 02-02: Player character + visibility cone mechanic (2026-02-14)
+- [x] 02-03: Car spawning, movement, and reaction system (2026-02-14)
 
 ### Phase 3: Sign Crafting
 **Goal**: Player crafts their own protest sign before gameplay, and the sign visibly affects their gameplay experience
@@ -59,11 +59,11 @@ Plans:
   3. The sign is visible on the player character during intersection gameplay
   4. Material choice visibly affects durability (tested via weather in Phase 5) and fatigue (tested in Phase 4)
   5. Message quality affects the ratio of positive to negative reactions during gameplay
-**Plans**: TBD
+**Plans**: Complete (2026-02-14)
 
 Plans:
-- [ ] 03-01: Sign crafting scene (material picker + message input + preview)
-- [ ] 03-02: Wire sign properties into gameplay (reaction multiplier, player sprite)
+- [x] 03-01: Sign crafting scene (material picker + message input + preview)
+- [x] 03-02: Wire sign properties into gameplay (reaction multiplier, player sprite)
 
 ### Phase 4: Game Systems
 **Goal**: The game feels emotionally and physically real — confidence rises and falls, arms get tired, the player experiences the arc
@@ -75,11 +75,11 @@ Plans:
   3. Arm fatigue meter drains over time; player can switch arms or rest to manage it
   4. When fatigue maxes out, the visibility cone shrinks (sign drooping)
   5. Sign material affects fatigue drain rate (heavier materials drain faster)
-**Plans**: TBD
+**Plans**: Complete (2026-02-14)
 
 Plans:
-- [ ] 04-01: Confidence meter (display, reaction integration, group size, early exit)
-- [ ] 04-02: Arm fatigue system (drain, switch arms, rest, material effect, cone shrink)
+- [x] 04-01: Confidence meter (display, reaction integration, group size, early exit)
+- [x] 04-02: Arm fatigue system (drain, switch arms, rest, material effect, cone shrink) + raise sign mechanic
 
 ### Phase 5: Event System
 **Goal**: Mid-game events break up the core loop, teach real skills, and add variety — cop checks teach rights, weather tests endurance, karma delivers satisfaction
@@ -91,12 +91,12 @@ Plans:
   3. A karma moment event plays out: MAGA truck burnout followed by cop pullover, crowd erupts, confidence spikes
   4. Events overlay on gameplay without fully stopping traffic flow
   5. At least one event triggers per session (timer or threshold-based)
-**Plans**: TBD
+**Plans**: Complete (2026-02-14)
 
 Plans:
-- [ ] 05-01: Event system framework + cop check event
-- [ ] 05-02: Weather system + rain effects on sign
-- [ ] 05-03: Karma moment event sequence
+- [x] 05-01: Event system framework + cop check event (2026-02-14)
+- [x] 05-02: Weather system + rain effects on sign (2026-02-14)
+- [x] 05-03: Karma moment event sequence (2026-02-14)
 
 ### Phase 6: Score & End Screens
 **Goal**: The session has a satisfying conclusion — stats tell the story, the score card is share-worthy, and the activism payload lands
@@ -136,10 +136,10 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffolding & Game Boot | 0/2 | Not started | - |
-| 2. Core Game Loop | 0/3 | Not started | - |
-| 3. Sign Crafting | 0/2 | Not started | - |
-| 4. Game Systems | 0/2 | Not started | - |
-| 5. Event System | 0/3 | Not started | - |
+| 1. Scaffolding & Game Boot | 2/2 | Complete | 2026-02-14 |
+| 2. Core Game Loop | 3/3 | Complete | 2026-02-14 |
+| 3. Sign Crafting | 2/2 | Complete | 2026-02-14 |
+| 4. Game Systems | 2/2 | Complete | 2026-02-14 |
+| 5. Event System | 3/3 | Complete | 2026-02-14 |
 | 6. Score & End Screens | 0/3 | Not started | - |
 | 7. Landing Page, Polish & Deploy | 0/3 | Not started | - |
