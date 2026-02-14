@@ -11,7 +11,7 @@ Milestone 1 delivers The Intersection — the core protest simulator experience.
 - [x] **Phase 3: Sign Crafting** - Pre-game creative expression that feeds into gameplay
 - [x] **Phase 4: Game Systems** - Confidence meter + arm fatigue — the emotional and physical layer
 - [x] **Phase 5: Event System** - Cop check, weather, karma — variety and real-world learning
-- [ ] **Phase 6: Score & End Screens** - Session boundary, sharing, activism payload
+- [x] **Phase 6: Score & End Screens** - Session boundary, sharing, activism payload
 - [ ] **Phase 7: Landing Page, Polish & Deploy** - First impression, audio, optimization, ship it
 
 ## Phase Details
@@ -108,12 +108,12 @@ Plans:
   3. "Play Again" button restarts the game flow
   4. Activism screen follows score: "This was a game. This is also real." with functional resource links
   5. Sound effects differentiate reaction types during gameplay (honk vs angry horn vs diesel)
-**Plans**: TBD
+**Plans**: Complete (2026-02-14)
 
 Plans:
-- [ ] 06-01: Score screen (stats, shareable card layout, play again)
-- [ ] 06-02: Activism end screen + resource links
-- [ ] 06-03: Sound effects and audio integration
+- [x] 06-01: Score screen (stats, shareable card layout, play again) + raise sign tap fix (2026-02-14)
+- [x] 06-02: Activism end screen + resource links (2026-02-14)
+- [x] 06-03: Sound effects and audio integration (2026-02-14)
 
 ### Phase 7: Landing Page, Polish & Deploy
 **Goal**: The game is discoverable, polished, and live on the internet — anyone with a link can play
@@ -141,5 +141,5 @@ Plans:
 | 3. Sign Crafting | 2/2 | Complete | 2026-02-14 |
 | 4. Game Systems | 2/2 | Complete | 2026-02-14 |
 | 5. Event System | 3/3 | Complete | 2026-02-14 |
-| 6. Score & End Screens | 0/3 | Not started | - |
+| 6. Score & End Screens | 3/3 | Complete | 2026-02-14 |
 | 7. Landing Page, Polish & Deploy | 0/3 | Not started | - |

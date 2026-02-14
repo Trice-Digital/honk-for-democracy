@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { INTERSECTION_CONFIG } from '../config/intersectionConfig';
 import type { LaneDefinition, TrafficDirection } from '../config/intersectionConfig';
 import { DIFFICULTY_MEDIUM } from '../config/difficultyConfig';
-import { REACTION_TYPES } from '../config/reactionConfig';
 import { CONFIDENCE_DEFAULTS } from '../config/confidenceConfig';
 import { getSignData, type SignData } from '../config/signConfig';
 import { GameStateManager } from '../systems/GameStateManager';
@@ -12,6 +11,7 @@ import { ConfidenceSystem } from '../systems/ConfidenceSystem';
 import { FatigueSystem } from '../systems/FatigueSystem';
 import { EventSystem } from '../systems/EventSystem';
 import { WeatherSystem } from '../systems/WeatherSystem';
+import { AudioSystem } from '../systems/AudioSystem';
 import { Car } from '../entities/Car';
 import { Player } from '../entities/Player';
 import { VisibilityCone } from '../entities/VisibilityCone';
@@ -33,6 +33,7 @@ export class IntersectionScene extends Phaser.Scene {
   private fatigueSystem!: FatigueSystem;
   private eventSystem!: EventSystem;
   private weatherSystem!: WeatherSystem;
+  private audioSystem!: AudioSystem;
 
   // Entities
   private player!: Player;
@@ -60,6 +61,13 @@ export class IntersectionScene extends Phaser.Scene {
   private raiseBtn!: Phaser.GameObjects.Container;
   private raiseBtnBg!: Phaser.GameObjects.Rectangle;
   private raiseBtnText!: Phaser.GameObjects.Text;
+
+  // Mute button
+  private muteBtn!: Phaser.GameObjects.Text;
+
+  // Raise tap mechanic
+  private raiseHoldActive: boolean = false;
+  private raiseTapTimer: Phaser.Time.TimerEvent | null = null;
 
   // Traffic light visuals
   private lightGraphics!: Phaser.GameObjects.Graphics;
@@ -92,6 +100,16 @@ export class IntersectionScene extends Phaser.Scene {
     this.fatigueSystem = new FatigueSystem(this.gameState, this.signData.material, this.difficulty);
     this.weatherSystem = new WeatherSystem(this, this.gameState, this.signData.material, this.difficulty);
     this.eventSystem = new EventSystem(this, this.gameState, this.weatherSystem, this.difficulty);
+
+    // --- Audio system ---
+    // Reuse existing AudioSystem from registry if available (persists across scenes)
+    const existingAudio = AudioSystem.get(this);
+    if (existingAudio) {
+      this.audioSystem = existingAudio;
+    } else {
+      this.audioSystem = new AudioSystem();
+      AudioSystem.register(this, this.audioSystem);
+    }
 
     // --- Apply sign quality multiplier to reaction weights ---
     this.applySignQualityMultiplier();
@@ -161,6 +179,12 @@ export class IntersectionScene extends Phaser.Scene {
     });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Init audio on first touch gesture (mobile requirement)
+      if (!this.audioSystem['initialized']) {
+        this.audioSystem.init();
+        this.audioSystem.playSessionStart();
+      }
+
       if (!this.gameState.isActive()) return;
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       const dx = worldPoint.x - this.config.playerX;
@@ -180,6 +204,12 @@ export class IntersectionScene extends Phaser.Scene {
 
     // --- Listen for session end ---
     this.gameState.on('sessionEnd', () => {
+      const endState = this.gameState.getState();
+      if (endState.endReason === 'confidence') {
+        this.audioSystem.playConfidenceZero();
+      } else {
+        this.audioSystem.playSessionEnd();
+      }
       this.showSessionOver();
     });
 
@@ -518,6 +548,13 @@ export class IntersectionScene extends Phaser.Scene {
         // Record in game state
         this.gameState.recordReaction(reaction.id, finalScoreValue);
 
+        // Play reaction sound
+        if (wasDeflected) {
+          this.audioSystem.playDeflect();
+        } else {
+          this.audioSystem.playReactionSound(reaction.id);
+        }
+
         // Show visual feedback
         this.showReactionFeedback(car.x, car.y, reaction, wasRaiseBoosted, wasDeflected, finalScoreValue);
       }
@@ -642,6 +679,21 @@ export class IntersectionScene extends Phaser.Scene {
     // --- Action buttons (bottom) ---
     this.createActionButtons(viewW, viewH);
 
+    // --- Mute button (top center) ---
+    this.muteBtn = this.add.text(viewW / 2, 24, '\uD83D\uDD0A', {
+      fontSize: '24px',
+      backgroundColor: '#1a1a2e99',
+      padding: { x: 8, y: 4 },
+    });
+    this.muteBtn.setOrigin(0.5, 0);
+    this.muteBtn.setScrollFactor(0);
+    this.muteBtn.setDepth(100);
+    this.muteBtn.setInteractive({ useHandCursor: true });
+    this.muteBtn.on('pointerdown', () => {
+      const muted = this.audioSystem.toggleMute();
+      this.muteBtn.setText(muted ? '\uD83D\uDD07' : '\uD83D\uDD0A');
+    });
+
     // Listen for resize
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
       this.timerText.setPosition(gameSize.width - 20, 20);
@@ -744,21 +796,52 @@ export class IntersectionScene extends Phaser.Scene {
     this.raiseBtnBg = raiseBg;
     this.raiseBtnText = raiseText;
 
+    // Raise button: supports both tap (auto-lower after 0.8s) and hold
+    let raiseDownTime = 0;
+    const HOLD_THRESHOLD = 200; // ms: if held longer than this, treat as hold
+    const TAP_RAISE_DURATION = 800; // ms: how long sign stays raised on tap
+
     this.raiseBtn.on('pointerdown', () => {
       if (!this.gameState.isActive()) return;
+      raiseDownTime = this.time.now;
+      this.raiseHoldActive = true;
       this.fatigueSystem.setRaised(true);
+      this.audioSystem.playRaiseSign();
       this.raiseBtnBg.setFillStyle(0xe89b0c);
       this.raiseBtnText.setText('RAISED!');
     });
+
     this.raiseBtn.on('pointerup', () => {
-      this.fatigueSystem.setRaised(false);
-      this.raiseBtnBg.setFillStyle(0xfbbf24);
-      this.raiseBtnText.setText('RAISE');
+      if (!this.raiseHoldActive) return;
+      this.raiseHoldActive = false;
+      const holdDuration = this.time.now - raiseDownTime;
+
+      if (holdDuration < HOLD_THRESHOLD) {
+        // Tap: keep raised for a brief window, then auto-lower
+        if (this.raiseTapTimer) this.raiseTapTimer.destroy();
+        this.raiseTapTimer = this.time.delayedCall(TAP_RAISE_DURATION, () => {
+          this.fatigueSystem.setRaised(false);
+          this.raiseBtnBg.setFillStyle(0xfbbf24);
+          this.raiseBtnText.setText('RAISE');
+          this.raiseTapTimer = null;
+        });
+      } else {
+        // Hold release: lower immediately
+        this.fatigueSystem.setRaised(false);
+        this.raiseBtnBg.setFillStyle(0xfbbf24);
+        this.raiseBtnText.setText('RAISE');
+      }
     });
+
     this.raiseBtn.on('pointerout', () => {
-      this.fatigueSystem.setRaised(false);
-      this.raiseBtnBg.setFillStyle(0xfbbf24);
-      this.raiseBtnText.setText('RAISE');
+      if (!this.raiseHoldActive) return;
+      this.raiseHoldActive = false;
+      // If no tap timer running, lower immediately
+      if (!this.raiseTapTimer) {
+        this.fatigueSystem.setRaised(false);
+        this.raiseBtnBg.setFillStyle(0xfbbf24);
+        this.raiseBtnText.setText('RAISE');
+      }
     });
 
     // --- Switch Arms button (left of raise) ---
@@ -916,8 +999,6 @@ export class IntersectionScene extends Phaser.Scene {
 
   private showSessionOver(): void {
     const state = this.gameState.getState();
-    const viewW = this.scale.width;
-    const viewH = this.scale.height;
 
     // Clean up systems
     this.confidenceSystem.destroy();
@@ -925,102 +1006,18 @@ export class IntersectionScene extends Phaser.Scene {
     this.eventSystem.destroy();
     this.weatherSystem.destroy();
 
-    // Darken overlay
-    const overlay = this.add.rectangle(viewW / 2, viewH / 2, viewW, viewH, 0x000000, 0.7);
-    overlay.setScrollFactor(0);
-    overlay.setDepth(190);
-
-    // Title — different text based on end reason
-    const titleText = state.endReason === 'confidence'
-      ? 'YOU WENT HOME EARLY'
-      : 'SESSION OVER';
-    const titleColor = state.endReason === 'confidence' ? '#ef4444' : '#ffffff';
-
-    const title = this.add.text(viewW / 2, viewH * 0.15, titleText, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '42px',
-      fontStyle: 'bold',
-      color: titleColor,
-      stroke: '#000000',
-      strokeThickness: 4,
-    });
-    title.setOrigin(0.5);
-    title.setScrollFactor(0);
-    title.setDepth(200);
-
-    // Subtitle for confidence end
-    if (state.endReason === 'confidence') {
-      const subtitle = this.add.text(viewW / 2, viewH * 0.22, 'Your confidence hit zero...', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '18px',
-        color: '#d1d5db',
-      });
-      subtitle.setOrigin(0.5);
-      subtitle.setScrollFactor(0);
-      subtitle.setDepth(200);
+    // Clean up raise tap timer
+    if (this.raiseTapTimer) {
+      this.raiseTapTimer.destroy();
+      this.raiseTapTimer = null;
     }
 
-    // Final score
-    const scoreLabel = this.add.text(viewW / 2, viewH * 0.30, `Final Score: ${state.score}`, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '36px',
-      fontStyle: 'bold',
-      color: '#fbbf24',
-      stroke: '#000000',
-      strokeThickness: 3,
-    });
-    scoreLabel.setOrigin(0.5);
-    scoreLabel.setScrollFactor(0);
-    scoreLabel.setDepth(200);
+    // Store final game state snapshot in registry for ScoreScene
+    this.registry.set('finalGameState', { ...state, reactions: { ...state.reactions } });
 
-    // Stats
-    const statsLines = [
-      `Cars Reached: ${state.carsReached}`,
-      `Cars Missed: ${state.carsMissed}`,
-      `Peak Confidence: --`,
-      ``,
-      `Reactions:`,
-    ];
-
-    for (const rt of REACTION_TYPES) {
-      const count = (state.reactions as unknown as Record<string, number>)[rt.id] || 0;
-      if (count > 0) {
-        statsLines.push(`  ${rt.emoji} ${rt.label}: ${count}`);
-      }
-    }
-
-    const statsText = this.add.text(viewW / 2, viewH * 0.40, statsLines.join('\n'), {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '18px',
-      color: '#d1d5db',
-      align: 'center',
-      lineSpacing: 4,
-    });
-    statsText.setOrigin(0.5, 0);
-    statsText.setScrollFactor(0);
-    statsText.setDepth(200);
-
-    // Play Again button
-    const btnBg = this.add.rectangle(viewW / 2, viewH * 0.85, 220, 56, 0x3b82f6);
-    btnBg.setStrokeStyle(2, 0xffffff, 0.5);
-    btnBg.setScrollFactor(0);
-    btnBg.setDepth(200);
-    btnBg.setInteractive({ useHandCursor: true });
-
-    const btnText = this.add.text(viewW / 2, viewH * 0.85, 'Play Again', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-    });
-    btnText.setOrigin(0.5);
-    btnText.setScrollFactor(0);
-    btnText.setDepth(201);
-
-    btnBg.on('pointerover', () => btnBg.setFillStyle(0x2563eb));
-    btnBg.on('pointerout', () => btnBg.setFillStyle(0x3b82f6));
-    btnBg.on('pointerdown', () => {
-      this.scene.start('SignCraftScene');
+    // Brief delay to let the moment land, then transition to ScoreScene
+    this.time.delayedCall(800, () => {
+      this.scene.start('ScoreScene');
     });
   }
 

@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** The traffic light learning mechanic turns "hold a sign" into a real game with a skill ceiling.
-**Current focus:** Phase 6 — Score & End Screens
+**Current focus:** Phase 7 — Landing Page, Polish & Deploy
 
 ## Current Position
 
-Phase: 6 of 7 (Score & End Screens)
+Phase: 7 of 7 (Landing Page, Polish & Deploy)
 Plan: 0 of 3 in current phase
-Status: Phase 5 complete, ready to plan Phase 6
-Last activity: 2026-02-14 — Phase 5 executed (all 3 plans complete)
+Status: Phase 6 complete, ready to plan Phase 7
+Last activity: 2026-02-14 — Phase 6 executed (all 3 plans complete)
 
-Progress: [███████░░░] 71% (5 of 7 phases)
+Progress: [████████░░] 86% (6 of 7 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 15
 - Average duration: ~1 session
-- Total execution time: 5 sessions
+- Total execution time: 6 sessions
 
 **By Phase:**
 
@@ -32,9 +32,10 @@ Progress: [███████░░░] 71% (5 of 7 phases)
 | 3. Sign Crafting | 2/2 | 1 session | ~0.5 session |
 | 4. Game Systems | 2/2 | 1 session | ~0.5 session |
 | 5. Event System | 3/3 | 1 session | ~0.33 session |
+| 6. Score & End Screens | 3/3 | 1 session | ~0.33 session |
 
 **Recent Trend:**
-- Last 5 plans: 04-01, 04-02, 05-01, 05-02, 05-03
+- Last 5 plans: 05-02, 05-03, 06-01, 06-02, 06-03
 - Trend: Fast (feature phase)
 
 *Updated after each plan completion*
@@ -113,6 +114,25 @@ Recent decisions affecting current work:
 - [Phase 5]: Events overlay on gameplay: traffic continues, only cop check has interactive dialogue
 - [Phase 5]: GameState extended: weatherState, signDegradation, eventsTriggered
 - [Phase 5]: DifficultyConfig eventFrequencyMultiplier / eventIntensityMultiplier / weatherDurabilityMultiplier already pre-wired
+- [Phase 6]: ScoreScene as dedicated scene (replaces inline overlay), receives state via registry
+- [Phase 6]: scoreConfig.ts: score grades (S/A/B/C/D/F), sign rating labels, time formatting
+- [Phase 6]: Score screen features player's sign message with material-styled sign visual
+- [Phase 6]: Score screen stats: cars reached, cars missed, time stood, sign rating, final confidence
+- [Phase 6]: Score screen reaction breakdown with emoji + counts in 2-column grid
+- [Phase 6]: Score screen flow: IntersectionScene -> ScoreScene -> ActivismScene -> SignCraftScene
+- [Phase 6]: ActivismScene with staggered text reveal: "This was a game. This is also real."
+- [Phase 6]: Four resource links: ACLU Know Your Rights, Register to Vote, Find Your Reps, Protest Safety
+- [Phase 6]: Resource links open in new tab via window.open()
+- [Phase 6]: Raise sign mechanic fixed: tap support (auto-lower after 0.8s) + hold still works
+- [Phase 6]: Tap vs hold detection: <200ms = tap, >=200ms = hold
+- [Phase 6]: AudioSystem with procedural Web Audio API sounds (no asset files)
+- [Phase 6]: Reaction sounds: honk (square 400Hz), wave (chime 800Hz), bananas (crowd noise), peace (ding 1000Hz)
+- [Phase 6]: Negative sounds: thumbsdown (buzz 150Hz), finger (angry horn 200Hz), yell (noise+low), coalroller (diesel rumble 80Hz)
+- [Phase 6]: Game event sounds: session start (fanfare), session end (wind-down), confidence zero (sad trombone)
+- [Phase 6]: Raise sign whoosh + deflect shield clang sounds
+- [Phase 6]: Mute toggle button in gameplay UI (top center)
+- [Phase 6]: AudioContext lazy init on first user gesture (mobile requirement)
+- [Phase 6]: AudioSystem persists across scenes via Phaser registry
 
 ### Pending Todos
 
@@ -125,5 +145,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Phase 5 complete. Phase 6 ready to plan.
+Stopped at: Phase 6 complete. Phase 7 ready to plan.
 Resume file: None
