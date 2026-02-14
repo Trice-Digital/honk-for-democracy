@@ -13,6 +13,7 @@
  */
 
 import { Canvas, FabricText, FabricImage } from 'fabric';
+import { generateMaterialTexture } from './signMaterials';
 
 export interface SignEditorOptions {
   container: HTMLElement;
@@ -167,6 +168,19 @@ export class SignEditor {
     this.textObject.set('fill', color);
     this.canvas.renderAll();
     this.notifyChange();
+  }
+
+  /**
+   * Set material background by material ID.
+   * Generates procedural texture and sets as canvas background.
+   */
+  public async setMaterialById(materialId: string): Promise<void> {
+    const materialCanvas = generateMaterialTexture(
+      materialId,
+      this.canvas.width!,
+      this.canvas.height!,
+    );
+    return this.setMaterial(materialCanvas);
   }
 
   /**

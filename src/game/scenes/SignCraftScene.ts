@@ -1,459 +1,521 @@
 import Phaser from 'phaser';
 import {
   SIGN_MATERIALS,
+  SIGN_FONTS,
+  SIGN_COLORS,
   type SignMaterial,
   type SignData,
   setSignData,
   scoreMessageQuality,
 } from '../config/signConfig';
+import { SignEditor } from '../../lib/signEditor';
+import { generateMaterialTexture } from '../../lib/signMaterials';
 
 /**
- * SignCraftScene — Pre-game creative expression scene.
+ * SignCraftScene — Fabric.js sign creator (M2 Phase 8).
  *
- * Player picks a sign material, types a custom message,
- * sees a preview, then launches into IntersectionScene.
- * Sign data is stored in Phaser registry for cross-scene access.
+ * Mounts a DOM overlay with:
+ * - Full-screen Fabric.js canvas for sign editing
+ * - Material picker (4 material thumbnails)
+ * - Font picker (4 font buttons)
+ * - Color picker (7 color swatches)
+ * - Text input field (HTML input for native keyboard)
+ * - "START PROTESTING" button (exports sign and transitions to gameplay)
+ *
+ * Architecture:
+ * - Fabric.js lives in DOM overlay OVER the Phaser canvas
+ * - Phaser never touches Fabric.js; Fabric.js never touches Phaser
+ * - Bridge: PNG data URL stored in SignData via Phaser registry
  */
 export class SignCraftScene extends Phaser.Scene {
+  // DOM elements
+  private overlayContainer: HTMLDivElement | null = null;
+  private signEditor: SignEditor | null = null;
+  private textInput: HTMLInputElement | null = null;
+
   // State
   private selectedMaterial: SignMaterial = SIGN_MATERIALS[0];
+  private selectedFont: string = SIGN_FONTS[0];
+  private selectedColor: string = SIGN_COLORS[0];
   private signMessage: string = '';
-
-  // UI elements
-  private materialButtons: Phaser.GameObjects.Container[] = [];
-  private previewBoard!: Phaser.GameObjects.Rectangle;
-  private previewStroke!: Phaser.GameObjects.Rectangle;
-  private previewText!: Phaser.GameObjects.Text;
-  private previewStick!: Phaser.GameObjects.Rectangle;
-  private qualityText!: Phaser.GameObjects.Text;
-  private startButton!: Phaser.GameObjects.Container;
-  private messagePromptText!: Phaser.GameObjects.Text;
-
-  // DOM input
-  private inputElement: HTMLInputElement | null = null;
 
   constructor() {
     super({ key: 'SignCraftScene' });
   }
 
   create(): void {
-    const { width, height } = this.scale;
-    const cx = width / 2;
-
-    // Background
+    // Set Phaser background (will be hidden by overlay)
     this.cameras.main.setBackgroundColor('#1a1a2e');
 
-    // ============================================================
-    // TITLE
-    // ============================================================
+    // Mount DOM overlay with Fabric.js editor
+    this.mountFabricOverlay();
 
-    this.add
-      .text(cx, 50, 'CRAFT YOUR SIGN', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '40px',
-        fontStyle: 'bold',
-        color: '#ffffff',
-        align: 'center',
-      })
-      .setOrigin(0.5, 0);
-
-    this.add
-      .text(cx, 100, 'Pick your material and write your message', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '18px',
-        color: '#8892a4',
-        align: 'center',
-      })
-      .setOrigin(0.5, 0);
-
-    // ============================================================
-    // MATERIAL PICKER
-    // ============================================================
-
-    this.add
-      .text(cx, 150, 'MATERIAL', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '16px',
-        fontStyle: 'bold',
-        color: '#6b7280',
-        letterSpacing: 4,
-      })
-      .setOrigin(0.5, 0);
-
-    const materialStartY = 185;
-    const materialHeight = 80;
-    const materialGap = 12;
-
-    SIGN_MATERIALS.forEach((material, index) => {
-      const y = materialStartY + index * (materialHeight + materialGap);
-      const btn = this.createMaterialButton(cx, y, material, index === 0);
-      this.materialButtons.push(btn);
-    });
-
-    // ============================================================
-    // MESSAGE INPUT
-    // ============================================================
-
-    const inputY = materialStartY + 3 * (materialHeight + materialGap) + 20;
-
-    this.add
-      .text(cx, inputY, 'YOUR MESSAGE', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '16px',
-        fontStyle: 'bold',
-        color: '#6b7280',
-        letterSpacing: 4,
-      })
-      .setOrigin(0.5, 0);
-
-    this.messagePromptText = this.add
-      .text(cx, inputY + 30, 'Tap here to type your message', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '20px',
-        color: '#4b5563',
-        align: 'center',
-      })
-      .setOrigin(0.5, 0);
-
-    // Input background (tappable area)
-    const inputBg = this.add.rectangle(cx, inputY + 55, width - 80, 50, 0x2a2a4a);
-    inputBg.setStrokeStyle(2, 0x3b82f6, 0.5);
-    inputBg.setInteractive({ useHandCursor: true });
-
-    // The typed message display (shown on canvas, mirrors DOM input)
-    const messageDisplay = this.add
-      .text(cx, inputY + 55, '', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '22px',
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: width - 100 },
-      })
-      .setOrigin(0.5);
-
-    // Create hidden DOM input for native keyboard support
-    this.createDOMInput(inputBg, messageDisplay);
-
-    inputBg.on('pointerdown', () => {
-      if (this.inputElement) {
-        this.inputElement.focus();
-      }
-    });
-
-    // ============================================================
-    // SIGN PREVIEW
-    // ============================================================
-
-    const previewY = inputY + 120;
-
-    this.add
-      .text(cx, previewY, 'PREVIEW', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '16px',
-        fontStyle: 'bold',
-        color: '#6b7280',
-        letterSpacing: 4,
-      })
-      .setOrigin(0.5, 0);
-
-    const signCenterY = previewY + 100;
-
-    // Sign stick
-    this.previewStick = this.add.rectangle(cx, signCenterY + 60, 6, 80, 0x92400e);
-
-    // Sign board (outer stroke)
-    this.previewStroke = this.add.rectangle(cx, signCenterY, 280, 120, this.selectedMaterial.strokeColor);
-
-    // Sign board (inner fill)
-    this.previewBoard = this.add.rectangle(cx, signCenterY, 274, 114, this.selectedMaterial.boardColor);
-
-    // Sign text
-    this.previewText = this.add.text(cx, signCenterY, 'Your message here...', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: this.selectedMaterial.textColor,
-      align: 'center',
-      wordWrap: { width: 250 },
-    });
-    this.previewText.setOrigin(0.5);
-
-    // Quality indicator
-    this.qualityText = this.add.text(cx, signCenterY + 75, '', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '14px',
-      color: '#6b7280',
-      align: 'center',
-    });
-    this.qualityText.setOrigin(0.5, 0);
-
-    // ============================================================
-    // START BUTTON
-    // ============================================================
-
-    const buttonY = Math.min(signCenterY + 160, height - 80);
-
-    this.startButton = this.createStartButton(cx, buttonY);
-
-    // ============================================================
-    // HANDLE RESIZE
-    // ============================================================
-
-    this.scale.on('resize', () => {
-      // Reposition DOM input if it exists
-      this.repositionDOMInput();
-    });
-
-    // Prevent context menu
-    this.input.mouse?.disableContextMenu();
-
-    console.log('[HFD] SignCraftScene created. Phase 3 sign crafting active.');
+    console.log('[HFD] SignCraftScene created. Fabric.js sign editor mounted.');
   }
 
   shutdown(): void {
-    // Clean up DOM input when leaving scene
-    if (this.inputElement) {
-      this.inputElement.remove();
-      this.inputElement = null;
-    }
+    this.cleanupOverlay();
   }
 
   // ============================================================
-  // MATERIAL BUTTON
+  // DOM OVERLAY CREATION
   // ============================================================
 
-  private createMaterialButton(
-    x: number,
-    y: number,
-    material: SignMaterial,
-    selected: boolean,
-  ): Phaser.GameObjects.Container {
-    const container = this.add.container(x, y);
-    const { width } = this.scale;
-    const btnWidth = width - 80;
-    const btnHeight = 72;
+  private mountFabricOverlay(): void {
+    const canvas = this.game.canvas;
+    const parent = canvas.parentElement ?? document.body;
 
-    // Background
-    const bg = this.add.rectangle(0, 0, btnWidth, btnHeight, selected ? 0x1e3a5f : 0x2a2a4a);
-    bg.setStrokeStyle(2, selected ? 0x3b82f6 : 0x4b5563, selected ? 1 : 0.5);
+    // Create full-screen overlay container
+    const container = document.createElement('div');
+    container.id = 'sign-editor-overlay';
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.backgroundColor = '#1a1a2e';
+    container.style.zIndex = '1000';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.alignItems = 'center';
+    container.style.padding = '20px';
+    container.style.boxSizing = 'border-box';
+    container.style.overflow = 'auto';
+    container.style.fontFamily = 'system-ui, sans-serif';
 
-    // Material color swatch
-    const swatch = this.add.rectangle(-btnWidth / 2 + 30, 0, 32, 32, material.boardColor);
-    swatch.setStrokeStyle(2, material.strokeColor);
+    // Title
+    const title = document.createElement('h1');
+    title.textContent = 'CRAFT YOUR SIGN';
+    title.style.color = '#ffffff';
+    title.style.fontSize = '32px';
+    title.style.fontWeight = 'bold';
+    title.style.margin = '0 0 8px 0';
+    title.style.textAlign = 'center';
+    container.appendChild(title);
 
-    // Material name
-    const nameText = this.add.text(-btnWidth / 2 + 60, -14, material.label, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '20px',
-      fontStyle: 'bold',
-      color: '#ffffff',
+    const subtitle = document.createElement('p');
+    subtitle.textContent = 'Pick your material, font, and color';
+    subtitle.style.color = '#8892a4';
+    subtitle.style.fontSize = '16px';
+    subtitle.style.margin = '0 0 20px 0';
+    subtitle.style.textAlign = 'center';
+    container.appendChild(subtitle);
+
+    // Material picker
+    const materialSection = this.createMaterialPicker();
+    container.appendChild(materialSection);
+
+    // Text input
+    const inputSection = this.createTextInput();
+    container.appendChild(inputSection);
+
+    // Sign canvas (Fabric.js)
+    const canvasContainer = document.createElement('div');
+    canvasContainer.style.margin = '20px 0';
+    canvasContainer.style.position = 'relative';
+    container.appendChild(canvasContainer);
+
+    // Create SignEditor instance
+    const editorWidth = Math.min(600, window.innerWidth - 40);
+    const editorHeight = Math.min(400, (window.innerHeight * 0.4));
+
+    this.signEditor = new SignEditor({
+      container: canvasContainer,
+      width: editorWidth,
+      height: editorHeight,
     });
 
-    // Description
-    const descText = this.add.text(-btnWidth / 2 + 60, 10, material.description, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '14px',
-      color: '#9ca3af',
+    // Set initial material
+    this.signEditor.setMaterialById(this.selectedMaterial.id);
+
+    // Font picker
+    const fontSection = this.createFontPicker();
+    container.appendChild(fontSection);
+
+    // Color picker
+    const colorSection = this.createColorPicker();
+    container.appendChild(colorSection);
+
+    // Start button
+    const startButton = this.createStartButton();
+    container.appendChild(startButton);
+
+    // Append to parent
+    parent.appendChild(container);
+    this.overlayContainer = container;
+  }
+
+  // ============================================================
+  // MATERIAL PICKER
+  // ============================================================
+
+  private createMaterialPicker(): HTMLElement {
+    const section = document.createElement('div');
+    section.style.marginBottom = '16px';
+    section.style.width = '100%';
+    section.style.maxWidth = '600px';
+
+    const label = document.createElement('div');
+    label.textContent = 'MATERIAL';
+    label.style.color = '#6b7280';
+    label.style.fontSize = '14px';
+    label.style.fontWeight = 'bold';
+    label.style.letterSpacing = '2px';
+    label.style.marginBottom = '8px';
+    label.style.textAlign = 'center';
+    section.appendChild(label);
+
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.gap = '8px';
+    row.style.justifyContent = 'center';
+    row.style.flexWrap = 'wrap';
+
+    SIGN_MATERIALS.forEach((material, index) => {
+      const btn = this.createMaterialButton(material, index === 0);
+      row.appendChild(btn);
     });
 
-    // Style label (right side)
-    const styleText = this.add.text(btnWidth / 2 - 16, 0, material.styleLabel, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '13px',
-      color: selected ? '#60a5fa' : '#6b7280',
-      align: 'right',
+    section.appendChild(row);
+    return section;
+  }
+
+  private createMaterialButton(material: SignMaterial, selected: boolean): HTMLElement {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.width = '120px';
+    btn.style.height = '80px';
+    btn.style.border = selected ? '3px solid #3b82f6' : '2px solid #4b5563';
+    btn.style.borderRadius = '8px';
+    btn.style.backgroundColor = '#2a2a4a';
+    btn.style.cursor = 'pointer';
+    btn.style.padding = '8px';
+    btn.style.display = 'flex';
+    btn.style.flexDirection = 'column';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+    btn.style.transition = 'all 0.2s';
+    btn.dataset.materialId = material.id;
+
+    // Material thumbnail (small canvas preview)
+    const thumbnail = generateMaterialTexture(material.id, 60, 40);
+    thumbnail.style.borderRadius = '4px';
+    thumbnail.style.marginBottom = '4px';
+    btn.appendChild(thumbnail);
+
+    const name = document.createElement('div');
+    name.textContent = material.label;
+    name.style.color = '#ffffff';
+    name.style.fontSize = '12px';
+    name.style.fontWeight = 'bold';
+    name.style.textAlign = 'center';
+    btn.appendChild(name);
+
+    btn.addEventListener('click', () => this.selectMaterial(material));
+
+    btn.addEventListener('mouseenter', () => {
+      if (!selected) {
+        btn.style.borderColor = '#60a5fa';
+      }
     });
-    styleText.setOrigin(1, 0.5);
 
-    container.add([bg, swatch, nameText, descText, styleText]);
-
-    // Make interactive
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerdown', () => {
-      this.selectMaterial(material);
+    btn.addEventListener('mouseleave', () => {
+      if (!selected) {
+        btn.style.borderColor = '#4b5563';
+      }
     });
 
-    // Store refs for updating selection state
-    (container as any)._bg = bg;
-    (container as any)._styleText = styleText;
-    (container as any)._materialId = material.id;
-
-    return container;
+    return btn;
   }
 
   private selectMaterial(material: SignMaterial): void {
     this.selectedMaterial = material;
 
-    // Update button visuals
-    for (const btn of this.materialButtons) {
-      const isSelected = (btn as any)._materialId === material.id;
-      const bg = (btn as any)._bg as Phaser.GameObjects.Rectangle;
-      const styleText = (btn as any)._styleText as Phaser.GameObjects.Text;
+    // Update button styles
+    const buttons = this.overlayContainer?.querySelectorAll('[data-material-id]');
+    buttons?.forEach((btn) => {
+      const isSelected = (btn as HTMLElement).dataset.materialId === material.id;
+      (btn as HTMLElement).style.border = isSelected ? '3px solid #3b82f6' : '2px solid #4b5563';
+    });
 
-      bg.setFillStyle(isSelected ? 0x1e3a5f : 0x2a2a4a);
-      bg.setStrokeStyle(2, isSelected ? 0x3b82f6 : 0x4b5563, isSelected ? 1 : 0.5);
-      styleText.setColor(isSelected ? '#60a5fa' : '#6b7280');
+    // Update canvas background
+    if (this.signEditor) {
+      this.signEditor.setMaterialById(material.id);
     }
-
-    // Update preview
-    this.updatePreview();
   }
 
   // ============================================================
-  // DOM INPUT
+  // TEXT INPUT
   // ============================================================
 
-  private createDOMInput(
-    inputBg: Phaser.GameObjects.Rectangle,
-    messageDisplay: Phaser.GameObjects.Text,
-  ): void {
-    // Create a hidden input element overlaid on the canvas
+  private createTextInput(): HTMLElement {
+    const section = document.createElement('div');
+    section.style.marginBottom = '16px';
+    section.style.width = '100%';
+    section.style.maxWidth = '600px';
+
+    const label = document.createElement('div');
+    label.textContent = 'YOUR MESSAGE';
+    label.style.color = '#6b7280';
+    label.style.fontSize = '14px';
+    label.style.fontWeight = 'bold';
+    label.style.letterSpacing = '2px';
+    label.style.marginBottom = '8px';
+    label.style.textAlign = 'center';
+    section.appendChild(label);
+
     const input = document.createElement('input');
     input.type = 'text';
     input.maxLength = 60;
     input.placeholder = 'Type your protest message...';
     input.autocomplete = 'off';
     input.autocapitalize = 'characters';
-
-    // Style to be invisible but functional
-    input.style.position = 'absolute';
-    input.style.opacity = '0';
-    input.style.fontSize = '22px';
-    input.style.width = '1px';
-    input.style.height = '1px';
-    input.style.border = 'none';
+    input.style.width = '100%';
+    input.style.padding = '12px';
+    input.style.fontSize = '18px';
+    input.style.color = '#ffffff';
+    input.style.backgroundColor = '#2a2a4a';
+    input.style.border = '2px solid #3b82f6';
+    input.style.borderRadius = '8px';
     input.style.outline = 'none';
-    input.style.background = 'transparent';
-    input.style.color = 'transparent';
-    input.style.caretColor = 'transparent';
-    // Position off-screen but still focusable
-    input.style.left = '-9999px';
-    input.style.top = '0';
+    input.style.fontFamily = 'system-ui, sans-serif';
+    input.style.textAlign = 'center';
+    input.style.boxSizing = 'border-box';
 
-    // Find the game canvas parent and append
-    const canvas = this.game.canvas;
-    const parent = canvas.parentElement ?? document.body;
-    parent.style.position = 'relative';
-    parent.appendChild(input);
-
-    this.inputElement = input;
-
-    // Sync input to display
     input.addEventListener('input', () => {
       this.signMessage = input.value;
-      const displayMsg = this.signMessage || '';
-
-      messageDisplay.setText(displayMsg);
-
-      // Update prompt visibility
-      if (displayMsg.length > 0) {
-        this.messagePromptText.setVisible(false);
-      } else {
-        this.messagePromptText.setVisible(true);
+      if (this.signEditor) {
+        this.signEditor.setText(this.signMessage);
       }
-
-      this.updatePreview();
     });
 
-    // Show visual focus state
     input.addEventListener('focus', () => {
-      inputBg.setStrokeStyle(2, 0x3b82f6, 1);
-      if (this.signMessage.length === 0) {
-        this.messagePromptText.setText('Type your message...');
-        this.messagePromptText.setColor('#60a5fa');
-      }
+      input.style.borderColor = '#60a5fa';
     });
 
     input.addEventListener('blur', () => {
-      inputBg.setStrokeStyle(2, 0x3b82f6, 0.5);
-      if (this.signMessage.length === 0) {
-        this.messagePromptText.setText('Tap here to type your message');
-        this.messagePromptText.setColor('#4b5563');
-        this.messagePromptText.setVisible(true);
+      input.style.borderColor = '#3b82f6';
+    });
+
+    section.appendChild(input);
+    this.textInput = input;
+
+    return section;
+  }
+
+  // ============================================================
+  // FONT PICKER
+  // ============================================================
+
+  private createFontPicker(): HTMLElement {
+    const section = document.createElement('div');
+    section.style.marginBottom = '16px';
+    section.style.width = '100%';
+    section.style.maxWidth = '600px';
+
+    const label = document.createElement('div');
+    label.textContent = 'FONT';
+    label.style.color = '#6b7280';
+    label.style.fontSize = '14px';
+    label.style.fontWeight = 'bold';
+    label.style.letterSpacing = '2px';
+    label.style.marginBottom = '8px';
+    label.style.textAlign = 'center';
+    section.appendChild(label);
+
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.gap = '8px';
+    row.style.justifyContent = 'center';
+    row.style.flexWrap = 'wrap';
+
+    SIGN_FONTS.forEach((font, index) => {
+      const btn = this.createFontButton(font, index === 0);
+      row.appendChild(btn);
+    });
+
+    section.appendChild(row);
+    return section;
+  }
+
+  private createFontButton(font: string, selected: boolean): HTMLElement {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = font.replace(/\s/g, '\n');
+    btn.style.minWidth = '120px';
+    btn.style.padding = '12px 16px';
+    btn.style.border = selected ? '3px solid #3b82f6' : '2px solid #4b5563';
+    btn.style.borderRadius = '8px';
+    btn.style.backgroundColor = '#2a2a4a';
+    btn.style.color = '#ffffff';
+    btn.style.fontSize = '14px';
+    btn.style.fontFamily = font;
+    btn.style.cursor = 'pointer';
+    btn.style.transition = 'all 0.2s';
+    btn.style.whiteSpace = 'pre-line';
+    btn.style.lineHeight = '1.2';
+    btn.dataset.font = font;
+
+    btn.addEventListener('click', () => this.selectFont(font));
+
+    btn.addEventListener('mouseenter', () => {
+      if (!selected) {
+        btn.style.borderColor = '#60a5fa';
       }
     });
+
+    btn.addEventListener('mouseleave', () => {
+      if (!selected) {
+        btn.style.borderColor = '#4b5563';
+      }
+    });
+
+    return btn;
   }
 
-  private repositionDOMInput(): void {
-    // DOM input stays off-screen; no repositioning needed
-  }
+  private selectFont(font: string): void {
+    this.selectedFont = font;
 
-  // ============================================================
-  // PREVIEW
-  // ============================================================
+    // Update button styles
+    const buttons = this.overlayContainer?.querySelectorAll('[data-font]');
+    buttons?.forEach((btn) => {
+      const isSelected = (btn as HTMLElement).dataset.font === font;
+      (btn as HTMLElement).style.border = isSelected ? '3px solid #3b82f6' : '2px solid #4b5563';
+    });
 
-  private updatePreview(): void {
-    const material = this.selectedMaterial;
-
-    // Update board colors
-    this.previewBoard.setFillStyle(material.boardColor);
-    this.previewStroke.setFillStyle(material.strokeColor);
-
-    // Update text
-    const message = this.signMessage.trim() || 'Your message here...';
-    this.previewText.setText(message);
-    this.previewText.setColor(material.textColor);
-
-    // Auto-size font based on message length
-    if (message.length > 30) {
-      this.previewText.setFontSize(16);
-    } else if (message.length > 20) {
-      this.previewText.setFontSize(20);
-    } else {
-      this.previewText.setFontSize(24);
-    }
-
-    // Quality score
-    if (this.signMessage.trim().length > 0) {
-      const quality = scoreMessageQuality(this.signMessage);
-      const qualityLabel = this.getQualityLabel(quality);
-      this.qualityText.setText(`Sign Rating: ${qualityLabel}`);
-      this.qualityText.setVisible(true);
-    } else {
-      this.qualityText.setVisible(false);
+    // Update canvas text font
+    if (this.signEditor) {
+      this.signEditor.setFont(font);
     }
   }
 
-  private getQualityLabel(score: number): string {
-    if (score >= 0.8) return '★★★ POWERFUL';
-    if (score >= 0.6) return '★★☆ STRONG';
-    if (score >= 0.4) return '★☆☆ DECENT';
-    return '☆☆☆ BASIC';
+  // ============================================================
+  // COLOR PICKER
+  // ============================================================
+
+  private createColorPicker(): HTMLElement {
+    const section = document.createElement('div');
+    section.style.marginBottom = '24px';
+    section.style.width = '100%';
+    section.style.maxWidth = '600px';
+
+    const label = document.createElement('div');
+    label.textContent = 'COLOR';
+    label.style.color = '#6b7280';
+    label.style.fontSize = '14px';
+    label.style.fontWeight = 'bold';
+    label.style.letterSpacing = '2px';
+    label.style.marginBottom = '8px';
+    label.style.textAlign = 'center';
+    section.appendChild(label);
+
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.gap = '12px';
+    row.style.justifyContent = 'center';
+    row.style.flexWrap = 'wrap';
+
+    SIGN_COLORS.forEach((color, index) => {
+      const btn = this.createColorButton(color, index === 0);
+      row.appendChild(btn);
+    });
+
+    section.appendChild(row);
+    return section;
+  }
+
+  private createColorButton(color: string, selected: boolean): HTMLElement {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.width = '48px';
+    btn.style.height = '48px';
+    btn.style.borderRadius = '50%';
+    btn.style.backgroundColor = color;
+    btn.style.border = selected ? '4px solid #3b82f6' : '3px solid #4b5563';
+    btn.style.cursor = 'pointer';
+    btn.style.transition = 'all 0.2s';
+    btn.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.3)';
+    btn.dataset.color = color;
+
+    btn.addEventListener('click', () => this.selectColor(color));
+
+    btn.addEventListener('mouseenter', () => {
+      btn.style.transform = 'scale(1.1)';
+    });
+
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = 'scale(1)';
+    });
+
+    return btn;
+  }
+
+  private selectColor(color: string): void {
+    this.selectedColor = color;
+
+    // Update button styles
+    const buttons = this.overlayContainer?.querySelectorAll('[data-color]');
+    buttons?.forEach((btn) => {
+      const isSelected = (btn as HTMLElement).dataset.color === color;
+      (btn as HTMLElement).style.border = isSelected ? '4px solid #3b82f6' : '3px solid #4b5563';
+    });
+
+    // Update canvas text color
+    if (this.signEditor) {
+      this.signEditor.setTextColor(color);
+    }
   }
 
   // ============================================================
   // START BUTTON
   // ============================================================
 
-  private createStartButton(x: number, y: number): Phaser.GameObjects.Container {
-    const container = this.add.container(x, y);
+  private createStartButton(): HTMLElement {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'START PROTESTING';
+    btn.style.width = '100%';
+    btn.style.maxWidth = '400px';
+    btn.style.padding = '16px 32px';
+    btn.style.fontSize = '22px';
+    btn.style.fontWeight = 'bold';
+    btn.style.color = '#ffffff';
+    btn.style.backgroundColor = '#22c55e';
+    btn.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+    btn.style.borderRadius = '12px';
+    btn.style.cursor = 'pointer';
+    btn.style.transition = 'all 0.2s';
+    btn.style.fontFamily = 'system-ui, sans-serif';
+    btn.style.marginTop = '8px';
 
-    const bg = this.add.rectangle(0, 0, 280, 60, 0x22c55e);
-    bg.setStrokeStyle(2, 0xffffff, 0.3);
+    btn.addEventListener('click', () => this.launchGame());
 
-    const text = this.add.text(0, 0, 'START PROTESTING', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '22px',
-      fontStyle: 'bold',
-      color: '#ffffff',
+    btn.addEventListener('mouseenter', () => {
+      btn.style.backgroundColor = '#16a34a';
+      btn.style.transform = 'scale(1.02)';
     });
-    text.setOrigin(0.5);
 
-    container.add([bg, text]);
-
-    bg.setInteractive({ useHandCursor: true });
-
-    bg.on('pointerover', () => bg.setFillStyle(0x16a34a));
-    bg.on('pointerout', () => bg.setFillStyle(0x22c55e));
-
-    bg.on('pointerdown', () => {
-      this.launchGame();
+    btn.addEventListener('mouseleave', () => {
+      btn.style.backgroundColor = '#22c55e';
+      btn.style.transform = 'scale(1)';
     });
 
-    return container;
+    return btn;
   }
 
+  // ============================================================
+  // EXPORT & TRANSITION
+  // ============================================================
+
   private launchGame(): void {
+    if (!this.signEditor) {
+      console.error('[SignCraftScene] SignEditor not initialized');
+      return;
+    }
+
+    // Export Fabric.js canvas to PNG data URL
+    const signImageDataUrl = this.signEditor.exportToPNG();
+
     // Build sign data
     const message = this.signMessage.trim() || 'HONK!';
     const qualityScore = scoreMessageQuality(message);
@@ -462,18 +524,45 @@ export class SignCraftScene extends Phaser.Scene {
       material: this.selectedMaterial,
       message,
       qualityScore,
+      fontFamily: this.selectedFont,
+      textColor: this.selectedColor,
+      decorations: [],
+      signImageDataUrl,
     };
 
-    // Store in registry for IntersectionScene to read
+    // Store in Phaser registry
     setSignData(this, signData);
 
-    // Clean up DOM input
-    if (this.inputElement) {
-      this.inputElement.remove();
-      this.inputElement = null;
-    }
+    console.log('[SignCraftScene] Sign exported:', {
+      message,
+      material: this.selectedMaterial.id,
+      font: this.selectedFont,
+      color: this.selectedColor,
+      dataUrlLength: signImageDataUrl.length,
+    });
+
+    // Clean up overlay
+    this.cleanupOverlay();
 
     // Transition to gameplay
     this.scene.start('IntersectionScene');
+  }
+
+  // ============================================================
+  // CLEANUP
+  // ============================================================
+
+  private cleanupOverlay(): void {
+    if (this.signEditor) {
+      this.signEditor.destroy();
+      this.signEditor = null;
+    }
+
+    if (this.overlayContainer) {
+      this.overlayContainer.remove();
+      this.overlayContainer = null;
+    }
+
+    this.textInput = null;
   }
 }
