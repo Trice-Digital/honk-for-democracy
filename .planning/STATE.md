@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 
 ## Current Position
 
-Phase: 8 of 12 (Sign Creator) — complete
-Plan: 1 of 1 completed
-Status: Phase 8 complete (Fabric.js sign editor with procedural textures)
-Last activity: 2026-02-14 — Phase 08-01 executed (5 min, 2 tasks, 7 files)
+Phase: 8 of 12 (Sign Creator) — in progress
+Plan: 2 of 3 completed
+Status: Phase 8 in progress (decorations system complete)
+Last activity: 2026-02-14 — Phase 08-02 executed (2 min, 2 tasks, 2 files)
 
 ## Performance Metrics
 
@@ -35,6 +35,7 @@ Last activity: 2026-02-14 — Phase 08-01 executed (5 min, 2 tasks, 7 files)
 
 *Updated after each plan completion*
 | Phase 08-sign-creator P01 | 5 min | 2 tasks | 7 files |
+| Phase 08-sign-creator P02 | 2 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,10 @@ Recent decisions affecting current work:
 - [M2-P8-01]: Procedural material textures via canvas drawing (grain, knots, dots) not image assets
 - [M2-P8-01]: 4 fonts (Permanent Marker, Impact, Courier New, Comic Sans MS) for protest aesthetics
 - [M2-P8-01]: 7 colors (Black, Red, Blue, White, Green, Purple, Gold) matching marker/paint palette
+- [M2-P8-02]: 14 SVG decorations (6 stickers, 3 tape, 5 drawn) inline as template strings, no external files
+- [M2-P8-02]: Decorations loaded via data URLs as Fabric.js FabricImage objects, draggable/resizable
+- [M2-P8-02]: Text object protected from deletion via data.isTextObject flag
+- [M2-P8-02]: Rotation disabled (lockRotation: true), mobile-friendly handles (cornerSize: 20, touchCornerSize: 40)
 
 ### Pending Todos
 
@@ -78,6 +83,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Phase 08-01 complete (Fabric.js sign editor)
+Stopped at: Phase 08-02 complete (decorations system)
 Resume file: None
-Next action: /gsd:plan-phase 9 (Visual UI Polish) or /gsd:verify-work
+Next action: Execute 08-03 or /gsd:verify-work
