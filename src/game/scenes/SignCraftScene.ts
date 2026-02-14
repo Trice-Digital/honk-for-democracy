@@ -10,6 +10,7 @@ import {
 } from '../config/signConfig';
 import { SignEditor } from '../../lib/signEditor';
 import { generateMaterialTexture } from '../../lib/signMaterials';
+import { DECORATIONS, getDecorationsByCategory } from '../../lib/signDecorations';
 
 /**
  * SignCraftScene — Fabric.js sign creator (M2 Phase 8).
@@ -32,12 +33,14 @@ export class SignCraftScene extends Phaser.Scene {
   private overlayContainer: HTMLDivElement | null = null;
   private signEditor: SignEditor | null = null;
   private textInput: HTMLInputElement | null = null;
+  private removeButton: HTMLButtonElement | null = null;
 
   // State
   private selectedMaterial: SignMaterial = SIGN_MATERIALS[0];
   private selectedFont: string = SIGN_FONTS[0];
   private selectedColor: string = SIGN_COLORS[0];
   private signMessage: string = '';
+  private selectedDecorationCategory: string = 'sticker';
 
   constructor() {
     super({ key: 'SignCraftScene' });
@@ -135,6 +138,10 @@ export class SignCraftScene extends Phaser.Scene {
     // Color picker
     const colorSection = this.createColorPicker();
     container.appendChild(colorSection);
+
+    // Decoration picker
+    const decorationSection = this.createDecorationPicker();
+    container.appendChild(decorationSection);
 
     // Start button
     const startButton = this.createStartButton();
@@ -467,6 +474,198 @@ export class SignCraftScene extends Phaser.Scene {
   }
 
   // ============================================================
+  // DECORATION PICKER
+  // ============================================================
+
+  private createDecorationPicker(): HTMLElement {
+    const section = document.createElement('div');
+    section.style.marginBottom = '24px';
+    section.style.width = '100%';
+    section.style.maxWidth = '600px';
+
+    const label = document.createElement('div');
+    label.textContent = 'DECORATIONS';
+    label.style.color = '#6b7280';
+    label.style.fontSize = '14px';
+    label.style.fontWeight = 'bold';
+    label.style.letterSpacing = '2px';
+    label.style.marginBottom = '8px';
+    label.style.textAlign = 'center';
+    section.appendChild(label);
+
+    // Category tabs
+    const tabRow = document.createElement('div');
+    tabRow.style.display = 'flex';
+    tabRow.style.gap = '4px';
+    tabRow.style.justifyContent = 'center';
+    tabRow.style.marginBottom = '12px';
+
+    const categories = [
+      { id: 'sticker', label: 'Stickers' },
+      { id: 'tape', label: 'Tape' },
+      { id: 'drawn', label: 'Drawn' },
+    ];
+
+    categories.forEach((cat, index) => {
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.textContent = cat.label;
+      tab.style.padding = '8px 16px';
+      tab.style.fontSize = '14px';
+      tab.style.fontWeight = 'bold';
+      tab.style.border = 'none';
+      tab.style.borderBottom = index === 0 ? '3px solid #3b82f6' : '2px solid transparent';
+      tab.style.backgroundColor = 'transparent';
+      tab.style.color = index === 0 ? '#3b82f6' : '#9ca3af';
+      tab.style.cursor = 'pointer';
+      tab.style.transition = 'all 0.2s';
+      tab.dataset.category = cat.id;
+
+      tab.addEventListener('click', () => this.selectDecorationCategory(cat.id));
+      tabRow.appendChild(tab);
+    });
+
+    section.appendChild(tabRow);
+
+    // Decoration grid container
+    const gridContainer = document.createElement('div');
+    gridContainer.id = 'decoration-grid';
+    gridContainer.style.display = 'flex';
+    gridContainer.style.gap = '8px';
+    gridContainer.style.justifyContent = 'center';
+    gridContainer.style.flexWrap = 'wrap';
+    gridContainer.style.maxWidth = '100%';
+    gridContainer.style.overflowX = 'auto';
+    section.appendChild(gridContainer);
+
+    // Remove Selected button
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'Remove Selected';
+    removeBtn.style.marginTop = '12px';
+    removeBtn.style.padding = '8px 16px';
+    removeBtn.style.fontSize = '14px';
+    removeBtn.style.fontWeight = 'bold';
+    removeBtn.style.color = '#ffffff';
+    removeBtn.style.backgroundColor = '#ef4444';
+    removeBtn.style.border = '2px solid #dc2626';
+    removeBtn.style.borderRadius = '8px';
+    removeBtn.style.cursor = 'pointer';
+    removeBtn.style.opacity = '0.5';
+    removeBtn.style.transition = 'all 0.2s';
+    removeBtn.disabled = true;
+
+    removeBtn.addEventListener('click', () => {
+      if (this.signEditor) {
+        this.signEditor.removeSelected();
+      }
+    });
+
+    // Enable/disable based on canvas selection
+    if (this.signEditor) {
+      this.signEditor.canvas.on('selection:created', () => {
+        const activeObj = this.signEditor!.canvas.getActiveObject();
+        const isDecoration = activeObj?.data && (activeObj.data as any).decorationId;
+        removeBtn.disabled = !isDecoration;
+        removeBtn.style.opacity = isDecoration ? '1' : '0.5';
+        removeBtn.style.cursor = isDecoration ? 'pointer' : 'not-allowed';
+      });
+
+      this.signEditor.canvas.on('selection:updated', () => {
+        const activeObj = this.signEditor!.canvas.getActiveObject();
+        const isDecoration = activeObj?.data && (activeObj.data as any).decorationId;
+        removeBtn.disabled = !isDecoration;
+        removeBtn.style.opacity = isDecoration ? '1' : '0.5';
+        removeBtn.style.cursor = isDecoration ? 'pointer' : 'not-allowed';
+      });
+
+      this.signEditor.canvas.on('selection:cleared', () => {
+        removeBtn.disabled = true;
+        removeBtn.style.opacity = '0.5';
+        removeBtn.style.cursor = 'not-allowed';
+      });
+    }
+
+    this.removeButton = removeBtn;
+    section.appendChild(removeBtn);
+
+    // Populate initial category
+    this.updateDecorationGrid();
+
+    return section;
+  }
+
+  private selectDecorationCategory(categoryId: string): void {
+    this.selectedDecorationCategory = categoryId;
+
+    // Update tab styles
+    const tabs = this.overlayContainer?.querySelectorAll('[data-category]');
+    tabs?.forEach((tab) => {
+      const isSelected = (tab as HTMLElement).dataset.category === categoryId;
+      (tab as HTMLElement).style.borderBottom = isSelected ? '3px solid #3b82f6' : '2px solid transparent';
+      (tab as HTMLElement).style.color = isSelected ? '#3b82f6' : '#9ca3af';
+    });
+
+    // Update grid
+    this.updateDecorationGrid();
+  }
+
+  private updateDecorationGrid(): void {
+    const gridContainer = this.overlayContainer?.querySelector('#decoration-grid');
+    if (!gridContainer) return;
+
+    // Clear grid
+    gridContainer.innerHTML = '';
+
+    // Get decorations for selected category
+    const decorations = getDecorationsByCategory(this.selectedDecorationCategory);
+
+    // Create thumbnail buttons
+    decorations.forEach((decoration) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.width = '48px';
+      btn.style.height = '48px';
+      btn.style.border = '2px solid #4b5563';
+      btn.style.borderRadius = '8px';
+      btn.style.backgroundColor = '#2a2a4a';
+      btn.style.cursor = 'pointer';
+      btn.style.padding = '4px';
+      btn.style.display = 'flex';
+      btn.style.alignItems = 'center';
+      btn.style.justifyContent = 'center';
+      btn.style.transition = 'all 0.2s';
+      btn.title = decoration.label;
+
+      // Create SVG preview (scaled down)
+      const svg = document.createElement('div');
+      svg.innerHTML = decoration.svgString;
+      svg.style.width = '40px';
+      svg.style.height = '40px';
+      svg.style.pointerEvents = 'none';
+      btn.appendChild(svg);
+
+      btn.addEventListener('click', () => {
+        if (this.signEditor) {
+          this.signEditor.addDecoration(decoration);
+        }
+      });
+
+      btn.addEventListener('mouseenter', () => {
+        btn.style.borderColor = '#3b82f6';
+        btn.style.transform = 'scale(1.05)';
+      });
+
+      btn.addEventListener('mouseleave', () => {
+        btn.style.borderColor = '#4b5563';
+        btn.style.transform = 'scale(1)';
+      });
+
+      gridContainer.appendChild(btn);
+    });
+  }
+
+  // ============================================================
   // START BUTTON
   // ============================================================
 
@@ -518,7 +717,28 @@ export class SignCraftScene extends Phaser.Scene {
 
     // Build sign data
     const message = this.signMessage.trim() || 'HONK!';
-    const qualityScore = scoreMessageQuality(message);
+    let qualityScore = scoreMessageQuality(message);
+
+    // Add effort bonus from customizations
+    const defaultFont = SIGN_FONTS[0];
+    const defaultColor = SIGN_COLORS[0];
+    const defaultMaterial = SIGN_MATERIALS[0];
+
+    if (this.selectedFont !== defaultFont) {
+      qualityScore += 0.05;
+    }
+    if (this.selectedColor !== defaultColor) {
+      qualityScore += 0.05;
+    }
+    if (this.signEditor.getDecorations().length > 0) {
+      qualityScore += 0.05;
+    }
+    if (this.selectedMaterial.id !== defaultMaterial.id) {
+      qualityScore += 0.05;
+    }
+
+    // Cap combined quality at 1.0
+    qualityScore = Math.min(qualityScore, 1.0);
 
     const signData: SignData = {
       material: this.selectedMaterial,
@@ -526,7 +746,7 @@ export class SignCraftScene extends Phaser.Scene {
       qualityScore,
       fontFamily: this.selectedFont,
       textColor: this.selectedColor,
-      decorations: [],
+      decorations: this.signEditor.getDecorations(),
       signImageDataUrl,
     };
 
@@ -538,6 +758,8 @@ export class SignCraftScene extends Phaser.Scene {
       material: this.selectedMaterial.id,
       font: this.selectedFont,
       color: this.selectedColor,
+      decorationCount: this.signEditor.getDecorations().length,
+      qualityScore,
       dataUrlLength: signImageDataUrl.length,
     });
 
