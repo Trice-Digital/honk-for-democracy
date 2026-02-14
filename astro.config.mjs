@@ -11,6 +11,12 @@ export default defineConfig({
   }),
   output: 'static',
   vite: {
+    optimizeDeps: {
+      include: ['phaser'],
+    },
+    ssr: {
+      noExternal: ['phaser'],
+    },
     build: {
       chunkSizeWarningLimit: 1600,
       rollupOptions: {
