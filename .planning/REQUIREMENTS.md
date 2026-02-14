@@ -3,120 +3,85 @@
 **Defined:** 2026-02-14
 **Core Value:** The traffic light learning mechanic turns "hold a sign" into a real game with a skill ceiling.
 
-## v1 Requirements
+## M1 Requirements (Complete)
 
-Requirements for Milestone 1: The Intersection — full core loop playable and deployed.
+All 52 M1 requirements shipped. See MILESTONES.md for summary.
 
-### Infrastructure
+## M2 Requirements
 
-- [ ] **INFRA-01**: Astro 5.x project scaffolded with TypeScript
-- [ ] **INFRA-02**: Phaser 3.90.0 boots and renders in an Astro page
-- [ ] **INFRA-03**: Game canvas fills mobile screen (portrait, FIT mode, 720x1280 base)
-- [ ] **INFRA-04**: Touch input captured without triggering browser gestures (scroll, zoom, back-swipe)
-- [ ] **INFRA-05**: Site deployed to Cloudflare Workers (static assets) with custom domain support
-- [ ] **INFRA-06**: Total initial asset payload under 3MB
-- [ ] **INFRA-07**: Loading screen displays while assets load
+Requirements for Milestone 2: The Sign & The Polish — sign creator, visual/audio polish, social sharing, game tuning.
 
-### Sign Crafting
+### Sign Creator
 
-- [ ] **SIGN-01**: Player can select sign material from options (cardboard, posterboard, foam board)
-- [ ] **SIGN-02**: Player can type a custom message on their sign
-- [ ] **SIGN-03**: Material choice affects sign durability (how fast weather degrades it)
-- [ ] **SIGN-04**: Message affects crowd reaction multiplier (longer/wittier = better, but map-appropriate)
-- [ ] **SIGN-05**: Player sees a preview of their completed sign before starting gameplay
-- [ ] **SIGN-06**: Player's sign is visible on the player character during gameplay
+- [ ] **SIGN-10**: Player can choose from multiple font styles for their sign message (e.g., Permanent Marker, block letters, stencil, brush script)
+- [ ] **SIGN-11**: Player can pick sign text color from a palette of marker/paint colors
+- [ ] **SIGN-12**: Player can select sign material with visual fidelity (cardboard with corrugation texture, posterboard smooth, foam board thick, wood plank)
+- [ ] **SIGN-13**: Player can add decorative elements to their sign (glitter accents, duct tape borders, sticker embellishments, drawn stars/hearts)
+- [ ] **SIGN-14**: Sign preview renders in real-time as player makes choices (WYSIWYG)
+- [ ] **SIGN-15**: Sign creator feels like arts & crafts — tactile, creative, not a form
+- [ ] **SIGN-16**: Player's crafted sign (with all customizations) is visible on their character during gameplay
+- [ ] **SIGN-17**: Sign creator scene is a full-screen creative tool, not a modal or overlay
+- [ ] **SIGN-18**: Material choice visually affects the sign in-game (cardboard looks different from foam board)
+- [ ] **SIGN-19**: Player can see their sign from the score screen (featured prominently with customizations intact)
 
-### Core Gameplay
+### Visual & UI Polish
 
-- [ ] **GAME-01**: Top-down intersection map renders with four-way roads and traffic lights
-- [ ] **GAME-02**: Player character stands near-center of intersection holding their sign
-- [ ] **GAME-03**: Player drags/swipes to rotate visibility cone (one-finger, arc gesture)
-- [ ] **GAME-04**: Visibility cone is visually indicated on screen (semi-transparent arc)
-- [ ] **GAME-05**: Cars spawn from roads based on traffic light state (green direction = cars flowing)
-- [ ] **GAME-06**: Traffic light cycle is deterministic and repeating (learnable pattern)
-- [ ] **GAME-07**: Cars that pass through visibility cone are "reached" and generate reactions
-- [ ] **GAME-08**: Cars outside visibility cone pass without reaction (missed opportunity)
-- [ ] **GAME-09**: Session has a fixed duration timer (e.g., 3-5 minutes)
-- [ ] **GAME-10**: Player can see traffic lights on screen changing colors
+- [ ] **VISL-01**: Placeholder graphics replaced with clean SVG or styled graphics for intersection elements (roads, buildings, traffic lights, cars)
+- [ ] **VISL-02**: Reaction indicators use clear, distinct icons (not ambiguous placeholders)
+- [ ] **VISL-03**: Session timer is clearly visible and player understands when game will end
+- [ ] **VISL-04**: Game-end transition is clear — player knows the session ended and why (time, confidence, etc.)
+- [ ] **VISL-05**: Controls feel responsive and intuitive — visibility cone rotation is smooth on mobile
+- [ ] **VISL-06**: UI elements have consistent visual language (colors, spacing, typography)
+- [ ] **VISL-07**: Feedback loops are clear: player action -> visible result -> score change is obvious
+- [ ] **VISL-08**: Confidence and fatigue meters have polished visual design with clear state indication
+- [ ] **VISL-09**: Event overlays (cop check, weather, karma) have polished visual presentation
 
-### Reactions
+### Audio Polish
 
-- [ ] **REACT-01**: Reached cars produce reactions from weighted probability: wave (+5), honk (+10), go bananas (+25 combo), nothing (0), thumbs down (-5), middle finger (-10), yelled at (-15), coal roller (-20)
-- [ ] **REACT-02**: Reaction icons pop visually from reacting cars (emoji or illustrated icons)
-- [ ] **REACT-03**: Score floaters appear on screen (+5, +10, -10, etc.) with color coding
-- [ ] **REACT-04**: Running score is displayed on screen during gameplay
-- [ ] **REACT-05**: Sound effects differentiate positive vs negative reactions (honk sounds, angry sounds)
+- [ ] **AUDI-01**: Reaction sounds are balanced — no single sound dominates or is jarring
+- [ ] **AUDI-02**: Background ambient layer exists (street noise, distant traffic, birds) that sets the scene
+- [ ] **AUDI-03**: Background music loop exists (lo-fi protest energy, not intrusive)
+- [ ] **AUDI-04**: Sound design matches emotional arc — confidence-low sounds tense, confidence-high sounds energized
+- [ ] **AUDI-05**: Audio transitions are smooth (no pops, clicks, or abrupt cuts)
+- [ ] **AUDI-06**: Volume balance is comfortable across all sound layers (music, ambient, SFX)
 
-### Confidence Meter
+### Social Share
 
-- [ ] **CONF-01**: Confidence meter displays on screen (0-100%, starts at ~30%)
-- [ ] **CONF-02**: Positive reactions increase confidence (scaled by reaction value)
-- [ ] **CONF-03**: Negative reactions decrease confidence
-- [ ] **CONF-04**: Long streaks of no reaction slowly drain confidence
-- [ ] **CONF-05**: NPC group size affects confidence (more people = higher baseline)
-- [ ] **CONF-06**: If confidence hits 0%, session ends early ("You went home early")
-- [ ] **CONF-07**: Confidence meter bar animates smoothly on changes
+- [ ] **SHAR-01**: Post-game generates a shareable image: player's sign + score grade + "I protested at honkfordemocracy.org"
+- [ ] **SHAR-02**: Shareable image is generated client-side (Canvas API or equivalent, no server)
+- [ ] **SHAR-03**: Player can download the shareable image directly to their device
+- [ ] **SHAR-04**: Player can trigger native share (Web Share API where supported) with the image
+- [ ] **SHAR-05**: Share flow and activism end screen work together — share your sign, then see how to take real action
+- [ ] **SHAR-06**: Shareable image looks good on social media (correct dimensions, readable text, clear branding)
+- [ ] **SHAR-07**: Share prompt appears naturally in the score-to-activism flow without blocking it
 
-### Arm Fatigue
+### Debug & Tuning
 
-- [ ] **FATG-01**: Arm fatigue meter displays on screen (drains over time)
-- [ ] **FATG-02**: Player can tap to switch arms (brief animation, resets some fatigue)
-- [ ] **FATG-03**: Player can rest (sign drops temporarily, reduced visibility, fatigue recovers)
-- [ ] **FATG-04**: Sign material affects fatigue drain rate (heavier = faster drain)
-- [ ] **FATG-05**: When fatigue is maxed, visibility cone shrinks (sign drooping)
+- [ ] **TUNE-01**: Confidence system values are tuned for satisfying emotional arc (not too easy, not punishing)
+- [ ] **TUNE-02**: Fatigue drain rate feels right — strategic rest decisions, not constant annoyance
+- [ ] **TUNE-03**: Reaction balance creates varied, believable sessions (not monotonous)
+- [ ] **TUNE-04**: Event timing and frequency create surprise without frustration
+- [ ] **TUNE-05**: Single intersection map is polished and balanced as THE definitive experience
 
-### Events
-
-- [ ] **EVNT-01**: Cop check event triggers mid-game: dialogue overlay with first amendment rights options
-- [ ] **EVNT-02**: Correct cop check responses = quick resolution + confidence boost; wrong = confidence drain
-- [ ] **EVNT-03**: Weather shift event: rain starts, affecting sign durability and some NPC protesters leave
-- [ ] **EVNT-04**: Rain visually degrades sign appearance over time (ink running effect)
-- [ ] **EVNT-05**: Karma moment event: MAGA truck burnout followed by cop pulling them over, crowd celebration, major confidence spike
-- [ ] **EVNT-06**: Events overlay on gameplay without fully pausing traffic flow
-
-### Score Screen
-
-- [ ] **SCOR-01**: End-of-session score screen shows: cars reached, reaction breakdown (honks, waves, bananas, fingers, coal rollers), time stood, sign rating
-- [ ] **SCOR-02**: Score screen is styled as a shareable card (bold, clean, screenshot-ready)
-- [ ] **SCOR-03**: Score screen includes player's sign message
-- [ ] **SCOR-04**: Score screen has a "Play Again" button
-
-### Activism End Screen
-
-- [ ] **ACTV-01**: After score screen, activism resource screen displays: "This was a game. This is also real."
-- [ ] **ACTV-02**: Resource links include: register to vote, find a protest, contact your representatives, know your rights, find local organizations
-- [ ] **ACTV-03**: Links are real, maintained, functional URLs
-- [ ] **ACTV-04**: Screen has clear visual transition from game to activism (deliberate tone shift)
-
-### Landing Page
-
-- [ ] **LAND-01**: Landing page at root URL with game branding (title, tagline, visual identity)
-- [ ] **LAND-02**: Clear "Play Now" call-to-action button
-- [ ] **LAND-03**: Brief description of what the game is (1-2 sentences)
-- [ ] **LAND-04**: Mobile-responsive layout
-- [ ] **LAND-05**: Page loads fast (<2 seconds on 3G)
-
-## v2 Requirements
+## Future Requirements
 
 Deferred to future milestones. Tracked but not in current roadmap.
 
-### Additional Maps
+### M3 — Maps & NPCs
 
 - **MAP-01**: Overpass map with one-direction highway traffic, wind mechanic, sign design for speed
 - **MAP-02**: Park Rally map with crowd mechanics, media, speakers, different energy
 - **MAP-03**: Main Street March with walking route, pedestrian interactions
 - **MAP-04**: Rush Hour bonus round (any map, 3x traffic, score multiplier)
+- **NPC-01**: NPC protesters with personalities (Organizer, Veteran, Newbie)
+- **NPC-02**: Counter-protester event with de-escalation dialogue
+- **NPC-03**: Media arrives event with sign visibility bonus multiplier
+- **NPC-04**: Chant rhythm mini-game with NPC group energy
 
-### Enhanced Features
+### M4 — Community
 
-- **ENH-01**: Drag-and-drop sign builder with positioning of materials
-- **ENH-02**: Canvas-rendered shareable image generation for score cards
-- **ENH-03**: Counter-protester event with full de-escalation dialogue tree
-- **ENH-04**: Media arrives event with sign visibility bonus multiplier
-- **ENH-05**: Chant rhythm mini-game (timing-based group energy mechanic)
-- **ENH-06**: Community sign voting and unlockable templates
-- **ENH-07**: Multiple protest session types (morning, afternoon, evening lighting)
-- **ENH-08**: Progressive difficulty / level system across sessions
+- **COMM-01**: Community sign gallery/voting
+- **COMM-02**: Unlockable sign templates from community favorites
 
 ## Out of Scope
 
@@ -124,85 +89,63 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Multiplayer / online | No backend, massive complexity, not core experience |
+| New maps (overpass, rally, march) | M3 — need one perfect map first |
+| NPC protesters | M3 — need polish before adding complexity |
+| Community gallery/voting | M4 — needs a user base first |
 | User accounts / login | Zero friction to play. No signup walls. |
-| Leaderboards | Requires backend, competition conflicts with cooperation message |
-| In-app purchases / ads | This is activism. Monetization poisons the message. |
-| 3D graphics | Performance killer on mobile, flat 2D is the art direction |
-| AI-generated signs | Removes creative expression, adds dependency |
-| Tutorial popups | Teach through play, not walls of text |
+| Server-side storage | Client-side only. No moderation needed. |
 | Backend / API / database | Fully static. No server. |
+| Multiplayer / online | No backend, massive complexity |
+| In-app purchases / ads | This is activism. Monetization poisons the message. |
 | Native mobile app | Web-first. Share a link, play immediately. |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
-| INFRA-03 | Phase 1 | Pending |
-| INFRA-04 | Phase 1 | Pending |
-| INFRA-05 | Phase 7 | Pending |
-| INFRA-06 | Phase 7 | Pending |
-| INFRA-07 | Phase 1 | Pending |
-| SIGN-01 | Phase 3 | Pending |
-| SIGN-02 | Phase 3 | Pending |
-| SIGN-03 | Phase 3 | Pending |
-| SIGN-04 | Phase 3 | Pending |
-| SIGN-05 | Phase 3 | Pending |
-| SIGN-06 | Phase 3 | Pending |
-| GAME-01 | Phase 2 | Pending |
-| GAME-02 | Phase 2 | Pending |
-| GAME-03 | Phase 2 | Pending |
-| GAME-04 | Phase 2 | Pending |
-| GAME-05 | Phase 2 | Pending |
-| GAME-06 | Phase 2 | Pending |
-| GAME-07 | Phase 2 | Pending |
-| GAME-08 | Phase 2 | Pending |
-| GAME-09 | Phase 2 | Pending |
-| GAME-10 | Phase 2 | Pending |
-| REACT-01 | Phase 2 | Pending |
-| REACT-02 | Phase 2 | Pending |
-| REACT-03 | Phase 2 | Pending |
-| REACT-04 | Phase 2 | Pending |
-| REACT-05 | Phase 6 | Pending |
-| CONF-01 | Phase 4 | Pending |
-| CONF-02 | Phase 4 | Pending |
-| CONF-03 | Phase 4 | Pending |
-| CONF-04 | Phase 4 | Pending |
-| CONF-05 | Phase 4 | Pending |
-| CONF-06 | Phase 4 | Pending |
-| CONF-07 | Phase 4 | Pending |
-| FATG-01 | Phase 4 | Pending |
-| FATG-02 | Phase 4 | Pending |
-| FATG-03 | Phase 4 | Pending |
-| FATG-04 | Phase 4 | Pending |
-| FATG-05 | Phase 4 | Pending |
-| EVNT-01 | Phase 5 | Pending |
-| EVNT-02 | Phase 5 | Pending |
-| EVNT-03 | Phase 5 | Pending |
-| EVNT-04 | Phase 5 | Pending |
-| EVNT-05 | Phase 5 | Pending |
-| EVNT-06 | Phase 5 | Pending |
-| SCOR-01 | Phase 6 | Pending |
-| SCOR-02 | Phase 6 | Pending |
-| SCOR-03 | Phase 6 | Pending |
-| SCOR-04 | Phase 6 | Pending |
-| ACTV-01 | Phase 6 | Pending |
-| ACTV-02 | Phase 6 | Pending |
-| ACTV-03 | Phase 6 | Pending |
-| ACTV-04 | Phase 6 | Pending |
-| LAND-01 | Phase 7 | Pending |
-| LAND-02 | Phase 7 | Pending |
-| LAND-03 | Phase 7 | Pending |
-| LAND-04 | Phase 7 | Pending |
-| LAND-05 | Phase 7 | Pending |
+| SIGN-10 | Phase 8 | Pending |
+| SIGN-11 | Phase 8 | Pending |
+| SIGN-12 | Phase 8 | Pending |
+| SIGN-13 | Phase 8 | Pending |
+| SIGN-14 | Phase 8 | Pending |
+| SIGN-15 | Phase 8 | Pending |
+| SIGN-16 | Phase 8 | Pending |
+| SIGN-17 | Phase 8 | Pending |
+| SIGN-18 | Phase 8 | Pending |
+| SIGN-19 | Phase 8 | Pending |
+| VISL-01 | Phase 9 | Pending |
+| VISL-02 | Phase 9 | Pending |
+| VISL-03 | Phase 9 | Pending |
+| VISL-04 | Phase 9 | Pending |
+| VISL-05 | Phase 9 | Pending |
+| VISL-06 | Phase 9 | Pending |
+| VISL-07 | Phase 9 | Pending |
+| VISL-08 | Phase 9 | Pending |
+| VISL-09 | Phase 9 | Pending |
+| AUDI-01 | Phase 10 | Pending |
+| AUDI-02 | Phase 10 | Pending |
+| AUDI-03 | Phase 10 | Pending |
+| AUDI-04 | Phase 10 | Pending |
+| AUDI-05 | Phase 10 | Pending |
+| AUDI-06 | Phase 10 | Pending |
+| SHAR-01 | Phase 11 | Pending |
+| SHAR-02 | Phase 11 | Pending |
+| SHAR-03 | Phase 11 | Pending |
+| SHAR-04 | Phase 11 | Pending |
+| SHAR-05 | Phase 11 | Pending |
+| SHAR-06 | Phase 11 | Pending |
+| SHAR-07 | Phase 11 | Pending |
+| TUNE-01 | Phase 12 | Pending |
+| TUNE-02 | Phase 12 | Pending |
+| TUNE-03 | Phase 12 | Pending |
+| TUNE-04 | Phase 12 | Pending |
+| TUNE-05 | Phase 12 | Pending |
 
 **Coverage:**
-- v1 requirements: 52 total
-- Mapped to phases: 52
-- Unmapped: 0 ✓
+- M2 requirements: 36 total
+- Mapped to phases: 36
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after initial definition*
+*Last updated: 2026-02-14 after M2 definition*
