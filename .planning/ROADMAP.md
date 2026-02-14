@@ -2,9 +2,9 @@
 
 ## Overview
 
-Milestone 1 delivers The Intersection — the core protest simulator experience. From sign crafting through gameplay through the activism payoff, playable on mobile, deployed to the world. Seven phases build the game layer by layer: foundation first, then the core loop that makes it a game, then the systems that make it feel real, then the payload that makes it matter.
+Milestone 2 delivers "The Sign & The Polish" — transforming the sign creator into a first-class creative tool, polishing every visual and audio surface, adding social sharing as the viral loop, and tuning the single intersection map until it's perfect. Five phases build on M1's complete game loop: sign creator first (it's half the experience), then visual polish, audio polish, the social share viral loop, and finally tuning everything until it sings.
 
-## Phases
+## M1 Phases (Complete)
 
 - [x] **Phase 1: Scaffolding & Game Boot** - Astro + Phaser integrated, rendering on mobile
 - [x] **Phase 2: Core Game Loop** - Visibility cone, traffic, reactions — the game exists
@@ -14,132 +14,77 @@ Milestone 1 delivers The Intersection — the core protest simulator experience.
 - [x] **Phase 6: Score & End Screens** - Session boundary, sharing, activism payload
 - [x] **Phase 7: Landing Page, Polish & Deploy** - First impression, audio, optimization, ship it
 
+## M2 Phases
+
+- [ ] **Phase 8: Sign Creator** - First-class creative tool with fonts, colors, materials, decorations
+- [ ] **Phase 9: Visual & UI Polish** - Replace placeholders, clarify timer/end, tune controls, feedback loops
+- [ ] **Phase 10: Audio Polish** - Tune procedural audio, add ambient/music layers, balance everything
+- [ ] **Phase 11: Social Share** - Client-side shareable image generation, download/share, activism integration
+- [ ] **Phase 12: Debug & Tuning** - Use hot-tune sliders to perfect confidence/fatigue/reactions/events balance
+
 ## Phase Details
 
-### Phase 1: Scaffolding & Game Boot
-**Goal**: Astro site and Phaser game engine are integrated, rendering a playable canvas on mobile devices
-**Depends on**: Nothing (first phase)
-**Requirements**: INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-07
+### Phase 8: Sign Creator
+**Goal**: The sign creator is a first-class creative tool — fonts, colors, materials, decorations. Arts & crafts energy. The sign you build is what your character holds in-game. Not a throwaway step — this is half the experience.
+**Depends on**: Phase 7 (M1 complete)
+**Requirements**: SIGN-10, SIGN-11, SIGN-12, SIGN-13, SIGN-14, SIGN-15, SIGN-16, SIGN-17, SIGN-18, SIGN-19
 **Success Criteria** (what must be TRUE):
-  1. Astro dev server runs and serves pages at localhost
-  2. Phaser game canvas renders inside an Astro page and fills the mobile screen in portrait mode
-  3. Touch input is captured on the game canvas without triggering browser scroll/zoom/back-swipe
-  4. A loading screen appears while game assets load
-  5. Project builds successfully with `astro build`
-**Plans**: Defined (2026-02-14)
+  1. Player can choose from at least 4 font styles and the sign preview updates in real-time
+  2. Player can pick text color from a palette of at least 6 marker/paint colors
+  3. At least 4 materials are available with visually distinct textures (cardboard, posterboard, foam board, wood)
+  4. Player can add at least 3 types of decorative elements (glitter, tape, stickers) to their sign
+  5. The crafted sign with all customizations (font, color, material, decorations) is visible on the player character during gameplay and featured on the score screen
 
-Plans:
-- [x] 01-01: Astro project scaffold + Phaser integration (2026-02-14)
-- [x] 01-02: Mobile viewport, touch capture, loading screen (2026-02-14)
-
-### Phase 2: Core Game Loop
-**Goal**: Player can stand at an intersection, aim a visibility cone at traffic, and see reactions — this is a playable game
-**Depends on**: Phase 1
-**Requirements**: GAME-01, GAME-02, GAME-03, GAME-04, GAME-05, GAME-06, GAME-07, GAME-08, GAME-09, GAME-10, REACT-01, REACT-02, REACT-03, REACT-04
+### Phase 9: Visual & UI Polish
+**Goal**: Replace placeholder graphics with polished visuals, make timer/game-end clear, tune controls, ensure every player action has clear visual feedback
+**Depends on**: Phase 8
+**Requirements**: VISL-01, VISL-02, VISL-03, VISL-04, VISL-05, VISL-06, VISL-07, VISL-08, VISL-09
 **Success Criteria** (what must be TRUE):
-  1. Player sees a top-down intersection with roads, traffic lights, and their character holding a sign
-  2. Player drags to rotate a visible cone, and cars passing through it generate scored reactions
-  3. Traffic lights cycle in a deterministic, learnable pattern — cars spawn from green-light directions
-  4. Reactions pop visually from cars (icons + score floaters) with clear positive/negative distinction
-  5. A running score and session timer are visible, and the session ends when time runs out
-**Plans**: Complete (2026-02-14)
+  1. Intersection elements (roads, traffic lights, cars, buildings) use clean SVG or styled graphics — no programmer art
+  2. Reaction indicators are distinct and immediately recognizable (positive vs negative is obvious at a glance)
+  3. Player always knows how much time is left and receives clear warning before session ends
+  4. Game-end transition clearly communicates what happened (time ran out vs confidence zero) before showing score
+  5. UI has consistent visual language — a new player can understand all meters, buttons, and indicators without explanation
 
-Plans:
-- [x] 02-01: Intersection map rendering + traffic light system (2026-02-14)
-- [x] 02-02: Player character + visibility cone mechanic (2026-02-14)
-- [x] 02-03: Car spawning, movement, and reaction system (2026-02-14)
-
-### Phase 3: Sign Crafting
-**Goal**: Player crafts their own protest sign before gameplay, and the sign visibly affects their gameplay experience
-**Depends on**: Phase 2
-**Requirements**: SIGN-01, SIGN-02, SIGN-03, SIGN-04, SIGN-05, SIGN-06
+### Phase 10: Audio Polish
+**Goal**: Procedural audio system sounds intentional and balanced — ambient sets the scene, music carries energy, SFX punctuate moments, nothing jars
+**Depends on**: Phase 9
+**Requirements**: AUDI-01, AUDI-02, AUDI-03, AUDI-04, AUDI-05, AUDI-06
 **Success Criteria** (what must be TRUE):
-  1. Player can pick a sign material and type a custom message before starting gameplay
-  2. Player sees a preview of their completed sign
-  3. The sign is visible on the player character during intersection gameplay
-  4. Material choice visibly affects durability (tested via weather in Phase 5) and fatigue (tested in Phase 4)
-  5. Message quality affects the ratio of positive to negative reactions during gameplay
-**Plans**: Complete (2026-02-14)
+  1. Background ambient layer (street noise, traffic hum) plays during gameplay and sets the outdoor protest scene
+  2. A non-intrusive music loop plays during gameplay that shifts energy with confidence level
+  3. No single sound effect is significantly louder or more jarring than others
+  4. Audio transitions between scenes and states are smooth (no pops, clicks, or abrupt silence)
+  5. All sound layers (music, ambient, SFX) are individually reasonable and comfortable when playing together
 
-Plans:
-- [x] 03-01: Sign crafting scene (material picker + message input + preview)
-- [x] 03-02: Wire sign properties into gameplay (reaction multiplier, player sprite)
-
-### Phase 4: Game Systems
-**Goal**: The game feels emotionally and physically real — confidence rises and falls, arms get tired, the player experiences the arc
-**Depends on**: Phase 2, Phase 3
-**Requirements**: CONF-01, CONF-02, CONF-03, CONF-04, CONF-05, CONF-06, CONF-07, FATG-01, FATG-02, FATG-03, FATG-04, FATG-05
+### Phase 11: Social Share
+**Goal**: Post-game generates a shareable image — your sign + score + "I protested at honkfordemocracy.org". Player downloads or shares directly. The activism end screen with resource links is the CTA alongside the share. This is the viral loop.
+**Depends on**: Phase 8 (needs sign rendering), Phase 9 (needs polished visuals)
+**Requirements**: SHAR-01, SHAR-02, SHAR-03, SHAR-04, SHAR-05, SHAR-06, SHAR-07
 **Success Criteria** (what must be TRUE):
-  1. Confidence meter is visible on screen, starts low (~30%), and visibly rises with honks / falls with hostile reactions
-  2. If confidence hits zero, the session ends early with a "You went home" message
-  3. Arm fatigue meter drains over time; player can switch arms or rest to manage it
-  4. When fatigue maxes out, the visibility cone shrinks (sign drooping)
-  5. Sign material affects fatigue drain rate (heavier materials drain faster)
-**Plans**: Complete (2026-02-14)
+  1. After gameplay, player sees their crafted sign rendered into a shareable card with score grade and honkfordemocracy.org branding
+  2. Player can tap to download the shareable image to their device (works on iOS Safari and Android Chrome)
+  3. On devices supporting Web Share API, player can share the image directly to social apps
+  4. Share prompt flows naturally into the activism end screen — share your sign, then see how to take real action
+  5. The shareable image looks good when posted to social media (1080x1080 or similar, readable text, clear branding)
 
-Plans:
-- [x] 04-01: Confidence meter (display, reaction integration, group size, early exit)
-- [x] 04-02: Arm fatigue system (drain, switch arms, rest, material effect, cone shrink) + raise sign mechanic
-
-### Phase 5: Event System
-**Goal**: Mid-game events break up the core loop, teach real skills, and add variety — cop checks teach rights, weather tests endurance, karma delivers satisfaction
-**Depends on**: Phase 4
-**Requirements**: EVNT-01, EVNT-02, EVNT-03, EVNT-04, EVNT-05, EVNT-06
+### Phase 12: Debug & Tuning
+**Goal**: Use the existing debug overlay and hot-tune sliders to dial in the perfect feel. One map, perfectly balanced. Confidence arc feels emotional. Fatigue feels strategic. Reactions feel varied and real. Events surprise without frustrating.
+**Depends on**: Phase 9, Phase 10 (needs polished systems to tune)
+**Requirements**: TUNE-01, TUNE-02, TUNE-03, TUNE-04, TUNE-05
 **Success Criteria** (what must be TRUE):
-  1. A cop check event triggers mid-game with a dialogue overlay; correct first-amendment responses resolve it quickly with a confidence boost
-  2. Weather can shift to rain mid-session, visually degrading the sign and causing some NPC protesters to leave
-  3. A karma moment event plays out: MAGA truck burnout followed by cop pullover, crowd erupts, confidence spikes
-  4. Events overlay on gameplay without fully stopping traffic flow
-  5. At least one event triggers per session (timer or threshold-based)
-**Plans**: Complete (2026-02-14)
-
-Plans:
-- [x] 05-01: Event system framework + cop check event (2026-02-14)
-- [x] 05-02: Weather system + rain effects on sign (2026-02-14)
-- [x] 05-03: Karma moment event sequence (2026-02-14)
-
-### Phase 6: Score & End Screens
-**Goal**: The session has a satisfying conclusion — stats tell the story, the score card is share-worthy, and the activism payload lands
-**Depends on**: Phase 5
-**Requirements**: SCOR-01, SCOR-02, SCOR-03, SCOR-04, ACTV-01, ACTV-02, ACTV-03, ACTV-04, REACT-05
-**Success Criteria** (what must be TRUE):
-  1. End-of-session screen shows full stats: cars reached, reaction breakdown, time stood, sign rating
-  2. Score screen is bold, clean, and screenshot-ready with the player's sign message featured
-  3. "Play Again" button restarts the game flow
-  4. Activism screen follows score: "This was a game. This is also real." with functional resource links
-  5. Sound effects differentiate reaction types during gameplay (honk vs angry horn vs diesel)
-**Plans**: Complete (2026-02-14)
-
-Plans:
-- [x] 06-01: Score screen (stats, shareable card layout, play again) + raise sign tap fix (2026-02-14)
-- [x] 06-02: Activism end screen + resource links (2026-02-14)
-- [x] 06-03: Sound effects and audio integration (2026-02-14)
-
-### Phase 7: Landing Page, Polish & Deploy
-**Goal**: The game is discoverable, polished, and live on the internet — anyone with a link can play
-**Depends on**: Phase 6
-**Requirements**: INFRA-05, INFRA-06, LAND-01, LAND-02, LAND-03, LAND-04, LAND-05
-**Success Criteria** (what must be TRUE):
-  1. Landing page at root URL has game branding, tagline, and a clear "Play Now" button
-  2. Landing page loads in under 2 seconds on a throttled 3G connection
-  3. Total initial game asset payload is under 3MB
-  4. Site is deployed to Cloudflare Workers (static assets) and accessible via public URL
-  5. Full game flow works end-to-end on a real mobile phone: landing → craft → play → score → activism
-**Plans**: Complete (2026-02-14)
-
-Plans:
-- [x] 07-01: Landing page (branding, CTA, responsive layout, OG meta) (2026-02-14)
-- [x] 07-02: Debug overlay (dev-only real-time system monitor + hot-tune sliders) (2026-02-14)
-- [x] 07-03: Cloudflare Workers deployment config + build verification (2026-02-14)
+  1. Playing 5 consecutive sessions produces noticeably different emotional arcs (not monotonous)
+  2. Player makes meaningful fatigue management decisions at least 3 times per session (not constant or ignorable)
+  3. Confidence never feels unfair — if it drops, player understands why; if it rises, it feels earned
+  4. At least one event triggers per session and creates a memorable moment
+  5. A first-time player can complete a full session without confusion about what to do
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffolding & Game Boot | 2/2 | Complete | 2026-02-14 |
-| 2. Core Game Loop | 3/3 | Complete | 2026-02-14 |
-| 3. Sign Crafting | 2/2 | Complete | 2026-02-14 |
-| 4. Game Systems | 2/2 | Complete | 2026-02-14 |
-| 5. Event System | 3/3 | Complete | 2026-02-14 |
-| 6. Score & End Screens | 3/3 | Complete | 2026-02-14 |
-| 7. Landing Page, Polish & Deploy | 3/3 | Complete | 2026-02-14 |
+| 8. Sign Creator | 0/? | Pending | -- |
+| 9. Visual & UI Polish | 0/? | Pending | -- |
+| 10. Audio Polish | 0/? | Pending | -- |
+| 11. Social Share | 0/? | Pending | -- |
+| 12. Debug & Tuning | 0/? | Pending | -- |
