@@ -12,7 +12,7 @@ Milestone 1 delivers The Intersection — the core protest simulator experience.
 - [x] **Phase 4: Game Systems** - Confidence meter + arm fatigue — the emotional and physical layer
 - [x] **Phase 5: Event System** - Cop check, weather, karma — variety and real-world learning
 - [x] **Phase 6: Score & End Screens** - Session boundary, sharing, activism payload
-- [ ] **Phase 7: Landing Page, Polish & Deploy** - First impression, audio, optimization, ship it
+- [x] **Phase 7: Landing Page, Polish & Deploy** - First impression, audio, optimization, ship it
 
 ## Phase Details
 
@@ -125,12 +125,12 @@ Plans:
   3. Total initial game asset payload is under 3MB
   4. Site is deployed to Cloudflare Workers (static assets) and accessible via public URL
   5. Full game flow works end-to-end on a real mobile phone: landing → craft → play → score → activism
-**Plans**: TBD
+**Plans**: Complete (2026-02-14)
 
 Plans:
-- [ ] 07-01: Landing page (branding, CTA, responsive layout)
-- [ ] 07-02: Asset optimization + performance audit
-- [ ] 07-03: Cloudflare Workers deployment + production config
+- [x] 07-01: Landing page (branding, CTA, responsive layout, OG meta) (2026-02-14)
+- [x] 07-02: Debug overlay (dev-only real-time system monitor + hot-tune sliders) (2026-02-14)
+- [x] 07-03: Cloudflare Workers deployment config + build verification (2026-02-14)
 
 ## Progress
 
@@ -142,4 +142,4 @@ Plans:
 | 4. Game Systems | 2/2 | Complete | 2026-02-14 |
 | 5. Event System | 3/3 | Complete | 2026-02-14 |
 | 6. Score & End Screens | 3/3 | Complete | 2026-02-14 |
-| 7. Landing Page, Polish & Deploy | 0/3 | Not started | - |
+| 7. Landing Page, Polish & Deploy | 3/3 | Complete | 2026-02-14 |

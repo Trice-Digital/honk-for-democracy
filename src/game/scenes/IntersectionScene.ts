@@ -12,6 +12,7 @@ import { FatigueSystem } from '../systems/FatigueSystem';
 import { EventSystem } from '../systems/EventSystem';
 import { WeatherSystem } from '../systems/WeatherSystem';
 import { AudioSystem } from '../systems/AudioSystem';
+import { DebugOverlay } from '../systems/DebugOverlay';
 import { Car } from '../entities/Car';
 import { Player } from '../entities/Player';
 import { VisibilityCone } from '../entities/VisibilityCone';
@@ -64,6 +65,9 @@ export class IntersectionScene extends Phaser.Scene {
 
   // Mute button
   private muteBtn!: Phaser.GameObjects.Text;
+
+  // Debug overlay (dev only)
+  private debugOverlay: DebugOverlay | null = null;
 
   // Raise tap mechanic
   private raiseHoldActive: boolean = false;
@@ -227,6 +231,20 @@ export class IntersectionScene extends Phaser.Scene {
     // Prevent context menu
     this.input.mouse?.disableContextMenu();
 
+    // --- Debug overlay (dev only) ---
+    if (import.meta.env.DEV) {
+      this.debugOverlay = new DebugOverlay(this, {
+        gameState: this.gameState,
+        trafficLights: this.trafficLights,
+        confidenceSystem: this.confidenceSystem,
+        fatigueSystem: this.fatigueSystem,
+        eventSystem: this.eventSystem,
+        weatherSystem: this.weatherSystem,
+        cars: () => this.cars,
+        cone: this.cone,
+      });
+    }
+
     console.log('[HFD] IntersectionScene created. Phase 5 event system active.');
   }
 
@@ -256,6 +274,11 @@ export class IntersectionScene extends Phaser.Scene {
     // Update visuals
     this.drawTrafficLights();
     this.updateUI();
+
+    // Debug overlay
+    if (this.debugOverlay) {
+      this.debugOverlay.update(delta);
+    }
   }
 
   // ============================================================
@@ -1010,6 +1033,12 @@ export class IntersectionScene extends Phaser.Scene {
     if (this.raiseTapTimer) {
       this.raiseTapTimer.destroy();
       this.raiseTapTimer = null;
+    }
+
+    // Clean up debug overlay
+    if (this.debugOverlay) {
+      this.debugOverlay.destroy();
+      this.debugOverlay = null;
     }
 
     // Store final game state snapshot in registry for ScoreScene

@@ -1,0 +1,271 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Stand Up. Speak Out.">
+  <main class="landing">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-badge">A PROTEST SIMULATOR</div>
+      <h1 class="hero-title">
+        <span class="title-honk">HONK</span>
+        <span class="title-for">FOR</span>
+        <span class="title-democracy">DEMOCRACY</span>
+      </h1>
+      <p class="hero-tagline">Stand Up. Speak Out.</p>
+      <p class="hero-pitch">
+        Craft your sign. Learn the traffic lights. Experience what it's really like
+        to stand on a street corner for democracy.
+      </p>
+      <a href="/play" class="play-button">
+        <span class="play-icon">&#9654;</span>
+        PLAY NOW
+      </a>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-label">CRAFT</div>
+          <p class="step-desc">Pick your material. Write your message.</p>
+        </div>
+        <div class="step-arrow">&rarr;</div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-label">PROTEST</div>
+          <p class="step-desc">Aim your sign. Time the traffic. Stand your ground.</p>
+        </div>
+        <div class="step-arrow">&rarr;</div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-label">SHARE</div>
+          <p class="step-desc">See your impact. Learn your rights. Take action.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <p class="footer-domain">honkfordemocracy.org</p>
+      <p class="footer-sub">The First Amendment is not a suggestion.</p>
+    </footer>
+  </main>
+</Layout>
+
+<style>
+  .landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100dvh;
+    min-height: 100vh;
+    background: linear-gradient(170deg, #0f0f1a 0%, #1a1a2e 40%, #16213e 100%);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hero */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 1.5rem 2rem;
+    flex: 1;
+    min-height: 75dvh;
+    min-height: 75vh;
+  }
+
+  .hero-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    padding: 0.4rem 1.2rem;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+  }
+
+  .hero-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 0.75rem;
+    line-height: 1;
+  }
+
+  .title-honk {
+    font-size: clamp(3.5rem, 14vw, 6rem);
+    font-weight: 900;
+    color: #fbbf24;
+    letter-spacing: -0.03em;
+  }
+
+  .title-for {
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    font-weight: 400;
+    color: #6b7280;
+    letter-spacing: 0.4em;
+    margin: 0.1em 0;
+  }
+
+  .title-democracy {
+    font-size: clamp(2.5rem, 10vw, 4.5rem);
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-tagline {
+    font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+    color: #9ca3af;
+    margin-bottom: 1.5rem;
+    font-style: italic;
+  }
+
+  .hero-pitch {
+    font-size: clamp(0.95rem, 2.5vw, 1.15rem);
+    color: #6b7280;
+    max-width: 440px;
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
+  }
+
+  .play-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem 2.5rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #0f0f1a;
+    background: #fbbf24;
+    border-radius: 14px;
+    text-decoration: none;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    box-shadow: 0 4px 24px rgba(251, 191, 36, 0.3);
+    letter-spacing: 0.02em;
+  }
+
+  .play-button:hover {
+    background: #f59e0b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 32px rgba(251, 191, 36, 0.4);
+  }
+
+  .play-button:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 16px rgba(251, 191, 36, 0.25);
+  }
+
+  .play-icon {
+    font-size: 0.9em;
+  }
+
+  /* How It Works */
+  .how-it-works {
+    width: 100%;
+    padding: 2rem 1.5rem 2.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .steps {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1rem;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    max-width: 170px;
+  }
+
+  .step-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #3b82f6;
+    color: #3b82f6;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.6rem;
+  }
+
+  .step-label {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.3rem;
+  }
+
+  .step-desc {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+
+  .step-arrow {
+    color: #374151;
+    font-size: 1.2rem;
+    margin-top: 0.6rem;
+    flex-shrink: 0;
+  }
+
+  /* Footer */
+  .landing-footer {
+    width: 100%;
+    text-align: center;
+    padding: 1.5rem 1rem 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .footer-domain {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #374151;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.3rem;
+  }
+
+  .footer-sub {
+    font-size: 0.75rem;
+    color: #374151;
+    font-style: italic;
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 480px) {
+    .steps {
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .step-arrow {
+      transform: rotate(90deg);
+      margin: 0;
+    }
+
+    .step {
+      max-width: 240px;
+    }
+  }
+</style>

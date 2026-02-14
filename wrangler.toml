@@ -1,0 +1,7 @@
+name = "honk-for-democracy"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets served from Astro build output
+[assets]
+directory = "./dist"

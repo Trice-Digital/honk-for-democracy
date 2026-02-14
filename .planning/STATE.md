@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** The traffic light learning mechanic turns "hold a sign" into a real game with a skill ceiling.
-**Current focus:** Phase 7 — Landing Page, Polish & Deploy
+**Current focus:** Milestone 1 COMPLETE
 
 ## Current Position
 
 Phase: 7 of 7 (Landing Page, Polish & Deploy)
-Plan: 0 of 3 in current phase
-Status: Phase 6 complete, ready to plan Phase 7
-Last activity: 2026-02-14 — Phase 6 executed (all 3 plans complete)
+Plan: 3 of 3 in current phase
+Status: ALL PHASES COMPLETE. Build-ready for Cloudflare Workers deploy.
+Last activity: 2026-02-14 — Phase 7 executed (all 3 plans complete)
 
-Progress: [████████░░] 86% (6 of 7 phases)
+Progress: [██████████] 100% (7 of 7 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 18
 - Average duration: ~1 session
-- Total execution time: 6 sessions
+- Total execution time: 7 sessions
 
 **By Phase:**
 
@@ -33,10 +33,11 @@ Progress: [████████░░] 86% (6 of 7 phases)
 | 4. Game Systems | 2/2 | 1 session | ~0.5 session |
 | 5. Event System | 3/3 | 1 session | ~0.33 session |
 | 6. Score & End Screens | 3/3 | 1 session | ~0.33 session |
+| 7. Landing & Deploy | 3/3 | 1 session | ~0.33 session |
 
 **Recent Trend:**
-- Last 5 plans: 05-02, 05-03, 06-01, 06-02, 06-03
-- Trend: Fast (feature phase)
+- Last 5 plans: 06-02, 06-03, 07-01, 07-02, 07-03
+- Trend: Fast (final phase)
 
 *Updated after each plan completion*
 
@@ -133,17 +134,27 @@ Recent decisions affecting current work:
 - [Phase 6]: Mute toggle button in gameplay UI (top center)
 - [Phase 6]: AudioContext lazy init on first user gesture (mobile requirement)
 - [Phase 6]: AudioSystem persists across scenes via Phaser registry
+- [Phase 7]: Landing page: bold hero with stacked title (HONK / FOR / DEMOCRACY), tagline, 3-step how-it-works
+- [Phase 7]: OG meta tags + Twitter Card meta for social sharing
+- [Phase 7]: DebugOverlay: dev-only (import.meta.env.DEV), toggle with backtick/D key
+- [Phase 7]: Debug shows: all GameState values, confidence, fatigue, cone, weather, events, traffic, FPS
+- [Phase 7]: Debug hot-tune sliders: confidence multiplier, fatigue drain, event frequency, raise drain
+- [Phase 7]: @astrojs/cloudflare adapter v12 for Workers deployment
+- [Phase 7]: wrangler.toml configured, static output mode
+- [Phase 7]: Build output: 2.1MB total, Phaser 340KB gzipped, game code 21KB gzipped
+- [Phase 7]: All pages pre-rendered (static), worker entrypoint generated
 
 ### Pending Todos
 
-None yet.
+None. Milestone 1 complete.
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Phase 6 complete. Phase 7 ready to plan.
+Stopped at: ALL PHASES COMPLETE. Milestone 1 build-ready.
 Resume file: None
+Next action: Deploy to Cloudflare Workers (`wrangler deploy`) when ready

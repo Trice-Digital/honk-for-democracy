@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Play" bodyClass="game-active">
+  <div id="game-container"></div>
+  <script>
+    import { bootGame } from '../game/main';
+    bootGame('game-container');
+  </script>
+</Layout>
