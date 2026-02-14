@@ -79,7 +79,35 @@ Before Phase 2 planning, research:
 - Custom domain via Workers route or custom domain binding
 - If server-side needs arise later, we're already on Workers — no migration needed
 
-This research should happen during Phase 1 planning or as a pre-Phase 2 step.
+---
+
+## Viewport Strategy: Hybrid Flex + Side Panels
+
+**Decision:** Game works across all screen sizes with a flexible aspect ratio AND optional desktop side panels.
+
+### Breakpoint Behavior
+
+| Context | Aspect Ratio | Behavior |
+|---------|-------------|----------|
+| Phone portrait | ~9:16 | Full game canvas, UI overlaid on game world. Tight, intense. |
+| Tablet / small desktop | ~3:4 to ~4:3 | Game world expands wider, more intersection visible. No side panels. |
+| Wide desktop | 16:9+ | Game world fills center, side panels appear (score feed, sign preview, reactions). |
+
+### Implementation Rules
+
+- **Phaser EXPAND scaling mode** instead of FIT — game world grows to fill available space, no letterboxing
+- **Minimum playable area = 720x1280** — everything within this rect works on any device
+- **Extra world space is bonus visibility** — wider screens see more intersection, not stretched graphics
+- **Side panels are Astro/HTML, not Phaser** — they read game state but render outside the canvas. Clean DOM separation.
+- **Panels are progressive enhancement** — game is 100% playable without them. They appear when viewport width exceeds ~1200px.
+- **Game state emits events** (score change, reaction, fatigue) → panels subscribe. One-way data flow.
+
+### What This Means for Phase 2
+
+- Intersection map must be larger than minimum viewport (design for ~1920x1280 world, camera shows what fits)
+- Camera follows player or centers on intersection based on available space
+- UI overlay elements (confidence meter, timer, score) anchor to viewport edges, not world coordinates
+- Touch input works identically regardless of viewport size
 
 ---
 
