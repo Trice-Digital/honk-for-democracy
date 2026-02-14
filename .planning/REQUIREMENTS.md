@@ -13,7 +13,7 @@ Requirements for Milestone 1: The Intersection — full core loop playable and d
 - [ ] **INFRA-02**: Phaser 3.90.0 boots and renders in an Astro page
 - [ ] **INFRA-03**: Game canvas fills mobile screen (portrait, FIT mode, 720x1280 base)
 - [ ] **INFRA-04**: Touch input captured without triggering browser gestures (scroll, zoom, back-swipe)
-- [ ] **INFRA-05**: Site deployed to Cloudflare Pages with custom domain support
+- [ ] **INFRA-05**: Site deployed to Cloudflare Workers (static assets) with custom domain support
 - [ ] **INFRA-06**: Total initial asset payload under 3MB
 - [ ] **INFRA-07**: Loading screen displays while assets load
 

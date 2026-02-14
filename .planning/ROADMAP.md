@@ -123,14 +123,14 @@ Plans:
   1. Landing page at root URL has game branding, tagline, and a clear "Play Now" button
   2. Landing page loads in under 2 seconds on a throttled 3G connection
   3. Total initial game asset payload is under 3MB
-  4. Site is deployed to Cloudflare Pages and accessible via public URL
+  4. Site is deployed to Cloudflare Workers (static assets) and accessible via public URL
   5. Full game flow works end-to-end on a real mobile phone: landing → craft → play → score → activism
 **Plans**: TBD
 
 Plans:
 - [ ] 07-01: Landing page (branding, CTA, responsive layout)
 - [ ] 07-02: Asset optimization + performance audit
-- [ ] 07-03: Cloudflare Pages deployment + production config
+- [ ] 07-03: Cloudflare Workers deployment + production config
 
 ## Progress
 

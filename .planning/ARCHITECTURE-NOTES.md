@@ -68,6 +68,17 @@ Before Phase 2 planning, research:
 - **Data-driven game config** — How to structure map configs, difficulty configs, event configs in Phaser
 - **Asset pipeline** — Sprite sheets, shared palettes, loading strategies for <3MB budget
 
+---
+
+## Deployment: Cloudflare Workers (Not Pages)
+
+**Pages is deprecated / merging into Workers.** New projects should deploy to Cloudflare Workers with static asset support from the start.
+
+- Astro builds to static output → served via Workers static assets
+- `wrangler.jsonc` config with `assets` directory pointing to Astro build output
+- Custom domain via Workers route or custom domain binding
+- If server-side needs arise later, we're already on Workers — no migration needed
+
 This research should happen during Phase 1 planning or as a pre-Phase 2 step.
 
 ---
