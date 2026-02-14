@@ -58,11 +58,43 @@ export const SIGN_MATERIALS: SignMaterial[] = [
     durability: 1.6,
     styleLabel: 'Heavy / Durable',
   },
+  {
+    id: 'wood',
+    label: 'Wood Plank',
+    description: 'Very heavy, very durable. Serious business.',
+    boardColor: 0x8B6914,
+    strokeColor: 0x5C4033,
+    textColor: '#ffffff',
+    fatigueMultiplier: 1.8,
+    durability: 2.0,
+    styleLabel: 'Heavy / Very Durable',
+  },
 ];
 
 export function getSignMaterial(id: string): SignMaterial {
   return SIGN_MATERIALS.find((m) => m.id === id) ?? SIGN_MATERIALS[0];
 }
+
+// ============================================================
+// SIGN FONTS AND COLORS (for Fabric.js editor)
+// ============================================================
+
+export const SIGN_FONTS = [
+  'Permanent Marker',  // Hand-drawn protest sign energy (Google Fonts)
+  'Impact',            // Classic bold block letters
+  'Courier New',       // Stencil-like monospace
+  'Comic Sans MS',     // Casual/fun handwritten
+];
+
+export const SIGN_COLORS = [
+  '#1a1a1a',  // Black (Sharpie)
+  '#dc2626',  // Red
+  '#2563eb',  // Blue
+  '#ffffff',  // White
+  '#16a34a',  // Green
+  '#7c3aed',  // Purple
+  '#ca8a04',  // Gold
+];
 
 // ============================================================
 // MESSAGE QUALITY SCORING
@@ -149,6 +181,11 @@ export interface SignData {
   material: SignMaterial;
   message: string;
   qualityScore: number;
+  // Extended fields for Fabric.js editor (M2 Phase 8)
+  fontFamily?: string;
+  textColor?: string;
+  decorations?: string[];
+  signImageDataUrl?: string | null;
 }
 
 /** Default sign data used when SignCraftScene is skipped */
