@@ -77,31 +77,72 @@ export class ScoreScene extends Phaser.Scene {
 
     y += 10;
 
-    // Sign board visual
-    const signBoardWidth = Math.min(width - 60, 340);
-    const signBoardHeight = 80;
+    // Check if we have a crafted sign PNG (M2) or fallback to rectangle rendering (M1)
+    if (signData.signImageDataUrl) {
+      // M2: Display crafted sign PNG prominently
+      const signDisplayWidth = Math.min(width - 60, 280);
+      const signDisplayHeight = 200;
 
-    // Stick
-    this.add.rectangle(cx, y + signBoardHeight / 2 + 30, 5, 40, 0x92400e);
+      // Stick
+      this.add.rectangle(cx, y + signDisplayHeight / 2 + 30, 5, 40, 0x92400e);
 
-    // Board stroke
-    this.add.rectangle(cx, y + signBoardHeight / 2, signBoardWidth + 6, signBoardHeight + 6, signData.material.strokeColor);
+      // Load PNG as texture
+      this.textures.once('addtexture', (key: string) => {
+        if (key === 'scoreSign') {
+          const signImg = this.add.image(cx, y + signDisplayHeight / 2, 'scoreSign');
+          signImg.setOrigin(0.5);
 
-    // Board fill
-    this.add.rectangle(cx, y + signBoardHeight / 2, signBoardWidth, signBoardHeight, signData.material.boardColor);
+          // Scale to fit display area, maintaining aspect ratio
+          const scaleX = signDisplayWidth / signImg.width;
+          const scaleY = signDisplayHeight / signImg.height;
+          const scale = Math.min(scaleX, scaleY);
+          signImg.setScale(scale);
 
-    // Message text on sign
-    const msgFontSize = signData.message.length > 25 ? '16px' : signData.message.length > 15 ? '20px' : '24px';
-    this.add.text(cx, y + signBoardHeight / 2, signData.message, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: msgFontSize,
-      fontStyle: 'bold',
-      color: signData.material.textColor,
-      align: 'center',
-      wordWrap: { width: signBoardWidth - 20 },
-    }).setOrigin(0.5);
+          // Subtle border/shadow
+          const borderPadding = 8;
+          const borderRect = this.add.rectangle(
+            cx,
+            y + signDisplayHeight / 2,
+            signImg.displayWidth + borderPadding * 2,
+            signImg.displayHeight + borderPadding * 2,
+            0x1a1a1a,
+            0.3
+          );
+          borderRect.setStrokeStyle(2, 0xffffff, 0.2);
+          borderRect.setDepth(-1);
+          signImg.setDepth(0);
+        }
+      });
+      this.textures.addBase64('scoreSign', signData.signImageDataUrl);
 
-    y += signBoardHeight + 55;
+      y += signDisplayHeight + 55;
+    } else {
+      // M1 backward compatibility: Rectangle-based sign rendering
+      const signBoardWidth = Math.min(width - 60, 340);
+      const signBoardHeight = 80;
+
+      // Stick
+      this.add.rectangle(cx, y + signBoardHeight / 2 + 30, 5, 40, 0x92400e);
+
+      // Board stroke
+      this.add.rectangle(cx, y + signBoardHeight / 2, signBoardWidth + 6, signBoardHeight + 6, signData.material.strokeColor);
+
+      // Board fill
+      this.add.rectangle(cx, y + signBoardHeight / 2, signBoardWidth, signBoardHeight, signData.material.boardColor);
+
+      // Message text on sign
+      const msgFontSize = signData.message.length > 25 ? '16px' : signData.message.length > 15 ? '20px' : '24px';
+      this.add.text(cx, y + signBoardHeight / 2, signData.message, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: msgFontSize,
+        fontStyle: 'bold',
+        color: signData.material.textColor,
+        align: 'center',
+        wordWrap: { width: signBoardWidth - 20 },
+      }).setOrigin(0.5);
+
+      y += signBoardHeight + 55;
+    }
 
     // ============================================================
     // SCORE + GRADE

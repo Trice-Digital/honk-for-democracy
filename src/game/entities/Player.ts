@@ -15,6 +15,7 @@ export class Player extends Phaser.GameObjects.Container {
   private signPost: Phaser.GameObjects.Rectangle;
   private signBoard: Phaser.GameObjects.Rectangle;
   private signText: Phaser.GameObjects.Text;
+  private signImage: Phaser.GameObjects.Image | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
@@ -77,5 +78,35 @@ export class Player extends Phaser.GameObjects.Container {
     this.signBoard.setFillStyle(material.boardColor);
     this.signBoard.setStrokeStyle(2, material.strokeColor);
     this.signText.setColor(material.textColor);
+  }
+
+  /**
+   * Set sign texture from crafted sign PNG (M2 sign creator).
+   * Replaces rectangle + text rendering with PNG image.
+   */
+  setSignTexture(textureKey: string): void {
+    // Remove existing rectangle-based sign (backward compat)
+    if (this.signBoard) {
+      this.remove(this.signBoard);
+      this.signBoard.destroy();
+    }
+    if (this.signText) {
+      this.remove(this.signText);
+      this.signText.destroy();
+    }
+
+    // Create image from crafted sign PNG
+    this.signImage = this.scene.add.image(-20, -56, textureKey);
+    this.signImage.setOrigin(0.5);
+
+    // Scale to fit sign area (~60x30px on player, maintaining aspect ratio)
+    const targetWidth = 60;
+    const targetHeight = 30;
+    const scaleX = targetWidth / this.signImage.width;
+    const scaleY = targetHeight / this.signImage.height;
+    const scale = Math.min(scaleX, scaleY);
+    this.signImage.setScale(scale);
+
+    this.add(this.signImage);
   }
 }

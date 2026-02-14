@@ -193,6 +193,10 @@ export const DEFAULT_SIGN_DATA: SignData = {
   material: SIGN_MATERIALS[0], // Cardboard
   message: 'HONK!',
   qualityScore: 0.4,
+  fontFamily: SIGN_FONTS[0], // 'Permanent Marker'
+  textColor: SIGN_COLORS[0], // '#1a1a1a' (black)
+  decorations: [],
+  signImageDataUrl: null,
 };
 
 /** Store sign data in Phaser registry */

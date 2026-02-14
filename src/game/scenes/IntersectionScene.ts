@@ -164,8 +164,20 @@ export class IntersectionScene extends Phaser.Scene {
     this.player.setDepth(15);
 
     // --- Apply sign data to player character ---
-    this.player.setSignMessage(this.signData.message);
-    this.player.setSignMaterial(this.signData.material);
+    // Check if we have a crafted sign PNG (M2 sign creator) or fallback to M1 rectangle rendering
+    if (this.signData.signImageDataUrl) {
+      // Load PNG as Phaser texture
+      this.textures.once('addtexture', (key: string) => {
+        if (key === 'craftedSign') {
+          this.player.setSignTexture('craftedSign');
+        }
+      });
+      this.textures.addBase64('craftedSign', this.signData.signImageDataUrl);
+    } else {
+      // Backward compatibility: M1 rectangle-based sign rendering
+      this.player.setSignMessage(this.signData.message);
+      this.player.setSignMaterial(this.signData.material);
+    }
 
     // --- Visibility cone ---
     this.cone = new VisibilityCone(this, this.config.playerX, this.config.playerY);
