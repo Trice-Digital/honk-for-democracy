@@ -36,7 +36,7 @@ Milestone 2 delivers "The Sign & The Polish" — transforming the sign creator i
   5. The crafted sign with all customizations (font, color, material, decorations) is visible on the player character during gameplay and featured on the score screen
 **Plans:** 3 plans
 Plans:
-- [ ] 08-01-PLAN.md — Fabric.js sign editor with text, fonts, colors, material backgrounds
+- [x] 08-01-PLAN.md — Fabric.js sign editor with text, fonts, colors, material backgrounds (Complete 2026-02-14)
 - [ ] 08-02-PLAN.md — Decoration/sticker system (stickers, tape, drawn accents)
 - [ ] 08-03-PLAN.md — Phaser integration (PNG texture on player + score screen) + decoration picker UI
 
