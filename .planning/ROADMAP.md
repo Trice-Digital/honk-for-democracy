@@ -34,6 +34,11 @@ Milestone 2 delivers "The Sign & The Polish" — transforming the sign creator i
   3. At least 4 materials are available with visually distinct textures (cardboard, posterboard, foam board, wood)
   4. Player can add at least 3 types of decorative elements (glitter, tape, stickers) to their sign
   5. The crafted sign with all customizations (font, color, material, decorations) is visible on the player character during gameplay and featured on the score screen
+**Plans:** 3 plans
+Plans:
+- [ ] 08-01-PLAN.md — Fabric.js sign editor with text, fonts, colors, material backgrounds
+- [ ] 08-02-PLAN.md — Decoration/sticker system (stickers, tape, drawn accents)
+- [ ] 08-03-PLAN.md — Phaser integration (PNG texture on player + score screen) + decoration picker UI
 
 ### Phase 9: Visual & UI Polish
 **Goal**: Replace placeholder graphics with polished visuals, make timer/game-end clear, tune controls, ensure every player action has clear visual feedback
@@ -83,7 +88,7 @@ Milestone 2 delivers "The Sign & The Polish" — transforming the sign creator i
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 8. Sign Creator | 0/? | Pending | -- |
+| 8. Sign Creator | 0/3 | Planned | -- |
 | 9. Visual & UI Polish | 0/? | Pending | -- |
 | 10. Audio Polish | 0/? | Pending | -- |
 | 11. Social Share | 0/? | Pending | -- |
