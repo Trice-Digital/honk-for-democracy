@@ -1,4 +1,24 @@
 /* Global styles — Honk For Democracy */
+/* Phase 9: Paper Mario Protest visual overhaul */
+
+/* ===== PAPER MARIO PALETTE (LOCKED) ===== */
+:root {
+  --asphalt: #3a3a3a;
+  --cardboard: #c5a059;
+  --paper-white: #f5f0e8;
+  --marker-black: #1a1a1a;
+  --safety-yellow: #fbbf24;
+  --stoplight-red: #ef4444;
+  --stoplight-green: #22c55e;
+  --action-blue: #3b82f6;
+  --craft-brown: #92400e;
+  --shadow: 3px 3px 0px rgba(26,26,26,0.5);
+  --shadow-strong: 4px 4px 0px var(--marker-black);
+  --shadow-light: 2px 2px 0px rgba(26,26,26,0.3);
+}
+
+/* Google Fonts: Bangers (UI) + Patrick Hand (body) */
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Patrick+Hand&family=Permanent+Marker&display=swap');
 
 *,
 *::before,
@@ -13,9 +33,9 @@ html, body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background-color: #1a1a2e;
-  font-family: system-ui, -apple-system, sans-serif;
-  color: #ffffff;
+  background-color: var(--cardboard);
+  font-family: 'Patrick Hand', cursive, system-ui, -apple-system, sans-serif;
+  color: var(--marker-black);
   -webkit-text-size-adjust: 100%;
 }
 

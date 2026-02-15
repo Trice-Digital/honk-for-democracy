@@ -12,6 +12,8 @@ import { PALETTE, FONTS } from '../config/paletteConfig';
 import { drawScissorCutRect, drawPaperShadow, drawPaperShadowCircle, applyPaperGrain, drawMaskingTapeStrip } from '../utils/paperArt';
 import { AmbientSystem } from '../systems/AmbientSystem';
 import { AudioMixerSystem } from '../systems/AudioMixerSystem';
+import { generateShareCard } from '../../lib/ShareCardGenerator';
+import { downloadImage, canNativeShare, nativeShare } from '../../lib/ShareService';
 
 /**
  * ScoreScene — End-of-session score screen.
@@ -21,6 +23,9 @@ import { AudioMixerSystem } from '../systems/AudioMixerSystem';
  */
 export class ScoreScene extends Phaser.Scene {
   private scoreAmbient: AmbientSystem | null = null;
+
+  /** Cached share card data URL so we don't regenerate on repeated taps */
+  private shareCardDataUrl: string | null = null;
 
   constructor() {
     super({ key: 'ScoreScene' });
@@ -301,8 +306,355 @@ export class ScoreScene extends Phaser.Scene {
     // BUTTONS — Neobrutalist with hard offset shadow
     // ============================================================
 
-    const buttonAreaY = Math.max(y, height - 140);
+    const buttonAreaY = Math.max(y, height - 240);
 
+    // Store references for the share flow — these get destroyed/replaced
+    this.createShareButtons(cx, buttonAreaY, finalState, signData, grade);
+
+    // Prevent context menu
+    this.input.mouse?.disableContextMenu();
+
+    console.log('[HFD] ScoreScene created. Paper craft aesthetic active.');
+  }
+
+  /**
+   * Create the initial button layout:
+   * [SHARE YOUR PROTEST] (primary)
+   * SKIP TO ACTION ->    (text link)
+   * [PLAY AGAIN]         (secondary)
+   */
+  private createShareButtons(
+    cx: number,
+    buttonAreaY: number,
+    finalState: GameState,
+    signData: SignData,
+    grade: { label: string; color: string },
+  ): void {
+    // --- Share Your Protest button (primary) --- action blue
+    const shareShadow = this.add.rectangle(cx + 3, buttonAreaY + 3, 260, 52, PALETTE.markerBlack);
+    const shareBg = this.add.rectangle(cx, buttonAreaY, 260, 52, PALETTE.actionBlue);
+    shareBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
+    shareBg.setInteractive({ useHandCursor: true });
+
+    const shareLabel = this.add.text(cx, buttonAreaY, 'SHARE YOUR PROTEST', {
+      fontFamily: FONTS.ui,
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#f5f0e8',
+    }).setOrigin(0.5);
+
+    // --- Skip to Action text link ---
+    const skipY = buttonAreaY + 42;
+    const skipText = this.add.text(cx, skipY, 'SKIP TO ACTION \u2192', {
+      fontFamily: FONTS.ui,
+      fontSize: '15px',
+      color: '#92400e',
+    }).setOrigin(0.5, 0);
+    skipText.setInteractive({ useHandCursor: true });
+
+    skipText.on('pointerover', () => skipText.setColor('#3b82f6'));
+    skipText.on('pointerout', () => skipText.setColor('#92400e'));
+    skipText.on('pointerdown', () => {
+      this.cleanupScoreAmbient();
+      this.time.delayedCall(100, () => {
+        this.scene.start('ActivismScene');
+      });
+    });
+
+    // --- Play Again button (secondary) ---
+    const playAgainY = buttonAreaY + 80;
+    const playAgainShadow = this.add.rectangle(cx + 3, playAgainY + 3, 260, 44, PALETTE.markerBlack, 0.5);
+    const playAgainBg = this.add.rectangle(cx, playAgainY, 260, 44, PALETTE.paperWhite);
+    playAgainBg.setStrokeStyle(3, PALETTE.markerBlack, 0.8);
+    playAgainBg.setInteractive({ useHandCursor: true });
+
+    const playAgainLabel = this.add.text(cx, playAgainY, 'PLAY AGAIN', {
+      fontFamily: FONTS.ui,
+      fontSize: '18px',
+      color: '#3a3a3a',
+    }).setOrigin(0.5);
+
+    playAgainBg.on('pointerover', () => playAgainBg.setStrokeStyle(3, PALETTE.actionBlue, 1));
+    playAgainBg.on('pointerout', () => playAgainBg.setStrokeStyle(3, PALETTE.markerBlack, 0.8));
+    playAgainBg.on('pointerdown', () => {
+      playAgainBg.setPosition(cx + 2, playAgainY + 2);
+      playAgainShadow.setVisible(false);
+      this.cleanupScoreAmbient();
+      this.time.delayedCall(100, () => {
+        this.scene.start('SignCraftScene');
+      });
+    });
+
+    // Collect all "pre-share" UI elements so we can destroy them after generation
+    const preShareElements = [
+      shareShadow, shareBg, shareLabel,
+      skipText,
+      playAgainShadow, playAgainBg, playAgainLabel,
+    ];
+
+    // --- Share button action ---
+    shareBg.on('pointerdown', () => {
+      // Press into shadow effect
+      shareBg.setPosition(cx + 2, buttonAreaY + 2);
+      shareShadow.setVisible(false);
+
+      // Loading state
+      shareLabel.setText('CREATING...');
+      shareBg.disableInteractive();
+
+      // Pulse animation while generating
+      const pulse = this.tweens.add({
+        targets: shareLabel,
+        alpha: 0.5,
+        duration: 400,
+        yoyo: true,
+        repeat: -1,
+      });
+
+      this.handleShareGeneration(
+        cx, buttonAreaY, finalState, signData, grade,
+        preShareElements, pulse,
+      );
+    });
+  }
+
+  /**
+   * Generate the share card and transition to the post-share button layout.
+   */
+  private async handleShareGeneration(
+    cx: number,
+    buttonAreaY: number,
+    finalState: GameState,
+    signData: SignData,
+    grade: { label: string; color: string },
+    preShareElements: Phaser.GameObjects.GameObject[],
+    pulse: Phaser.Tweens.Tween,
+  ): Promise<void> {
+    try {
+      // Generate if not already cached
+      if (!this.shareCardDataUrl) {
+        this.shareCardDataUrl = await generateShareCard({
+          signImageDataUrl: signData.signImageDataUrl || '',
+          score: finalState.score,
+          gradeLabel: grade.label,
+          gradeColor: grade.color,
+        });
+      }
+
+      // Stop pulse
+      pulse.stop();
+      pulse.destroy();
+
+      if (!this.shareCardDataUrl) {
+        // Generation failed — show fallback
+        this.showShareError(cx, buttonAreaY, preShareElements);
+        return;
+      }
+
+      // Destroy pre-share elements
+      for (const el of preShareElements) {
+        el.destroy();
+      }
+
+      // Show post-share layout with preview
+      this.showPostShareUI(cx, buttonAreaY, this.shareCardDataUrl);
+    } catch (err) {
+      console.error('[ScoreScene] Share card generation failed:', err);
+      pulse.stop();
+      pulse.destroy();
+      this.showShareError(cx, buttonAreaY, preShareElements);
+    }
+  }
+
+  /**
+   * Show error toast and restore normal continue/play again buttons.
+   */
+  private showShareError(
+    cx: number,
+    _buttonAreaY: number,
+    preShareElements: Phaser.GameObjects.GameObject[],
+  ): void {
+    // Destroy the pre-share elements
+    for (const el of preShareElements) {
+      el.destroy();
+    }
+
+    const { height } = this.scale;
+    const fallbackY = Math.max(height - 140, 500);
+
+    // Error toast — fades out after 2 seconds
+    const toast = this.add.text(cx, fallbackY - 30, "Couldn't create share image", {
+      fontFamily: FONTS.ui,
+      fontSize: '14px',
+      color: '#ef4444',
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: toast,
+      alpha: 0,
+      duration: 500,
+      delay: 2000,
+      onComplete: () => toast.destroy(),
+    });
+
+    // Fallback: Continue + Play Again
+    this.createFallbackButtons(cx, fallbackY);
+  }
+
+  /**
+   * Post-share layout:
+   * [card preview ~200px wide]
+   * [SAVE IMAGE]
+   * [SHARE] (only if canNativeShare)
+   * [TAKE REAL ACTION ->]
+   * PLAY AGAIN
+   */
+  private showPostShareUI(
+    cx: number,
+    startY: number,
+    cardDataUrl: string,
+  ): void {
+    let y = startY;
+
+    // --- Card preview ---
+    const previewWidth = 200;
+    const previewHeight = 200; // 1:1 card
+
+    const previewImgEl = new Image();
+    previewImgEl.onload = () => {
+      const texKey = 'shareCardPreview';
+      if (this.textures.exists(texKey)) {
+        this.textures.remove(texKey);
+      }
+      this.textures.addImage(texKey, previewImgEl);
+
+      const preview = this.add.image(cx, y + previewHeight / 2, texKey);
+      preview.setOrigin(0.5);
+      const scale = previewWidth / preview.width;
+      preview.setScale(scale);
+
+      // Paper shadow behind preview
+      const shadowG = this.add.graphics();
+      drawPaperShadow(
+        shadowG,
+        cx - preview.displayWidth / 2,
+        y,
+        preview.displayWidth,
+        preview.displayHeight,
+      );
+      shadowG.setDepth(-1);
+      preview.setDepth(0);
+    };
+    previewImgEl.src = cardDataUrl;
+
+    y += previewHeight + 16;
+
+    // --- SAVE IMAGE button (primary, stoplight green) ---
+    const saveShadow = this.add.rectangle(cx + 3, y + 3, 260, 48, PALETTE.markerBlack);
+    const saveBg = this.add.rectangle(cx, y, 260, 48, PALETTE.stoplightGreen);
+    saveBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
+    saveBg.setInteractive({ useHandCursor: true });
+
+    this.add.text(cx, y, 'SAVE IMAGE', {
+      fontFamily: FONTS.ui,
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#1a1a1a',
+    }).setOrigin(0.5);
+
+    saveBg.on('pointerover', () => saveBg.setFillStyle(0x16a34a));
+    saveBg.on('pointerout', () => saveBg.setFillStyle(PALETTE.stoplightGreen));
+    saveBg.on('pointerdown', () => {
+      saveBg.setPosition(cx + 2, y + 2);
+      saveShadow.setVisible(false);
+      downloadImage(cardDataUrl);
+      // Restore button after brief delay
+      this.time.delayedCall(200, () => {
+        saveBg.setPosition(cx, y);
+        saveShadow.setVisible(true);
+      });
+    });
+
+    y += 60;
+
+    // --- SHARE button (only if Web Share API with file support) ---
+    if (canNativeShare()) {
+      const nShareShadow = this.add.rectangle(cx + 3, y + 3, 260, 48, PALETTE.markerBlack);
+      const nShareBg = this.add.rectangle(cx, y, 260, 48, PALETTE.actionBlue);
+      nShareBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
+      nShareBg.setInteractive({ useHandCursor: true });
+
+      this.add.text(cx, y, 'SHARE', {
+        fontFamily: FONTS.ui,
+        fontSize: '20px',
+        fontStyle: 'bold',
+        color: '#f5f0e8',
+      }).setOrigin(0.5);
+
+      nShareBg.on('pointerover', () => nShareBg.setFillStyle(0x2563eb));
+      nShareBg.on('pointerout', () => nShareBg.setFillStyle(PALETTE.actionBlue));
+      nShareBg.on('pointerdown', () => {
+        nShareBg.setPosition(cx + 2, y + 2);
+        nShareShadow.setVisible(false);
+        nativeShare(cardDataUrl);
+        // Restore button after brief delay
+        this.time.delayedCall(300, () => {
+          nShareBg.setPosition(cx, y);
+          nShareShadow.setVisible(true);
+        });
+      });
+
+      y += 60;
+    }
+
+    // --- TAKE REAL ACTION button (secondary, paper white) ---
+    const actionShadow = this.add.rectangle(cx + 3, y + 3, 260, 44, PALETTE.markerBlack, 0.5);
+    const actionBg = this.add.rectangle(cx, y, 260, 44, PALETTE.paperWhite);
+    actionBg.setStrokeStyle(3, PALETTE.markerBlack, 0.8);
+    actionBg.setInteractive({ useHandCursor: true });
+
+    this.add.text(cx, y, 'TAKE REAL ACTION \u2192', {
+      fontFamily: FONTS.ui,
+      fontSize: '18px',
+      color: '#3a3a3a',
+    }).setOrigin(0.5);
+
+    actionBg.on('pointerover', () => actionBg.setStrokeStyle(3, PALETTE.actionBlue, 1));
+    actionBg.on('pointerout', () => actionBg.setStrokeStyle(3, PALETTE.markerBlack, 0.8));
+    actionBg.on('pointerdown', () => {
+      actionBg.setPosition(cx + 2, y + 2);
+      actionShadow.setVisible(false);
+      this.cleanupScoreAmbient();
+      this.time.delayedCall(100, () => {
+        this.scene.start('ActivismScene');
+      });
+    });
+
+    y += 50;
+
+    // --- Play Again text link ---
+    const playAgainLink = this.add.text(cx, y, 'PLAY AGAIN', {
+      fontFamily: FONTS.ui,
+      fontSize: '15px',
+      color: '#92400e',
+    }).setOrigin(0.5, 0);
+    playAgainLink.setInteractive({ useHandCursor: true });
+
+    playAgainLink.on('pointerover', () => playAgainLink.setColor('#3b82f6'));
+    playAgainLink.on('pointerout', () => playAgainLink.setColor('#92400e'));
+    playAgainLink.on('pointerdown', () => {
+      this.cleanupScoreAmbient();
+      this.time.delayedCall(100, () => {
+        this.scene.start('SignCraftScene');
+      });
+    });
+  }
+
+  /**
+   * Fallback buttons when share card generation fails.
+   * Same as original: Continue + Play Again.
+   */
+  private createFallbackButtons(cx: number, buttonAreaY: number): void {
     // Continue button (primary) — neobrutalist action blue
     const continueShadow = this.add.rectangle(cx + 3, buttonAreaY + 3, 260, 52, PALETTE.markerBlack);
     const continueBg = this.add.rectangle(cx, buttonAreaY, 260, 52, PALETTE.actionBlue);
@@ -319,7 +671,6 @@ export class ScoreScene extends Phaser.Scene {
     continueBg.on('pointerover', () => continueBg.setFillStyle(0x2563eb));
     continueBg.on('pointerout', () => continueBg.setFillStyle(PALETTE.actionBlue));
     continueBg.on('pointerdown', () => {
-      // Press into shadow effect
       continueBg.setPosition(cx + 2, buttonAreaY + 2);
       continueShadow.setVisible(false);
       this.cleanupScoreAmbient();
@@ -328,7 +679,7 @@ export class ScoreScene extends Phaser.Scene {
       });
     });
 
-    // Play Again button (secondary) — lighter neobrutalist
+    // Play Again button (secondary)
     const playAgainShadow = this.add.rectangle(cx + 3, buttonAreaY + 64 + 3, 260, 44, PALETTE.markerBlack, 0.5);
     const playAgainBg = this.add.rectangle(cx, buttonAreaY + 64, 260, 44, PALETTE.paperWhite);
     playAgainBg.setStrokeStyle(3, PALETTE.markerBlack, 0.8);
@@ -350,11 +701,6 @@ export class ScoreScene extends Phaser.Scene {
         this.scene.start('SignCraftScene');
       });
     });
-
-    // Prevent context menu
-    this.input.mouse?.disableContextMenu();
-
-    console.log('[HFD] ScoreScene created. Paper craft aesthetic active.');
   }
 
   private cleanupScoreAmbient(): void {

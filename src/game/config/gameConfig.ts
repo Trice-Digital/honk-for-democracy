@@ -9,7 +9,7 @@ export function createGameConfig(parent: string): Phaser.Types.Core.GameConfig {
   return {
     type: Phaser.AUTO,
     parent,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#b8956a', // Cardboard/craft-table base
     scale: {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,

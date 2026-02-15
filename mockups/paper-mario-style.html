@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Honk For Democracy — FINAL Design Reference — Paper Mario Top-Down</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+/* ===== COLOR PALETTE (LOCKED) ===== */
+:root {
+  --asphalt: #3a3a3a;
+  --cardboard: #c5a059;
+  --paper-white: #f5f0e8;
+  --marker-black: #1a1a1a;
+  --safety-yellow: #fbbf24;
+  --stoplight-red: #ef4444;
+  --stoplight-green: #22c55e;
+  --action-blue: #3b82f6;
+  --craft-brown: #92400e;
+
+  --shadow: 3px 3px 0px rgba(26,26,26,0.5);
+  --shadow-strong: 4px 4px 0px var(--marker-black);
+  --shadow-light: 2px 2px 0px rgba(26,26,26,0.3);
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Patrick Hand', cursive;
+  background-color: #b8956a;
+  color: var(--marker-black);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* Paper grain texture on body */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
+  background-size: 300px 300px, 100% 100%;
+}
+
+/* ===== SECTION STYLING ===== */
+.section {
+  max-width: 1200px;
+  margin: 0 auto 60px;
+  padding: 40px;
+  position: relative;
+}
+
+.section-card {
+  background-color: var(--paper-white);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23p)' opacity='0.06'/%3E%3C/svg%3E");
+  padding: 40px;
+  box-shadow: var(--shadow-strong);
+  border: 3px solid var(--marker-black);
+  position: relative;
+  clip-path: polygon(
+    0% 0.3%, 2% 0%, 4% 0.2%, 8% 0%, 12% 0.15%, 16% 0%, 20% 0.1%,
+    25% 0%, 30% 0.2%, 35% 0%, 40% 0.15%, 45% 0%, 50% 0.1%,
+    55% 0%, 60% 0.2%, 65% 0%, 70% 0.1%, 75% 0%, 80% 0.2%,
+    85% 0%, 90% 0.1%, 95% 0%, 100% 0.3%,
+    100% 5%, 99.8% 10%, 100% 15%, 99.9% 20%, 100% 25%, 99.8% 30%,
+    100% 35%, 99.9% 40%, 100% 45%, 99.8% 50%, 100% 55%, 99.9% 60%,
+    100% 65%, 99.8% 70%, 100% 75%, 99.9% 80%, 100% 85%, 99.8% 90%,
+    100% 95%, 99.9% 100%,
+    95% 100%, 90% 99.8%, 85% 100%, 80% 99.9%, 75% 100%, 70% 99.8%,
+    65% 100%, 60% 99.9%, 55% 100%, 50% 99.8%, 45% 100%, 40% 99.9%,
+    35% 100%, 30% 99.8%, 25% 100%, 20% 99.9%, 15% 100%, 10% 99.8%,
+    5% 100%, 0% 99.9%,
+    0% 95%, 0.2% 90%, 0% 85%, 0.1% 80%, 0% 75%, 0.2% 70%,
+    0% 65%, 0.1% 60%, 0% 55%, 0.2% 50%, 0% 45%, 0.1% 40%,
+    0% 35%, 0.2% 30%, 0% 25%, 0.1% 20%, 0% 15%, 0.2% 10%,
+    0% 5%
+  );
+}
+
+.section-header {
+  font-family: 'Bangers', cursive;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  color: var(--marker-black);
+  margin-bottom: 24px;
+  padding-bottom: 8px;
+  border-bottom: 4px solid var(--marker-black);
+  display: inline-block;
+  text-transform: uppercase;
+  transform: rotate(-0.5deg);
+}
+
+/* ===== TITLE BANNER ===== */
+.title-banner {
+  text-align: center;
+  padding: 60px 20px 40px;
+  max-width: 900px;
+  margin: 0 auto 20px;
+}
+
+.title-banner h1 {
+  font-family: 'Bangers', cursive;
+  font-size: 4rem;
+  color: var(--paper-white);
+  text-shadow: 4px 4px 0 var(--marker-black), -1px -1px 0 var(--marker-black);
+  letter-spacing: 6px;
+  line-height: 1.1;
+  transform: rotate(-1deg);
+}
+
+.title-banner .subtitle {
+  font-family: 'Patrick Hand', cursive;
+  font-size: 1.4rem;
+  color: var(--paper-white);
+  text-shadow: 2px 2px 0 var(--marker-black);
+  margin-top: 10px;
+  transform: rotate(0.5deg);
+}
+
+.title-banner .art-dir {
+  display: inline-block;
+  background: var(--safety-yellow);
+  color: var(--marker-black);
+  padding: 6px 20px;
+  font-family: 'Bangers', cursive;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  margin-top: 16px;
+  box-shadow: var(--shadow);
+  border: 2px solid var(--marker-black);
+  transform: rotate(1deg);
+}
+
+.title-banner .locked-tag {
+  display: inline-block;
+  background: var(--stoplight-green);
+  color: white;
+  padding: 4px 14px;
+  font-family: 'Bangers', cursive;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  margin-top: 10px;
+  box-shadow: var(--shadow-light);
+  border: 2px solid var(--marker-black);
+  transform: rotate(-0.5deg);
+}
+
+/* ===== TAPE DECORATION ===== */
+.tape {
+  position: absolute;
+  width: 100px;
+  height: 28px;
+  background: rgba(251, 191, 36, 0.65);
+  border: 1px solid rgba(26,26,26,0.15);
+  z-index: 5;
+  box-shadow: 1px 1px 0 rgba(26,26,26,0.15);
+}
+.tape-tl { top: -8px; left: 20px; transform: rotate(-12deg); }
+.tape-tr { top: -8px; right: 20px; transform: rotate(8deg); }
+.tape-bl { bottom: -8px; left: 30px; transform: rotate(5deg); }
+.tape-br { bottom: -8px; right: 25px; transform: rotate(-7deg); }
+
+/* ===== INTERSECTION HERO ===== */
+.intersection-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.intersection-scene {
+  width: 960px;
+  height: 720px;
+  position: relative;
+  overflow: visible;
+  border: 3px solid var(--marker-black);
+  box-shadow: 6px 6px 0 var(--marker-black);
+}
+
+/* ===== VEHICLE REFERENCE ===== */
+.vehicles-row {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  margin-top: 20px;
+}
+
+.vehicle-card {
+  text-align: center;
+  padding: 12px;
+  background: rgba(245,240,232,0.5);
+  border: 2px dashed var(--asphalt);
+}
+
+.vehicle-card svg {
+  filter: drop-shadow(3px 3px 0 rgba(26,26,26,0.5));
+}
+
+.vehicle-label {
+  font-family: 'Bangers', cursive;
+  font-size: 1.1rem;
+  margin-top: 8px;
+  color: var(--marker-black);
+  letter-spacing: 1px;
+}
+
+/* ===== CHARACTER REFERENCE ===== */
+.char-row {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  align-items: flex-end;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.char-card {
+  text-align: center;
+  padding: 12px;
+  background: rgba(245,240,232,0.5);
+  border: 2px dashed var(--asphalt);
+}
+
+.char-card svg {
+  filter: drop-shadow(3px 3px 0 rgba(26,26,26,0.5));
+}
+
+.char-label {
+  font-family: 'Bangers', cursive;
+  font-size: 1rem;
+  margin-top: 8px;
+  color: var(--marker-black);
+  letter-spacing: 1px;
+}
+
+/* ===== WEATHER DEMO ===== */
+.weather-row {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.weather-card {
+  text-align: center;
+  flex: 1;
+  min-width: 260px;
+  max-width: 320px;
+}
+
+.weather-card svg {
+  border: 3px solid var(--marker-black);
+  box-shadow: var(--shadow-strong);
+  width: 100%;
+}
+
+.weather-label {
+  font-family: 'Bangers', cursive;
+  font-size: 1.2rem;
+  margin-top: 10px;
+  letter-spacing: 1px;
+}
+
+/* ===== REACTION BUBBLES ===== */
+.bubbles-area {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  min-height: 120px;
+}
+
+.bubble-group {
+  margin-top: 16px;
+}
+
+.bubble-group-label {
+  font-family: 'Bangers', cursive;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--marker-black);
+  display: inline-block;
+}
+
+.speech-bubble {
+  background: var(--paper-white);
+  border: 3px solid var(--marker-black);
+  box-shadow: var(--shadow);
+  padding: 12px 20px;
+  font-family: 'Bangers', cursive;
+  font-size: 1.4rem;
+  position: relative;
+  display: inline-block;
+  margin: 6px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23s)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 20px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 14px solid var(--marker-black);
+}
+
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 22px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid var(--paper-white);
+  z-index: 1;
+}
+
+/* ===== HUD ELEMENTS ===== */
+.hud-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+
+.hud-item {
+  background: var(--paper-white);
+  border: 3px solid var(--marker-black);
+  box-shadow: var(--shadow-strong);
+  padding: 16px 20px;
+  text-align: center;
+  min-width: 160px;
+  position: relative;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='h'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23h)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+.hud-label {
+  font-family: 'Bangers', cursive;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--asphalt);
+  margin-bottom: 8px;
+}
+
+.hud-value {
+  font-family: 'Bangers', cursive;
+  font-size: 2rem;
+  color: var(--marker-black);
+}
+
+.bar-outer {
+  width: 100%;
+  height: 28px;
+  background: #ddd;
+  border: 3px solid var(--marker-black);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-light);
+}
+
+.bar-fill {
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='50' height='50' filter='url(%23b)' opacity='0.1'/%3E%3C/svg%3E");
+}
+
+/* ===== LANDING PAGE MOCKUP ===== */
+.landing-mock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  margin-top: 20px;
+  padding: 60px 40px;
+  background: var(--cardboard);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23l)' opacity='0.1'/%3E%3C/svg%3E");
+  border: 3px solid var(--marker-black);
+  box-shadow: var(--shadow-strong);
+}
+
+.protest-sign {
+  background: var(--marker-black);
+  color: var(--paper-white);
+  padding: 40px 70px;
+  text-align: center;
+  font-family: 'Bangers', cursive;
+  font-size: 4rem;
+  line-height: 1.15;
+  letter-spacing: 6px;
+  box-shadow: var(--shadow-strong);
+  transform: rotate(-1deg);
+  position: relative;
+  border: 4px solid var(--asphalt);
+}
+
+.protest-sign::after {
+  content: '';
+  position: absolute;
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 50px;
+  background: var(--cardboard);
+  border: 2px solid var(--marker-black);
+  border-radius: 0 0 3px 3px;
+}
+
+.stand-up-btn {
+  display: inline-block;
+  padding: 20px 60px;
+  background: var(--stoplight-red);
+  color: white;
+  font-family: 'Bangers', cursive;
+  font-size: 2.2rem;
+  letter-spacing: 4px;
+  border: 4px solid var(--marker-black);
+  box-shadow: 6px 6px 0 var(--marker-black);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.1s, box-shadow 0.1s;
+  margin-top: 30px;
+  transform: rotate(0.5deg);
+}
+
+.stand-up-btn:hover {
+  transform: translate(3px, 3px) rotate(0.5deg);
+  box-shadow: 3px 3px 0 var(--marker-black);
+}
+
+/* ===== COLOR PALETTE ===== */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.swatch {
+  border: 3px solid var(--marker-black);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.swatch-color {
+  height: 70px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23c)' opacity='0.08'/%3E%3C/svg%3E");
+}
+
+.swatch-info {
+  background: var(--paper-white);
+  padding: 8px 10px;
+  font-family: 'Patrick Hand', cursive;
+  font-size: 0.85rem;
+}
+
+.swatch-info strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.swatch-info code {
+  color: var(--asphalt);
+  font-size: 0.8rem;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .intersection-scene { width: 100%; height: auto; }
+}
+@media (max-width: 768px) {
+  .section { padding: 20px; }
+  .section-card { padding: 24px; }
+  .title-banner h1 { font-size: 2.5rem; }
+  .protest-sign { font-size: 2.5rem; padding: 20px 40px; }
+  .weather-row { flex-direction: column; align-items: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== TITLE BANNER ===== -->
+<div class="title-banner">
+  <h1>HONK FOR DEMOCRACY</h1>
+  <div class="subtitle">Protest Simulator &mdash; FINAL Design Reference</div>
+  <div class="art-dir">Paper Mario Top-Down &mdash; Art Direction LOCKED</div>
+  <br>
+  <div class="locked-tag">PERSPECTIVE: TOP-DOWN | FONT: BANGERS | AESTHETIC: PAPER CUTOUT</div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 1. HERO: TOP-DOWN INTERSECTION SCENE       -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card" style="position:relative;">
+    <div class="tape tape-tl"></div>
+    <div class="tape tape-tr"></div>
+    <h2 class="section-header">1. Hero: Top-Down Intersection Scene</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">The gameplay view. Top-down 4-way intersection with Paper Mario paper cutout aesthetic. All vehicles seen from above (roof/hood). Emoji faces on every person and car occupant. HUD overlay included.</p>
+    <div class="intersection-wrap">
+      <svg class="intersection-scene" viewBox="0 0 960 720" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="sceneGrain">
+            <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" stitchTiles="stitch" result="n"/>
+            <feColorMatrix type="saturate" values="0" in="n" result="g"/>
+            <feBlend in="SourceGraphic" in2="g" mode="multiply"/>
+          </filter>
+          <filter id="roadGrain">
+            <feTurbulence type="fractalNoise" baseFrequency="2" numOctaves="2" stitchTiles="stitch" result="n"/>
+            <feColorMatrix type="saturate" values="0" in="n" result="g"/>
+            <feBlend in="SourceGraphic" in2="g" mode="multiply"/>
+          </filter>
+          <filter id="glowGreen">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="glowYellow">
+            <feGaussianBlur stdDeviation="8" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- ===== BACKGROUND GROUND ===== -->
+        <rect width="960" height="720" fill="#d4c9a8" filter="url(#sceneGrain)"/>
+
+        <!-- ===== BUILDING FOOTPRINTS (corners) ===== -->
+        <!-- Top-left buildings -->
+        <g filter="url(#sceneGrain)">
+          <rect x="24" y="24" width="150" height="100" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="20,20 168,18 170,118 18,120" fill="#8b7355" stroke="#1a1a1a" stroke-width="2.5"/>
+          <rect x="24" y="134" width="80" height="60" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="20,130 98,128 100,188 18,190" fill="#a0845c" stroke="#1a1a1a" stroke-width="2"/>
+          <rect x="184" y="24" width="90" height="70" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="180,20 268,18 270,88 178,90" fill="#6b5b3e" stroke="#1a1a1a" stroke-width="2"/>
+
+          <!-- Top-right buildings -->
+          <rect x="644" y="24" width="130" height="90" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="640,20 768,18 770,108 638,110" fill="#9b8565" stroke="#1a1a1a" stroke-width="2.5"/>
+          <rect x="784" y="34" width="150" height="80" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="780,30 928,28 930,108 778,110" fill="#7b6b4e" stroke="#1a1a1a" stroke-width="2"/>
+
+          <!-- Bottom-left buildings -->
+          <rect x="24" y="514" width="130" height="90" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="20,510 148,508 150,598 18,600" fill="#8b7355" stroke="#1a1a1a" stroke-width="2.5"/>
+          <rect x="24" y="614" width="100" height="80" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="20,610 118,608 120,688 18,690" fill="#a0845c" stroke="#1a1a1a" stroke-width="2"/>
+
+          <!-- Bottom-right buildings -->
+          <rect x="684" y="524" width="140" height="80" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="680,520 818,518 820,598 678,600" fill="#9b8565" stroke="#1a1a1a" stroke-width="2.5"/>
+          <rect x="834" y="514" width="100" height="100" fill="rgba(26,26,26,0.35)"/>
+          <polygon points="830,510 928,508 930,608 828,610" fill="#6b5b3e" stroke="#1a1a1a" stroke-width="2"/>
+        </g>
+
+        <!-- ===== PAPER CUTOUT TREES ===== -->
+        <!-- Tree top-left area -->
+        <circle cx="110" cy="165" r="3" fill="#5a4a30" stroke="#1a1a1a" stroke-width="1"/>
+        <circle cx="110" cy="165" r="14" fill="#5a8a3a" stroke="#1a1a1a" stroke-width="2" opacity="0.9"/>
+        <circle cx="240" cy="55" r="3" fill="#5a4a30" stroke="#1a1a1a" stroke-width="1"/>
+        <circle cx="240" cy="55" r="12" fill="#4a7a2a" stroke="#1a1a1a" stroke-width="2" opacity="0.9"/>
+        <!-- Tree bottom-right -->
+        <circle cx="860" cy="560" r="3" fill="#5a4a30" stroke="#1a1a1a" stroke-width="1"/>
+        <circle cx="860" cy="560" r="15" fill="#5a8a3a" stroke="#1a1a1a" stroke-width="2" opacity="0.9"/>
+        <!-- Tree bottom-left -->
+        <circle cx="60" cy="650" r="3" fill="#5a4a30" stroke="#1a1a1a" stroke-width="1"/>
+        <circle cx="60" cy="650" r="13" fill="#4a7a2a" stroke="#1a1a1a" stroke-width="2" opacity="0.9"/>
+
+        <!-- ===== SIDEWALKS ===== -->
+        <g>
+          <!-- Horizontal sidewalks -->
+          <rect x="0" y="218" width="340" height="16" fill="#c5b99a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <rect x="620" y="218" width="340" height="16" fill="#c5b99a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <rect x="0" y="488" width="340" height="16" fill="#c5b99a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <rect x="620" y="488" width="340" height="16" fill="#c5b99a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Vertical sidewalks -->
+          <rect x="334" y="0" width="16" height="218" fill="#c5b99a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <rect x="610" y="0" width="16" height="218" fill="#c5b99a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <rect x="334" y="504" width="16" height="216" fill="#c5b99a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <rect x="610" y="504" width="16" height="216" fill="#c5b99a" stroke="#1a1a1a" stroke-width="1.5"/>
+        </g>
+
+        <!-- ===== ROAD SURFACE ===== -->
+        <!-- Vertical road -->
+        <rect x="350" y="0" width="260" height="218" fill="#3a3a3a" filter="url(#roadGrain)"/>
+        <rect x="350" y="504" width="260" height="216" fill="#3a3a3a" filter="url(#roadGrain)"/>
+        <!-- Horizontal road -->
+        <rect x="0" y="234" width="340" height="254" fill="#3a3a3a" filter="url(#roadGrain)"/>
+        <rect x="620" y="234" width="340" height="254" fill="#3a3a3a" filter="url(#roadGrain)"/>
+        <!-- Intersection center -->
+        <rect x="350" y="234" width="260" height="254" fill="#333" filter="url(#roadGrain)"/>
+
+        <!-- ===== LANE MARKINGS (masking tape, slightly imperfect) ===== -->
+        <g fill="#e8e0d0" opacity="0.8">
+          <!-- Horizontal center dashes (left approach) -->
+          <rect x="15" y="358" width="50" height="5" rx="1" transform="rotate(0.5,40,360)"/>
+          <rect x="75" y="357" width="50" height="5" rx="1" transform="rotate(-0.3,100,359)"/>
+          <rect x="140" y="358" width="50" height="6" rx="1" transform="rotate(0.7,165,361)"/>
+          <rect x="205" y="357" width="50" height="5" rx="1" transform="rotate(-0.4,230,359)"/>
+          <rect x="270" y="358" width="55" height="5" rx="1" transform="rotate(0.3,297,360)"/>
+          <!-- Horizontal center dashes (right approach) -->
+          <rect x="635" y="358" width="50" height="5" rx="1" transform="rotate(0.4,660,360)"/>
+          <rect x="700" y="357" width="50" height="6" rx="1" transform="rotate(-0.5,725,360)"/>
+          <rect x="765" y="358" width="50" height="5" rx="1" transform="rotate(0.3,790,360)"/>
+          <rect x="835" y="357" width="50" height="5" rx="1" transform="rotate(-0.4,860,359)"/>
+          <rect x="900" y="358" width="45" height="5" rx="1"/>
+
+          <!-- Vertical center dashes (top approach) -->
+          <rect x="478" y="15" width="5" height="45" rx="1" transform="rotate(0.5,480,37)"/>
+          <rect x="477" y="70" width="6" height="45" rx="1" transform="rotate(-0.3,480,92)"/>
+          <rect x="478" y="125" width="5" height="45" rx="1" transform="rotate(0.6,480,147)"/>
+          <rect x="477" y="180" width="6" height="30" rx="1"/>
+          <!-- Vertical center dashes (bottom approach) -->
+          <rect x="478" y="510" width="5" height="45" rx="1" transform="rotate(-0.4,480,532)"/>
+          <rect x="477" y="565" width="6" height="45" rx="1" transform="rotate(0.5,480,587)"/>
+          <rect x="478" y="620" width="5" height="45" rx="1" transform="rotate(-0.3,480,642)"/>
+          <rect x="477" y="675" width="6" height="35" rx="1"/>
+
+          <!-- Crosswalk stripes (horizontal across vertical road, top) -->
+          <rect x="354" y="238" width="252" height="6" rx="1" opacity="0.7" transform="rotate(0.3,480,241)"/>
+          <rect x="354" y="250" width="252" height="6" rx="1" opacity="0.7"/>
+          <!-- Crosswalk stripes (horizontal across vertical road, bottom) -->
+          <rect x="354" y="468" width="252" height="6" rx="1" opacity="0.7" transform="rotate(-0.2,480,471)"/>
+          <rect x="354" y="480" width="252" height="6" rx="1" opacity="0.7"/>
+          <!-- Crosswalk stripes (vertical across horizontal road, left) -->
+          <rect x="354" y="238" width="6" height="248" rx="1" opacity="0.5"/>
+          <rect x="366" y="238" width="6" height="248" rx="1" opacity="0.5"/>
+          <!-- Crosswalk stripes (vertical across horizontal road, right) -->
+          <rect x="600" y="238" width="6" height="248" rx="1" opacity="0.5"/>
+          <rect x="612" y="238" width="6" height="248" rx="1" opacity="0.5"/>
+        </g>
+
+        <!-- ===== TRAFFIC LIGHT (top-down view) ===== -->
+        <g transform="translate(615, 225)">
+          <!-- Pole (viewed from above - a small circle) -->
+          <circle cx="0" cy="0" r="5" fill="#888" stroke="#1a1a1a" stroke-width="2"/>
+          <!-- Light housing arm extending over road -->
+          <rect x="-60" y="-4" width="55" height="8" fill="#555" stroke="#1a1a1a" stroke-width="1.5" rx="2"/>
+          <!-- Light housing (3 circles in a row, from above) -->
+          <circle cx="-65" cy="0" r="7" fill="#6b2020" stroke="#1a1a1a" stroke-width="1.5"/>
+          <circle cx="-80" cy="0" r="7" fill="#6b5520" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Green ACTIVE with glow -->
+          <circle cx="-95" cy="0" r="12" fill="#22c55e" opacity="0.2" filter="url(#glowGreen)"/>
+          <circle cx="-95" cy="0" r="7" fill="#22c55e" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Glow on road surface -->
+          <ellipse cx="-95" cy="30" rx="30" ry="20" fill="#22c55e" opacity="0.08"/>
+        </g>
+
+        <!-- ===== CARS (TOP-DOWN) ===== -->
+
+        <!-- Car 1: Blue Sedan heading south on right lane -->
+        <g transform="translate(408, 80)">
+          <rect x="3" y="3" width="30" height="55" rx="8" fill="rgba(26,26,26,0.4)"/>
+          <rect x="0" y="0" width="30" height="55" rx="8" fill="#3b82f6" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Windshield strip -->
+          <rect x="4" y="8" width="22" height="12" rx="3" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1"/>
+          <!-- Emoji face through windshield -->
+          <text x="15" y="18" text-anchor="middle" font-size="11" dominant-baseline="central">&#x1F612;</text>
+          <!-- Rear window -->
+          <rect x="5" y="38" width="20" height="8" rx="2" fill="rgba(200,230,255,0.3)" stroke="#1a1a1a" stroke-width="0.8"/>
+        </g>
+
+        <!-- Car 2: Red SUV heading west on top lane -->
+        <g transform="translate(150, 280)">
+          <rect x="3" y="3" width="65" height="36" rx="6" fill="rgba(26,26,26,0.4)"/>
+          <rect x="0" y="0" width="65" height="36" rx="6" fill="#ef4444" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Roof rack lines -->
+          <line x1="8" y1="3" x2="8" y2="33" stroke="#1a1a1a" stroke-width="1.5" opacity="0.5"/>
+          <line x1="57" y1="3" x2="57" y2="33" stroke="#1a1a1a" stroke-width="1.5" opacity="0.5"/>
+          <!-- Windshield -->
+          <rect x="5" y="6" width="14" height="24" rx="3" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1"/>
+          <!-- Emoji face -->
+          <text x="12" y="20" text-anchor="middle" font-size="11" dominant-baseline="central">&#x1F624;</text>
+        </g>
+
+        <!-- Car 3: Green Compact heading east on bottom lane (slightly tilted - wind wobble!) -->
+        <g transform="translate(700, 400) rotate(3.5)">
+          <rect x="3" y="3" width="42" height="24" rx="8" fill="rgba(26,26,26,0.4)"/>
+          <rect x="0" y="0" width="42" height="24" rx="8" fill="#22c55e" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Windshield -->
+          <rect x="28" y="4" width="10" height="16" rx="3" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1"/>
+          <!-- Emoji face -->
+          <text x="33" y="14" text-anchor="middle" font-size="9" dominant-baseline="central">&#x1F60A;</text>
+        </g>
+
+        <!-- Car 4: Yellow Pickup heading north on left lane -->
+        <g transform="translate(530, 560)">
+          <rect x="3" y="3" width="32" height="60" rx="4" fill="rgba(26,26,26,0.4)"/>
+          <!-- Cab section -->
+          <rect x="0" y="0" width="32" height="30" rx="5" fill="#fbbf24" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Open bed section -->
+          <rect x="2" y="30" width="28" height="30" rx="2" fill="#c5a059" stroke="#1a1a1a" stroke-width="2"/>
+          <!-- Bed interior lines -->
+          <line x1="6" y1="35" x2="6" y2="56" stroke="#1a1a1a" stroke-width="0.8" opacity="0.4"/>
+          <line x1="26" y1="35" x2="26" y2="56" stroke="#1a1a1a" stroke-width="0.8" opacity="0.4"/>
+          <!-- Windshield -->
+          <rect x="5" y="4" width="22" height="12" rx="3" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1"/>
+          <!-- Emoji face -->
+          <text x="16" y="12" text-anchor="middle" font-size="10" dominant-baseline="central">&#x1F91F;</text>
+        </g>
+
+        <!-- Car 5: White Truck/Semi heading west on bottom lane -->
+        <g transform="translate(80, 410)">
+          <rect x="3" y="3" width="90" height="32" rx="3" fill="rgba(26,26,26,0.4)"/>
+          <!-- Trailer -->
+          <rect x="18" y="0" width="72" height="32" rx="2" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Cab -->
+          <rect x="0" y="2" width="20" height="28" rx="4" fill="#92400e" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Windshield -->
+          <rect x="2" y="6" width="10" height="20" rx="2" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1"/>
+          <!-- Emoji face -->
+          <text x="7" y="18" text-anchor="middle" font-size="9" dominant-baseline="central">&#x1F610;</text>
+          <!-- Trailer lines -->
+          <line x1="40" y1="2" x2="40" y2="30" stroke="#1a1a1a" stroke-width="0.8" opacity="0.3"/>
+          <line x1="60" y1="2" x2="60" y2="30" stroke="#1a1a1a" stroke-width="0.8" opacity="0.3"/>
+        </g>
+
+        <!-- Car 6: Coal Roller (dark pickup) heading east with smoke puffs -->
+        <g transform="translate(660, 310)">
+          <rect x="3" y="3" width="55" height="30" rx="4" fill="rgba(26,26,26,0.4)"/>
+          <!-- Cab -->
+          <rect x="28" y="0" width="27" height="30" rx="5" fill="#2a2a2a" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Bed -->
+          <rect x="0" y="2" width="30" height="26" rx="2" fill="#333" stroke="#1a1a1a" stroke-width="2"/>
+          <!-- Windshield -->
+          <rect x="32" y="5" width="18" height="20" rx="3" fill="rgba(200,230,255,0.3)" stroke="#1a1a1a" stroke-width="1"/>
+          <!-- Emoji face (hostile) -->
+          <text x="41" y="17" text-anchor="middle" font-size="10" dominant-baseline="central">&#x1F595;</text>
+          <!-- Crumpled paper smoke puffs trailing behind -->
+          <circle cx="-12" cy="15" r="10" fill="#aaa" stroke="#1a1a1a" stroke-width="1.5" opacity="0.5"/>
+          <circle cx="-28" cy="12" r="13" fill="#bbb" stroke="#1a1a1a" stroke-width="1.5" opacity="0.35"/>
+          <circle cx="-48" cy="16" r="11" fill="#ccc" stroke="#1a1a1a" stroke-width="1" opacity="0.2"/>
+          <circle cx="-22" cy="20" r="8" fill="#aaa" stroke="#1a1a1a" stroke-width="1" opacity="0.3"/>
+        </g>
+
+        <!-- ===== PLAYER CHARACTER (TOP-DOWN, at SW corner) ===== -->
+        <g transform="translate(320, 510)">
+          <!-- Visibility cone -->
+          <path d="M0,0 L-80,-120 L80,-120 Z" fill="#fbbf24" opacity="0.12"/>
+          <path d="M0,0 L-60,-100 L60,-100 Z" fill="#fbbf24" opacity="0.08"/>
+
+          <!-- Shadow -->
+          <ellipse cx="4" cy="4" rx="14" ry="14" fill="rgba(26,26,26,0.3)"/>
+          <!-- Body/shoulders (circle from above) -->
+          <circle cx="0" cy="0" r="14" fill="#fbbf24" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Shirt collar detail -->
+          <circle cx="0" cy="0" r="9" fill="none" stroke="#1a1a1a" stroke-width="0.8" opacity="0.3"/>
+          <!-- Emoji face on top -->
+          <text x="0" y="2" text-anchor="middle" font-size="14" dominant-baseline="central">&#x1F624;</text>
+          <!-- Sign held overhead (visible from above) -->
+          <rect x="-20" y="-38" width="40" height="22" rx="2" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="0" y="-25" text-anchor="middle" font-family="Bangers,cursive" font-size="11" fill="#1a1a1a">HONK!</text>
+          <!-- Sign stick -->
+          <line x1="0" y1="-16" x2="0" y2="-6" stroke="#c5a059" stroke-width="3"/>
+        </g>
+
+        <!-- ===== FELLOW PROTESTORS (TOP-DOWN) ===== -->
+        <!-- Protestor 1 -->
+        <g transform="translate(290, 540)">
+          <ellipse cx="3" cy="3" rx="11" ry="11" fill="rgba(26,26,26,0.3)"/>
+          <circle cx="0" cy="0" r="11" fill="#ef4444" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="0" y="1" text-anchor="middle" font-size="12" dominant-baseline="central">&#x1F60A;</text>
+          <!-- Sign -->
+          <rect x="-16" y="-30" width="32" height="17" rx="2" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="0" y="-19" text-anchor="middle" font-family="Bangers,cursive" font-size="9" fill="#1a1a1a">VOTE!</text>
+          <line x1="0" y1="-13" x2="0" y2="-5" stroke="#c5a059" stroke-width="2.5"/>
+        </g>
+
+        <!-- Protestor 2 -->
+        <g transform="translate(300, 575)">
+          <ellipse cx="3" cy="3" rx="11" ry="11" fill="rgba(26,26,26,0.3)"/>
+          <circle cx="0" cy="0" r="11" fill="#3b82f6" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="0" y="1" text-anchor="middle" font-size="11" dominant-baseline="central">&#x270A;</text>
+          <!-- Sign -->
+          <rect x="-18" y="-30" width="36" height="17" rx="2" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="0" y="-19" text-anchor="middle" font-family="Bangers,cursive" font-size="8" fill="#1a1a1a">RESIST!</text>
+          <line x1="0" y1="-13" x2="0" y2="-5" stroke="#c5a059" stroke-width="2.5"/>
+        </g>
+
+        <!-- Protestor 3 -->
+        <g transform="translate(340, 555)">
+          <ellipse cx="3" cy="3" rx="10" ry="10" fill="rgba(26,26,26,0.3)"/>
+          <circle cx="0" cy="0" r="10" fill="#22c55e" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="0" y="1" text-anchor="middle" font-size="11" dominant-baseline="central">&#x1F620;</text>
+          <!-- Sign -->
+          <rect x="-20" y="-28" width="40" height="16" rx="2" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="0" y="-18" text-anchor="middle" font-family="Bangers,cursive" font-size="7.5" fill="#1a1a1a">NO MORE!</text>
+          <line x1="0" y1="-12" x2="0" y2="-4" stroke="#c5a059" stroke-width="2.5"/>
+        </g>
+
+        <!-- ===== PEDESTRIANS ===== -->
+        <!-- Pedestrian on NE sidewalk -->
+        <g transform="translate(660, 210)">
+          <ellipse cx="2" cy="2" rx="8" ry="8" fill="rgba(26,26,26,0.25)"/>
+          <circle cx="0" cy="0" r="8" fill="#e8b88a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="0" y="1" text-anchor="middle" font-size="8" dominant-baseline="central">&#x1F642;</text>
+        </g>
+        <!-- Pedestrian on NW sidewalk -->
+        <g transform="translate(300, 205)">
+          <ellipse cx="2" cy="2" rx="7" ry="7" fill="rgba(26,26,26,0.25)"/>
+          <circle cx="0" cy="0" r="7" fill="#d4a574" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="0" y="1" text-anchor="middle" font-size="7" dominant-baseline="central">&#x1F636;</text>
+        </g>
+
+        <!-- ===== REACTION BUBBLES (floating up from cars) ===== -->
+        <!-- From Blue Sedan -->
+        <g transform="translate(450, 55) rotate(-5)">
+          <rect x="0" y="0" width="55" height="22" rx="4" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <polygon points="10,22 15,30 20,22" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="27" y="16" text-anchor="middle" font-family="Bangers,cursive" font-size="11" fill="#1a1a1a">. . .</text>
+        </g>
+
+        <!-- From Red SUV -->
+        <g transform="translate(200, 258) rotate(3)">
+          <rect x="0" y="0" width="70" height="24" rx="4" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <polygon points="12,24 18,33 24,24" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="35" y="17" text-anchor="middle" font-family="Bangers,cursive" font-size="11" fill="#ef4444">&amp;*#%!</text>
+        </g>
+
+        <!-- From Green Compact -->
+        <g transform="translate(750, 385) rotate(-2)">
+          <rect x="0" y="0" width="80" height="26" rx="4" fill="#fbbf24" stroke="#1a1a1a" stroke-width="2"/>
+          <polygon points="8,26 14,35 20,26" fill="#fbbf24" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="40" y="18" text-anchor="middle" font-family="Bangers,cursive" font-size="13" fill="#1a1a1a">YEAH!</text>
+        </g>
+
+        <!-- From Pickup -->
+        <g transform="translate(495, 545) rotate(4)">
+          <rect x="0" y="0" width="50" height="24" rx="4" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <polygon points="35,24 40,32 45,24" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="25" y="17" text-anchor="middle" font-size="14">&#x1F44D;</text>
+        </g>
+
+        <!-- From Coal Roller -->
+        <g transform="translate(695, 285) rotate(-3)">
+          <rect x="0" y="0" width="50" height="24" rx="4" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <polygon points="25,24 30,32 35,24" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="25" y="17" text-anchor="middle" font-size="14">&#x1F595;</text>
+        </g>
+
+        <!-- Big HONK bubble from a car responding to player -->
+        <g transform="translate(510, 640) rotate(-4)">
+          <rect x="0" y="0" width="90" height="30" rx="5" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2.5"/>
+          <polygon points="15,30 22,40 29,30" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="45" y="22" text-anchor="middle" font-family="Bangers,cursive" font-size="16" fill="#ef4444">HONK! &#x1F3BA;</text>
+        </g>
+
+        <!-- ===== HUD OVERLAY ===== -->
+        <!-- Top-Left: Settings gear -->
+        <g transform="translate(20, 20)">
+          <rect x="-3" y="-3" width="42" height="42" rx="3" fill="rgba(245,240,232,0.85)" stroke="#1a1a1a" stroke-width="2.5"/>
+          <path d="M18,4 L21,4 L22,8 L25,9 L28,6 L30,8 L27,11 L28,14 L32,15 L32,18 L28,19 L27,22 L30,25 L28,28 L25,25 L22,26 L21,30 L18,30 L17,26 L14,25 L11,28 L8,26 L11,23 L10,20 L6,19 L6,16 L10,15 L11,12 L8,9 L10,7 L13,10 L16,9 L17,4 Z" fill="#3a3a3a" stroke="#1a1a1a" stroke-width="1.5"/>
+          <circle cx="19" cy="17" r="5" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+        </g>
+
+        <!-- Top-Right: Score -->
+        <g transform="translate(790, 15)">
+          <rect x="0" y="0" width="155" height="42" rx="3" fill="rgba(245,240,232,0.9)" stroke="#1a1a1a" stroke-width="2.5"/>
+          <text x="78" y="30" text-anchor="middle" font-family="Bangers,cursive" font-size="26" fill="#1a1a1a" letter-spacing="2">847 HONKS</text>
+        </g>
+
+        <!-- Top-Center: Paper cutout analog clock -->
+        <g transform="translate(430, 15)">
+          <rect x="0" y="0" width="100" height="48" rx="3" fill="rgba(245,240,232,0.9)" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Clock face -->
+          <circle cx="28" cy="24" r="18" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <!-- Hour markers -->
+          <line x1="28" y1="8" x2="28" y2="12" stroke="#1a1a1a" stroke-width="2"/>
+          <line x1="28" y1="36" x2="28" y2="40" stroke="#1a1a1a" stroke-width="2"/>
+          <line x1="12" y1="24" x2="16" y2="24" stroke="#1a1a1a" stroke-width="2"/>
+          <line x1="40" y1="24" x2="44" y2="24" stroke="#1a1a1a" stroke-width="2"/>
+          <!-- Hour hand pointing at ~10 -->
+          <line x1="28" y1="24" x2="18" y2="12" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Minute hand pointing at 6 (10:30) -->
+          <line x1="28" y1="24" x2="28" y2="38" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+          <!-- Center dot -->
+          <circle cx="28" cy="24" r="2" fill="#ef4444"/>
+          <!-- Time text -->
+          <text x="72" y="30" text-anchor="middle" font-family="Bangers,cursive" font-size="16" fill="#1a1a1a">10:30</text>
+          <text x="72" y="42" text-anchor="middle" font-family="Bangers,cursive" font-size="10" fill="#3a3a3a">AM</text>
+        </g>
+
+        <!-- Bottom-Left: Fatigue meter -->
+        <g transform="translate(20, 665)">
+          <rect x="0" y="0" width="160" height="40" rx="3" fill="rgba(245,240,232,0.9)" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Arm icon (paper cutout) -->
+          <text x="20" y="28" text-anchor="middle" font-size="18">&#x1F4AA;</text>
+          <!-- Bar -->
+          <rect x="38" y="10" width="110" height="20" rx="2" fill="#ddd" stroke="#1a1a1a" stroke-width="2"/>
+          <rect x="40" y="12" width="71" height="16" rx="1" fill="#fbbf24"/>
+          <text x="93" y="25" text-anchor="middle" font-family="Bangers,cursive" font-size="10" fill="#1a1a1a">65%</text>
+        </g>
+
+        <!-- Bottom-Right: Confidence bar -->
+        <g transform="translate(780, 665)">
+          <rect x="0" y="0" width="165" height="40" rx="3" fill="rgba(245,240,232,0.9)" stroke="#1a1a1a" stroke-width="2.5"/>
+          <text x="14" y="16" font-family="Bangers,cursive" font-size="9" fill="#3a3a3a">CONFIDENCE</text>
+          <!-- Bar -->
+          <rect x="10" y="22" width="145" height="12" rx="2" fill="#ddd" stroke="#1a1a1a" stroke-width="1.5"/>
+          <rect x="11" y="23" width="118" height="10" rx="1" fill="#22c55e"/>
+        </g>
+
+      </svg>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 2. VEHICLE REFERENCE SHEET (TOP-DOWN)      -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <div class="tape tape-tr"></div>
+    <h2 class="section-header">2. Vehicle Reference Sheet (Top-Down Sprites)</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">All vehicle types in their top-down form as they appear during gameplay. Each shows roof/hood shape with emoji face placement through the windshield area. This is the sprite sheet reference for build.</p>
+    <div class="vehicles-row">
+
+      <!-- SEDAN (top-down) -->
+      <div class="vehicle-card">
+        <svg width="80" height="140" viewBox="0 0 80 140">
+          <rect x="4" y="4" width="50" height="90" rx="14" fill="rgba(26,26,26,0.35)"/>
+          <rect x="0" y="0" width="50" height="90" rx="14" fill="#3b82f6" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Windshield strip -->
+          <rect x="6" y="12" width="38" height="20" rx="5" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Emoji face -->
+          <text x="25" y="26" text-anchor="middle" font-size="16" dominant-baseline="central">&#x1F612;</text>
+          <!-- Rear window -->
+          <rect x="8" y="62" width="34" height="14" rx="4" fill="rgba(200,230,255,0.3)" stroke="#1a1a1a" stroke-width="1"/>
+          <!-- Center line -->
+          <line x1="25" y1="35" x2="25" y2="58" stroke="#1a1a1a" stroke-width="0.5" opacity="0.2"/>
+          <!-- Arrow showing face placement -->
+          <line x1="58" y1="22" x2="52" y2="22" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arrowRed)"/>
+          <text x="60" y="26" font-family="Patrick Hand,cursive" font-size="8" fill="#ef4444">face</text>
+        </svg>
+        <div class="vehicle-label">Sedan</div>
+      </div>
+
+      <!-- SUV (top-down) -->
+      <div class="vehicle-card">
+        <svg width="90" height="140" viewBox="0 0 90 140">
+          <rect x="4" y="4" width="56" height="100" rx="10" fill="rgba(26,26,26,0.35)"/>
+          <rect x="0" y="0" width="56" height="100" rx="10" fill="#22c55e" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Roof rack lines -->
+          <line x1="4" y1="6" x2="4" y2="94" stroke="#1a1a1a" stroke-width="2" opacity="0.5"/>
+          <line x1="52" y1="6" x2="52" y2="94" stroke="#1a1a1a" stroke-width="2" opacity="0.5"/>
+          <line x1="4" y1="20" x2="52" y2="20" stroke="#1a1a1a" stroke-width="1.5" opacity="0.4"/>
+          <line x1="4" y1="80" x2="52" y2="80" stroke="#1a1a1a" stroke-width="1.5" opacity="0.4"/>
+          <!-- Windshield -->
+          <rect x="8" y="10" width="40" height="22" rx="5" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Emoji -->
+          <text x="28" y="24" text-anchor="middle" font-size="16" dominant-baseline="central">&#x1F624;</text>
+          <!-- Rear window -->
+          <rect x="10" y="72" width="36" height="14" rx="3" fill="rgba(200,230,255,0.3)" stroke="#1a1a1a" stroke-width="1"/>
+        </svg>
+        <div class="vehicle-label">SUV</div>
+      </div>
+
+      <!-- PICKUP (top-down) -->
+      <div class="vehicle-card">
+        <svg width="90" height="160" viewBox="0 0 90 160">
+          <rect x="4" y="4" width="52" height="110" rx="6" fill="rgba(26,26,26,0.35)"/>
+          <!-- Cab -->
+          <rect x="0" y="0" width="52" height="50" rx="8" fill="#fbbf24" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Open bed -->
+          <rect x="3" y="50" width="46" height="60" rx="3" fill="#c5a059" stroke="#1a1a1a" stroke-width="2"/>
+          <!-- Bed rails -->
+          <line x1="8" y1="55" x2="8" y2="105" stroke="#1a1a1a" stroke-width="1" opacity="0.4"/>
+          <line x1="44" y1="55" x2="44" y2="105" stroke="#1a1a1a" stroke-width="1" opacity="0.4"/>
+          <!-- Windshield -->
+          <rect x="6" y="8" width="40" height="20" rx="5" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Emoji -->
+          <text x="26" y="21" text-anchor="middle" font-size="15" dominant-baseline="central">&#x1F91F;</text>
+        </svg>
+        <div class="vehicle-label">Pickup</div>
+      </div>
+
+      <!-- TRUCK/SEMI (top-down) -->
+      <div class="vehicle-card">
+        <svg width="80" height="180" viewBox="0 0 80 180">
+          <rect x="4" y="4" width="48" height="155" rx="4" fill="rgba(26,26,26,0.35)"/>
+          <!-- Cab -->
+          <rect x="0" y="0" width="48" height="40" rx="6" fill="#92400e" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Trailer -->
+          <rect x="2" y="40" width="44" height="115" rx="2" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <!-- Trailer detail lines -->
+          <line x1="2" y1="78" x2="46" y2="78" stroke="#1a1a1a" stroke-width="0.8" opacity="0.3"/>
+          <line x1="2" y1="116" x2="46" y2="116" stroke="#1a1a1a" stroke-width="0.8" opacity="0.3"/>
+          <!-- Windshield -->
+          <rect x="6" y="6" width="36" height="16" rx="4" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Emoji -->
+          <text x="24" y="17" text-anchor="middle" font-size="13" dominant-baseline="central">&#x1F610;</text>
+        </svg>
+        <div class="vehicle-label">Truck / Semi</div>
+      </div>
+
+      <!-- COMPACT (top-down) -->
+      <div class="vehicle-card">
+        <svg width="70" height="120" viewBox="0 0 70 120">
+          <rect x="4" y="4" width="40" height="65" rx="14" fill="rgba(26,26,26,0.35)"/>
+          <rect x="0" y="0" width="40" height="65" rx="14" fill="#a855f7" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Windshield -->
+          <rect x="6" y="8" width="28" height="16" rx="5" fill="rgba(200,230,255,0.45)" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Emoji -->
+          <text x="20" y="19" text-anchor="middle" font-size="12" dominant-baseline="central">&#x1F60A;</text>
+          <!-- Rear window -->
+          <rect x="8" y="44" width="24" height="10" rx="3" fill="rgba(200,230,255,0.3)" stroke="#1a1a1a" stroke-width="1"/>
+        </svg>
+        <div class="vehicle-label">Compact</div>
+      </div>
+
+      <!-- COAL ROLLER (top-down) -->
+      <div class="vehicle-card">
+        <svg width="100" height="160" viewBox="0 0 100 160">
+          <rect x="4" y="4" width="55" height="100" rx="6" fill="rgba(26,26,26,0.35)"/>
+          <!-- Cab -->
+          <rect x="0" y="0" width="55" height="55" rx="7" fill="#2a2a2a" stroke="#1a1a1a" stroke-width="2.5"/>
+          <!-- Bed -->
+          <rect x="3" y="55" width="49" height="45" rx="3" fill="#333" stroke="#1a1a1a" stroke-width="2"/>
+          <!-- Smoke stack nubs on bed -->
+          <circle cx="14" cy="70" r="5" fill="#555" stroke="#1a1a1a" stroke-width="1.5"/>
+          <circle cx="41" cy="70" r="5" fill="#555" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Windshield -->
+          <rect x="6" y="8" width="43" height="22" rx="5" fill="rgba(200,230,255,0.3)" stroke="#1a1a1a" stroke-width="1.5"/>
+          <!-- Emoji (hostile) -->
+          <text x="27" y="22" text-anchor="middle" font-size="16" dominant-baseline="central">&#x1F595;</text>
+          <!-- Smoke puffs trailing -->
+          <circle cx="20" cy="118" r="12" fill="#aaa" stroke="#1a1a1a" stroke-width="1.5" opacity="0.4"/>
+          <circle cx="38" cy="125" r="10" fill="#bbb" stroke="#1a1a1a" stroke-width="1" opacity="0.3"/>
+          <circle cx="15" cy="135" r="14" fill="#ccc" stroke="#1a1a1a" stroke-width="1" opacity="0.2"/>
+        </svg>
+        <div class="vehicle-label">Coal Roller</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 3. CHARACTER REFERENCE SHEET (TOP-DOWN)    -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <div class="tape tape-tl"></div>
+    <div class="tape tape-br"></div>
+    <h2 class="section-header">3. Character Reference Sheet (Top-Down)</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">Paper cutout people from above. Head/shoulders circle with emoji face, colored shirt. Player has sign and visibility cone. Fellow protestors have their own signs. Pedestrians are smaller, no signs.</p>
+    <div class="char-row">
+
+      <!-- PLAYER -->
+      <div class="char-card">
+        <svg width="120" height="160" viewBox="0 0 120 160">
+          <!-- Visibility cone indication -->
+          <path d="M60,80 L20,10 L100,10 Z" fill="#fbbf24" opacity="0.15" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="60" y="6" text-anchor="middle" font-family="Patrick Hand,cursive" font-size="8" fill="#92400e">visibility cone</text>
+
+          <!-- Shadow -->
+          <ellipse cx="63" cy="83" rx="18" ry="18" fill="rgba(26,26,26,0.25)"/>
+          <!-- Body circle -->
+          <circle cx="60" cy="80" r="18" fill="#fbbf24" stroke="#1a1a1a" stroke-width="3"/>
+          <!-- Emoji face -->
+          <text x="60" y="82" text-anchor="middle" font-size="20" dominant-baseline="central">&#x1F624;</text>
+          <!-- Sign overhead -->
+          <rect x="34" y="40" width="52" height="26" rx="3" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2.5"/>
+          <text x="60" y="57" text-anchor="middle" font-family="Bangers,cursive" font-size="14" fill="#1a1a1a">HONK!</text>
+          <!-- Stick -->
+          <line x1="60" y1="66" x2="60" y2="72" stroke="#c5a059" stroke-width="3.5"/>
+        </svg>
+        <div class="char-label">Player (with sign + cone)</div>
+      </div>
+
+      <!-- PROTESTOR A -->
+      <div class="char-card">
+        <svg width="90" height="130" viewBox="0 0 90 130">
+          <ellipse cx="48" cy="73" rx="15" ry="15" fill="rgba(26,26,26,0.25)"/>
+          <circle cx="45" cy="70" r="15" fill="#ef4444" stroke="#1a1a1a" stroke-width="2.5"/>
+          <text x="45" y="72" text-anchor="middle" font-size="17" dominant-baseline="central">&#x1F60A;</text>
+          <rect x="22" y="36" width="46" height="22" rx="3" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="45" y="51" text-anchor="middle" font-family="Bangers,cursive" font-size="12" fill="#1a1a1a">VOTE!</text>
+          <line x1="45" y1="58" x2="45" y2="62" stroke="#c5a059" stroke-width="3"/>
+        </svg>
+        <div class="char-label">Protestor A (red)</div>
+      </div>
+
+      <!-- PROTESTOR B -->
+      <div class="char-card">
+        <svg width="90" height="130" viewBox="0 0 90 130">
+          <ellipse cx="48" cy="73" rx="15" ry="15" fill="rgba(26,26,26,0.25)"/>
+          <circle cx="45" cy="70" r="15" fill="#3b82f6" stroke="#1a1a1a" stroke-width="2.5"/>
+          <text x="45" y="72" text-anchor="middle" font-size="16" dominant-baseline="central">&#x270A;</text>
+          <rect x="20" y="36" width="50" height="22" rx="3" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="45" y="51" text-anchor="middle" font-family="Bangers,cursive" font-size="11" fill="#1a1a1a">RESIST!</text>
+          <line x1="45" y1="58" x2="45" y2="62" stroke="#c5a059" stroke-width="3"/>
+        </svg>
+        <div class="char-label">Protestor B (blue)</div>
+      </div>
+
+      <!-- PROTESTOR C -->
+      <div class="char-card">
+        <svg width="90" height="130" viewBox="0 0 90 130">
+          <ellipse cx="48" cy="73" rx="14" ry="14" fill="rgba(26,26,26,0.25)"/>
+          <circle cx="45" cy="70" r="14" fill="#22c55e" stroke="#1a1a1a" stroke-width="2.5"/>
+          <text x="45" y="72" text-anchor="middle" font-size="15" dominant-baseline="central">&#x1F620;</text>
+          <rect x="18" y="38" width="54" height="20" rx="3" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="45" y="51" text-anchor="middle" font-family="Bangers,cursive" font-size="10" fill="#1a1a1a">NO MORE!</text>
+          <line x1="45" y1="58" x2="45" y2="62" stroke="#c5a059" stroke-width="3"/>
+        </svg>
+        <div class="char-label">Protestor C (green)</div>
+      </div>
+
+      <!-- PEDESTRIAN A -->
+      <div class="char-card">
+        <svg width="70" height="100" viewBox="0 0 70 100">
+          <ellipse cx="38" cy="53" rx="12" ry="12" fill="rgba(26,26,26,0.2)"/>
+          <circle cx="35" cy="50" r="11" fill="#e8b88a" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="35" y="52" text-anchor="middle" font-size="12" dominant-baseline="central">&#x1F642;</text>
+        </svg>
+        <div class="char-label">Pedestrian A</div>
+      </div>
+
+      <!-- PEDESTRIAN B -->
+      <div class="char-card">
+        <svg width="70" height="100" viewBox="0 0 70 100">
+          <ellipse cx="38" cy="53" rx="11" ry="11" fill="rgba(26,26,26,0.2)"/>
+          <circle cx="35" cy="50" r="10" fill="#d4a574" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="35" y="52" text-anchor="middle" font-size="11" dominant-baseline="central">&#x1F636;</text>
+        </svg>
+        <div class="char-label">Pedestrian B</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 4. WEATHER DEMO                            -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <div class="tape tape-tl"></div>
+    <h2 class="section-header">4. Weather States</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">The intersection scene under 3 weather conditions. Same layout, different visual treatment. Signs get marker bleed in rain.</p>
+    <div class="weather-row">
+
+      <!-- SUNNY -->
+      <div class="weather-card">
+        <svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="sunnyGrain">
+              <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="2" stitchTiles="stitch" result="n"/>
+              <feColorMatrix type="saturate" values="0" in="n" result="g"/>
+              <feBlend in="SourceGraphic" in2="g" mode="multiply"/>
+            </filter>
+          </defs>
+          <!-- Warm yellow tint overlay -->
+          <rect width="320" height="240" fill="#e8d8a0" filter="url(#sunnyGrain)"/>
+          <!-- Roads -->
+          <rect x="120" y="0" width="80" height="80" fill="#3a3a3a"/>
+          <rect x="120" y="160" width="80" height="80" fill="#3a3a3a"/>
+          <rect x="0" y="80" width="120" height="80" fill="#3a3a3a"/>
+          <rect x="200" y="80" width="120" height="80" fill="#3a3a3a"/>
+          <rect x="120" y="80" width="80" height="80" fill="#333"/>
+          <!-- Lane dashes -->
+          <g fill="#e8e0d0" opacity="0.8">
+            <rect x="158" y="10" width="4" height="20" rx="1"/>
+            <rect x="158" y="40" width="4" height="20" rx="1"/>
+            <rect x="158" y="170" width="4" height="20" rx="1"/>
+            <rect x="158" y="200" width="4" height="20" rx="1"/>
+            <rect x="15" y="118" width="25" height="4" rx="1"/>
+            <rect x="55" y="118" width="25" height="4" rx="1"/>
+            <rect x="215" y="118" width="25" height="4" rx="1"/>
+            <rect x="255" y="118" width="25" height="4" rx="1"/>
+          </g>
+          <!-- Car -->
+          <rect x="140" y="30" width="20" height="38" rx="6" fill="#3b82f6" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="150" y="48" text-anchor="middle" font-size="10" dominant-baseline="central">&#x1F612;</text>
+          <!-- Player -->
+          <circle cx="115" cy="170" r="10" fill="#fbbf24" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="115" y="172" text-anchor="middle" font-size="10" dominant-baseline="central">&#x1F624;</text>
+          <!-- Sign -->
+          <rect x="99" y="148" width="32" height="16" rx="2" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="115" y="159" text-anchor="middle" font-family="Bangers,cursive" font-size="9" fill="#1a1a1a">HONK!</text>
+          <!-- Sun warm overlay -->
+          <rect width="320" height="240" fill="#fbbf24" opacity="0.06"/>
+          <!-- High contrast bright feel -->
+          <rect width="320" height="240" fill="white" opacity="0.04"/>
+        </svg>
+        <div class="weather-label" style="color:#c5a059;">Sunny</div>
+        <p style="font-size:0.9rem; margin-top:4px;">Warm yellow tint, high contrast, bright</p>
+      </div>
+
+      <!-- RAINY -->
+      <div class="weather-card">
+        <svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="rainGrain">
+              <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="2" stitchTiles="stitch" result="n"/>
+              <feColorMatrix type="saturate" values="0" in="n" result="g"/>
+              <feBlend in="SourceGraphic" in2="g" mode="multiply"/>
+            </filter>
+            <filter id="blurSign">
+              <feGaussianBlur stdDeviation="0.8"/>
+            </filter>
+          </defs>
+          <!-- Blue-tinted ground -->
+          <rect width="320" height="240" fill="#b0b8c0" filter="url(#rainGrain)"/>
+          <!-- Roads -->
+          <rect x="120" y="0" width="80" height="80" fill="#2e2e2e"/>
+          <rect x="120" y="160" width="80" height="80" fill="#2e2e2e"/>
+          <rect x="0" y="80" width="120" height="80" fill="#2e2e2e"/>
+          <rect x="200" y="80" width="120" height="80" fill="#2e2e2e"/>
+          <rect x="120" y="80" width="80" height="80" fill="#282828"/>
+          <!-- Lane dashes -->
+          <g fill="#c0c0c0" opacity="0.5">
+            <rect x="158" y="10" width="4" height="20" rx="1"/>
+            <rect x="158" y="40" width="4" height="20" rx="1"/>
+            <rect x="158" y="170" width="4" height="20" rx="1"/>
+            <rect x="158" y="200" width="4" height="20" rx="1"/>
+            <rect x="15" y="118" width="25" height="4" rx="1"/>
+            <rect x="55" y="118" width="25" height="4" rx="1"/>
+            <rect x="215" y="118" width="25" height="4" rx="1"/>
+            <rect x="255" y="118" width="25" height="4" rx="1"/>
+          </g>
+          <!-- Car -->
+          <rect x="140" y="30" width="20" height="38" rx="6" fill="#2a5a9a" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="150" y="48" text-anchor="middle" font-size="10" dominant-baseline="central">&#x1F612;</text>
+          <!-- Player -->
+          <circle cx="115" cy="170" r="10" fill="#c5a020" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="115" y="172" text-anchor="middle" font-size="10" dominant-baseline="central">&#x1F624;</text>
+          <!-- Sign with marker bleed (blurred text) -->
+          <rect x="99" y="148" width="32" height="16" rx="2" fill="#e0d8c8" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="115" y="159" text-anchor="middle" font-family="Bangers,cursive" font-size="9" fill="#1a1a1a" filter="url(#blurSign)">HONK!</text>
+          <!-- Paper teardrop rain particles -->
+          <g fill="#3b82f6" stroke="#1a1a1a" stroke-width="0.5" opacity="0.4">
+            <path d="M30,40 C30,40 27,48 27,51 C27,53 28,55 30,55 C32,55 33,53 33,51 C33,48 30,40 30,40 Z"/>
+            <path d="M80,20 C80,20 77,28 77,31 C77,33 78,35 80,35 C82,35 83,33 83,31 C83,28 80,20 80,20 Z"/>
+            <path d="M180,60 C180,60 177,68 177,71 C177,73 178,75 180,75 C182,75 183,73 183,71 C183,68 180,60 180,60 Z"/>
+            <path d="M250,30 C250,30 247,38 247,41 C247,43 248,45 250,45 C252,45 253,43 253,41 C253,38 250,30 250,30 Z"/>
+            <path d="M140,100 C140,100 137,108 137,111 C137,113 138,115 140,115 C142,115 143,113 143,111 C143,108 140,100 140,100 Z"/>
+            <path d="M290,110 C290,110 287,118 287,121 C287,123 288,125 290,125 C292,125 293,123 293,121 C293,118 290,110 290,110 Z"/>
+            <path d="M50,150 C50,150 47,158 47,161 C47,163 48,165 50,165 C52,165 53,163 53,161 C53,158 50,150 50,150 Z"/>
+            <path d="M200,180 C200,180 197,188 197,191 C197,193 198,195 200,195 C202,195 203,193 203,191 C203,188 200,180 200,180 Z"/>
+          </g>
+          <!-- Blue tint overlay -->
+          <rect width="320" height="240" fill="#3b82f6" opacity="0.08"/>
+        </svg>
+        <div class="weather-label" style="color:#3b82f6;">Rainy</div>
+        <p style="font-size:0.9rem; margin-top:4px;">Blue tint, paper teardrops, marker bleed on signs</p>
+      </div>
+
+      <!-- OVERCAST -->
+      <div class="weather-card">
+        <svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="overcastGrain">
+              <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="2" stitchTiles="stitch" result="n"/>
+              <feColorMatrix type="saturate" values="0" in="n" result="g"/>
+              <feBlend in="SourceGraphic" in2="g" mode="multiply"/>
+            </filter>
+          </defs>
+          <!-- Desaturated ground -->
+          <rect width="320" height="240" fill="#c0b8a8" filter="url(#overcastGrain)"/>
+          <!-- Roads -->
+          <rect x="120" y="0" width="80" height="80" fill="#353535"/>
+          <rect x="120" y="160" width="80" height="80" fill="#353535"/>
+          <rect x="0" y="80" width="120" height="80" fill="#353535"/>
+          <rect x="200" y="80" width="120" height="80" fill="#353535"/>
+          <rect x="120" y="80" width="80" height="80" fill="#303030"/>
+          <!-- Lane dashes -->
+          <g fill="#d0ccc0" opacity="0.6">
+            <rect x="158" y="10" width="4" height="20" rx="1"/>
+            <rect x="158" y="40" width="4" height="20" rx="1"/>
+            <rect x="158" y="170" width="4" height="20" rx="1"/>
+            <rect x="158" y="200" width="4" height="20" rx="1"/>
+            <rect x="15" y="118" width="25" height="4" rx="1"/>
+            <rect x="55" y="118" width="25" height="4" rx="1"/>
+            <rect x="215" y="118" width="25" height="4" rx="1"/>
+            <rect x="255" y="118" width="25" height="4" rx="1"/>
+          </g>
+          <!-- Car (muted colors) -->
+          <rect x="140" y="30" width="20" height="38" rx="6" fill="#5a7090" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="150" y="48" text-anchor="middle" font-size="10" dominant-baseline="central">&#x1F612;</text>
+          <!-- Player (muted) -->
+          <circle cx="115" cy="170" r="10" fill="#c8a840" stroke="#1a1a1a" stroke-width="2"/>
+          <text x="115" y="172" text-anchor="middle" font-size="10" dominant-baseline="central">&#x1F624;</text>
+          <!-- Sign -->
+          <rect x="99" y="148" width="32" height="16" rx="2" fill="#e8e0d0" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="115" y="159" text-anchor="middle" font-family="Bangers,cursive" font-size="9" fill="#1a1a1a">HONK!</text>
+          <!-- Gray vellum overlay for overcast feel -->
+          <rect width="320" height="240" fill="#888" opacity="0.1"/>
+          <!-- Desaturate overlay -->
+          <rect width="320" height="240" fill="#f5f0e8" opacity="0.06"/>
+        </svg>
+        <div class="weather-label" style="color:#666;">Overcast</div>
+        <p style="font-size:0.9rem; margin-top:4px;">Desaturated, gray vellum overlay, muted</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 5. REACTION BUBBLES REFERENCE              -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <h2 class="section-header">5. Reaction Bubbles Reference</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">Paper cutout speech bubbles with marker-drawn text. Float up from cars at slight angles. Grouped by reaction type.</p>
+
+    <div class="bubble-group">
+      <div class="bubble-group-label" style="color:var(--stoplight-green);">Positive Reactions</div><br>
+      <div class="speech-bubble" style="transform:rotate(-3deg); font-size:2rem; color:var(--stoplight-red);">HONK! &#x1F3BA;</div>
+      <div class="speech-bubble" style="transform:rotate(2deg); font-size:1.8rem;">&#x1F44D;</div>
+      <div class="speech-bubble" style="transform:rotate(-1deg); font-size:1.4rem; background:var(--safety-yellow);">YEAH! &#x270A;</div>
+      <div class="speech-bubble" style="transform:rotate(3deg); font-size:1.6rem;">&#x1F918;</div>
+    </div>
+
+    <div class="bubble-group" style="margin-top:30px;">
+      <div class="bubble-group-label" style="color:var(--stoplight-red);">Negative Reactions</div><br>
+      <div class="speech-bubble" style="transform:rotate(4deg); font-size:1.6rem;">&#x1F595;</div>
+      <div class="speech-bubble" style="transform:rotate(-2deg); font-size:1.4rem; color:var(--stoplight-red);">&amp;*#%!</div>
+      <div class="speech-bubble" style="transform:rotate(1deg); font-size:1.4rem; color:#888;">&#x1F4A8;</div>
+    </div>
+
+    <div class="bubble-group" style="margin-top:30px;">
+      <div class="bubble-group-label" style="color:var(--asphalt);">Neutral / Ignored</div><br>
+      <div class="speech-bubble" style="transform:rotate(-1deg); font-size:1.4rem; color:#999;">. . .</div>
+      <div style="display:inline-block; margin-left:20px; font-family:'Patrick Hand',cursive; font-size:1.1rem; color:var(--asphalt); vertical-align:middle;">(or just drives past with no bubble)</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 6. HUD ELEMENTS DETAILED                   -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <div class="tape tape-tr"></div>
+    <h2 class="section-header">6. HUD Elements (Detailed)</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">Each HUD element shown individually at larger scale. All use Bangers font, neobrutalist hard shadows, paper cutout aesthetic. These overlay the gameplay scene.</p>
+    <div class="hud-row">
+
+      <!-- ANALOG CLOCK -->
+      <div class="hud-item" style="min-width:200px;">
+        <div class="hud-label">Game Clock</div>
+        <svg width="120" height="120" viewBox="0 0 120 120" style="display:block; margin:0 auto;">
+          <!-- Paper cutout circle -->
+          <circle cx="60" cy="60" r="54" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="3.5"/>
+          <!-- Craft texture ring -->
+          <circle cx="60" cy="60" r="48" fill="none" stroke="#c5a059" stroke-width="1" opacity="0.3"/>
+          <!-- Hour markers (marker-drawn style, slightly uneven) -->
+          <line x1="60" y1="10" x2="60" y2="20" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+          <line x1="60" y1="100" x2="60" y2="110" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+          <line x1="10" y1="60" x2="20" y2="60" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+          <line x1="100" y1="60" x2="110" y2="60" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+          <!-- Small hour dots -->
+          <circle cx="85" cy="20" r="2" fill="#1a1a1a"/>
+          <circle cx="100" cy="35" r="2" fill="#1a1a1a"/>
+          <circle cx="100" cy="85" r="2" fill="#1a1a1a"/>
+          <circle cx="85" cy="100" r="2" fill="#1a1a1a"/>
+          <circle cx="35" cy="100" r="2" fill="#1a1a1a"/>
+          <circle cx="20" cy="85" r="2" fill="#1a1a1a"/>
+          <circle cx="20" cy="35" r="2" fill="#1a1a1a"/>
+          <circle cx="35" cy="20" r="2" fill="#1a1a1a"/>
+          <!-- Hour hand (10:30 -> hour between 10 and 11) -->
+          <line x1="60" y1="60" x2="32" y2="30" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
+          <!-- Minute hand (10:30 -> pointing at 6) -->
+          <line x1="60" y1="60" x2="60" y2="100" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+          <!-- Center dot -->
+          <circle cx="60" cy="60" r="4" fill="#ef4444" stroke="#1a1a1a" stroke-width="1.5"/>
+        </svg>
+        <div style="font-family:'Bangers',cursive; font-size:1.6rem; margin-top:8px; text-shadow:2px 2px 0 rgba(26,26,26,0.2);">10:30 AM</div>
+      </div>
+
+      <!-- SCORE DISPLAY -->
+      <div class="hud-item" style="min-width:200px;">
+        <div class="hud-label">Score</div>
+        <div class="hud-value" style="font-size:2.8rem; color:var(--safety-yellow); text-shadow:3px 3px 0 var(--marker-black);">847</div>
+        <div style="font-family:'Bangers',cursive; font-size:1.2rem; letter-spacing:3px; color:var(--asphalt);">HONKS</div>
+      </div>
+
+      <!-- FATIGUE METER: NORMAL -->
+      <div class="hud-item" style="min-width:220px;">
+        <div class="hud-label">Fatigue - Normal</div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+          <span style="font-size:2rem;">&#x1F4AA;</span>
+          <span style="font-family:'Bangers',cursive; font-size:1rem; color:var(--stoplight-green);">ARM STRONG</span>
+        </div>
+        <div class="bar-outer">
+          <div class="bar-fill" style="width:30%; background-color:var(--stoplight-green);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-family:'Bangers',cursive; font-size:0.75rem; margin-top:4px;">
+          <span style="color:var(--stoplight-green);">Fresh</span>
+          <span style="color:var(--stoplight-red);">Exhausted</span>
+        </div>
+      </div>
+
+      <!-- FATIGUE METER: DROOPING -->
+      <div class="hud-item" style="min-width:220px;">
+        <div class="hud-label">Fatigue - Drooping</div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+          <span style="font-size:2rem; transform:rotate(30deg); display:inline-block;">&#x1F4AA;</span>
+          <span style="font-family:'Bangers',cursive; font-size:1rem; color:var(--safety-yellow);">ARM TIRED</span>
+        </div>
+        <div class="bar-outer">
+          <div class="bar-fill" style="width:65%; background-color:var(--safety-yellow);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-family:'Bangers',cursive; font-size:0.75rem; margin-top:4px;">
+          <span>Fresh</span>
+          <span style="color:var(--stoplight-red);">Exhausted</span>
+        </div>
+      </div>
+
+      <!-- FATIGUE METER: CRITICAL -->
+      <div class="hud-item" style="min-width:220px; border-color:var(--stoplight-red);">
+        <div class="hud-label" style="color:var(--stoplight-red);">Fatigue - CRITICAL</div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+          <span style="font-size:2rem; transform:rotate(60deg); display:inline-block; opacity:0.6;">&#x1F4AA;</span>
+          <span style="font-family:'Bangers',cursive; font-size:1rem; color:var(--stoplight-red);">ARM DEAD</span>
+        </div>
+        <div class="bar-outer" style="border-color:var(--stoplight-red);">
+          <div class="bar-fill" style="width:92%; background-color:var(--stoplight-red);"></div>
+        </div>
+        <div style="font-family:'Patrick Hand',cursive; font-size:0.8rem; margin-top:6px; color:var(--stoplight-red);">Paper crease marks appear on arm!</div>
+      </div>
+
+      <!-- CONFIDENCE BAR -->
+      <div class="hud-item" style="min-width:220px;">
+        <div class="hud-label">Confidence</div>
+        <div class="bar-outer">
+          <div class="bar-fill" style="width:82%; background-color:var(--stoplight-green);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-family:'Bangers',cursive; font-size:0.75rem; margin-top:4px;">
+          <span style="color:var(--stoplight-red);">Shaky</span>
+          <span style="color:var(--stoplight-green);">Solid</span>
+        </div>
+        <div style="font-family:'Bangers',cursive; font-size:1.4rem; margin-top:6px; color:var(--stoplight-green);">82%</div>
+      </div>
+
+      <!-- MENU BUTTON -->
+      <div class="hud-item" style="min-width:auto; padding:20px; cursor:pointer;">
+        <div class="hud-label">Menu</div>
+        <svg width="60" height="60" viewBox="0 0 60 60" style="display:block; margin:0 auto;">
+          <path d="M30,6 L34,6 L35,12 L40,14 L45,10 L48,13 L44,18 L45,23 L51,24 L51,28 L45,29 L44,34 L48,39 L45,42 L40,38 L35,40 L34,46 L30,46 L29,40 L24,38 L19,42 L16,39 L20,34 L19,29 L13,28 L13,24 L19,23 L20,18 L16,13 L19,10 L24,14 L29,12 L30,6 Z" fill="#3a3a3a" stroke="#1a1a1a" stroke-width="2"/>
+          <circle cx="32" cy="26" r="8" fill="#f5f0e8" stroke="#1a1a1a" stroke-width="2"/>
+        </svg>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 7. LANDING PAGE CONCEPT                    -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <div class="tape tape-tr"></div>
+    <div class="tape tape-bl"></div>
+    <h2 class="section-header">7. Landing Page Concept</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">Bold protest poster energy. Black paper sign, cardboard background, one loud call to action. Simple, unmistakable.</p>
+    <div class="landing-mock">
+      <div class="protest-sign">
+        HONK<br>FOR<br>DEMOCRACY
+      </div>
+      <div style="height:30px;"></div>
+      <a href="#" class="stand-up-btn">STAND UP</a>
+      <p style="margin-top:30px; font-family:'Patrick Hand',cursive; font-size:1.2rem; color:var(--asphalt); text-align:center; max-width:420px; line-height:1.6;">
+        Hold a sign. Stand your ground. Make them honk.
+        <br>A protest simulator about showing up.
+      </p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 8. COLOR PALETTE (LOCKED)                  -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <h2 class="section-header">8. Color Palette (Locked)</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">Nine colors. Warm and grounded craft-table feel, with signal-bright accents for game state. Everything paper, nothing digital.</p>
+    <div class="palette-grid">
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#3a3a3a;"></div>
+        <div class="swatch-info"><strong>Asphalt</strong><code>#3a3a3a</code></div>
+      </div>
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#c5a059;"></div>
+        <div class="swatch-info"><strong>Cardboard</strong><code>#c5a059</code></div>
+      </div>
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#f5f0e8;"></div>
+        <div class="swatch-info"><strong>Construction Paper White</strong><code>#f5f0e8</code></div>
+      </div>
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#1a1a1a;"></div>
+        <div class="swatch-info"><strong>Marker Black</strong><code>#1a1a1a</code></div>
+      </div>
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#fbbf24;"></div>
+        <div class="swatch-info"><strong>Safety Yellow</strong><code>#fbbf24</code></div>
+      </div>
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#ef4444;"></div>
+        <div class="swatch-info"><strong>Stoplight Red</strong><code>#ef4444</code></div>
+      </div>
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#22c55e;"></div>
+        <div class="swatch-info"><strong>Stoplight Green</strong><code>#22c55e</code></div>
+      </div>
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#3b82f6;"></div>
+        <div class="swatch-info"><strong>Action Blue</strong><code>#3b82f6</code></div>
+      </div>
+
+      <div class="swatch">
+        <div class="swatch-color" style="background-color:#92400e;"></div>
+        <div class="swatch-info"><strong>Craft Brown</strong><code>#92400e</code></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== FOOTER ===== -->
+<div style="text-align:center; padding:40px 20px 60px; font-family:'Bangers',cursive; color:var(--paper-white); text-shadow:2px 2px 0 var(--marker-black);">
+  <p style="font-size:1.6rem; letter-spacing:3px;">HONK FOR DEMOCRACY</p>
+  <p style="font-family:'Patrick Hand',cursive; font-size:1rem; opacity:0.8; margin-top:8px;">FINAL Design Reference &mdash; Paper Mario Top-Down &mdash; February 2026</p>
+  <p style="font-family:'Patrick Hand',cursive; font-size:0.85rem; opacity:0.5; margin-top:4px;">Perspective: Top-Down | Font: Bangers | Side-profile vehicles reserved for score/landing/share only</p>
+</div>
+
+</body>
+</html>

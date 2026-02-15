@@ -19,13 +19,13 @@
 ### Infrastructure
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| Cloudflare Pages | N/A | Static hosting + CDN | Fast global CDN, free tier generous, git-based deploys, custom domain support. No server needed. |
-| Wrangler | latest | Cloudflare CLI for deploys | Standard CF Pages tooling. |
+| Cloudflare Workers | N/A | Static hosting via Workers static assets + CDN | Fast global CDN, free tier generous, custom domain support. Pages is deprecated/merging into Workers. |
+| Wrangler | latest | Cloudflare CLI for deploys | Standard CF Workers tooling. `wrangler.jsonc` with `assets` directory. |
 
 ### Supporting Libraries
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| @astrojs/cloudflare | latest | Astro adapter for CF Pages | Deployment configuration |
+| @astrojs/cloudflare | latest | Astro adapter for CF Workers | Deployment configuration (Phase 7) |
 | phaser3-rex-plugins | latest | Phaser plugin collection | Gesture recognition (drag-rotate), UI components. Has excellent rotate/drag gesture plugins that map directly to the visibility cone mechanic. |
 | @fontsource/permanent-marker | latest | "Permanent Marker" font | Sign crafting UI, protest aesthetic. Self-hosted, no external font requests. |
 

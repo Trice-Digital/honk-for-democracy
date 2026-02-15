@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Honk For Democracy — 3/4 Paper Mario View</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+/* ===== COLOR PALETTE ===== */
+:root {
+  --asphalt: #3a3a3a;
+  --cardboard: #c5a059;
+  --paper-white: #f5f0e8;
+  --marker-black: #1a1a1a;
+  --safety-yellow: #fbbf24;
+  --stoplight-red: #ef4444;
+  --stoplight-green: #22c55e;
+  --action-blue: #3b82f6;
+  --craft-brown: #92400e;
+
+  --shadow: 3px 3px 0px rgba(26,26,26,0.5);
+  --shadow-strong: 4px 4px 0px var(--marker-black);
+  --shadow-light: 2px 2px 0px rgba(26,26,26,0.3);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Patrick Hand', cursive;
+  background-color: #b8956a;
+  color: var(--marker-black);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
+  background-size: 300px 300px, 100% 100%;
+}
+
+/* ===== SECTIONS ===== */
+.section {
+  max-width: 1100px;
+  margin: 0 auto 60px;
+  padding: 40px;
+  position: relative;
+}
+
+.section-card {
+  background-color: var(--paper-white);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23p)' opacity='0.06'/%3E%3C/svg%3E");
+  padding: 40px;
+  box-shadow: var(--shadow-strong);
+  border: 3px solid var(--marker-black);
+  position: relative;
+  clip-path: polygon(
+    0% 0.3%, 2% 0%, 4% 0.2%, 8% 0%, 12% 0.15%, 16% 0%, 20% 0.1%,
+    25% 0%, 30% 0.2%, 35% 0%, 40% 0.15%, 45% 0%, 50% 0.1%,
+    55% 0%, 60% 0.2%, 65% 0%, 70% 0.1%, 75% 0%, 80% 0.2%,
+    85% 0%, 90% 0.1%, 95% 0%, 100% 0.3%,
+    100% 5%, 99.8% 10%, 100% 15%, 99.9% 20%, 100% 25%, 99.8% 30%,
+    100% 35%, 99.9% 40%, 100% 45%, 99.8% 50%, 100% 55%, 99.9% 60%,
+    100% 65%, 99.8% 70%, 100% 75%, 99.9% 80%, 100% 85%, 99.8% 90%,
+    100% 95%, 99.9% 100%,
+    95% 100%, 90% 99.8%, 85% 100%, 80% 99.9%, 75% 100%, 70% 99.8%,
+    65% 100%, 60% 99.9%, 55% 100%, 50% 99.8%, 45% 100%, 40% 99.9%,
+    35% 100%, 30% 99.8%, 25% 100%, 20% 99.9%, 15% 100%, 10% 99.8%,
+    5% 100%, 0% 99.9%,
+    0% 95%, 0.2% 90%, 0% 85%, 0.1% 80%, 0% 75%, 0.2% 70%,
+    0% 65%, 0.1% 60%, 0% 55%, 0.2% 50%, 0% 45%, 0.1% 40%,
+    0% 35%, 0.2% 30%, 0% 25%, 0.1% 20%, 0% 15%, 0.2% 10%,
+    0% 5%
+  );
+}
+
+.section-header {
+  font-family: 'Bangers', cursive;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  color: var(--marker-black);
+  margin-bottom: 24px;
+  padding-bottom: 8px;
+  border-bottom: 4px solid var(--marker-black);
+  display: inline-block;
+  text-transform: uppercase;
+  transform: rotate(-0.5deg);
+}
+
+/* ===== TITLE BANNER ===== */
+.title-banner {
+  text-align: center;
+  padding: 60px 20px 40px;
+  max-width: 900px;
+  margin: 0 auto 20px;
+}
+
+.title-banner h1 {
+  font-family: 'Bangers', cursive;
+  font-size: 3.8rem;
+  color: var(--paper-white);
+  text-shadow: 4px 4px 0 var(--marker-black), -1px -1px 0 var(--marker-black);
+  letter-spacing: 6px;
+  line-height: 1.1;
+  transform: rotate(-1deg);
+}
+
+.title-banner .subtitle {
+  font-family: 'Patrick Hand', cursive;
+  font-size: 1.4rem;
+  color: var(--paper-white);
+  text-shadow: 2px 2px 0 var(--marker-black);
+  margin-top: 10px;
+}
+
+.title-banner .art-dir {
+  display: inline-block;
+  background: var(--safety-yellow);
+  color: var(--marker-black);
+  padding: 6px 20px;
+  font-family: 'Bangers', cursive;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  margin-top: 16px;
+  box-shadow: var(--shadow);
+  border: 2px solid var(--marker-black);
+  transform: rotate(1deg);
+}
+
+/* ===== TAPE DECORATION ===== */
+.tape {
+  position: absolute;
+  width: 100px;
+  height: 28px;
+  background: rgba(251, 191, 36, 0.65);
+  border: 1px solid rgba(26,26,26,0.15);
+  z-index: 5;
+  box-shadow: 1px 1px 0 rgba(26,26,26,0.15);
+}
+.tape-tl { top: -8px; left: 20px; transform: rotate(-12deg); }
+.tape-tr { top: -8px; right: 20px; transform: rotate(8deg); }
+.tape-bl { bottom: -8px; left: 30px; transform: rotate(5deg); }
+.tape-br { bottom: -8px; right: 25px; transform: rotate(-7deg); }
+
+/* ===== COMPARISON STRIP ===== */
+.comparison-strip {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.compare-panel {
+  flex: 1;
+  min-width: 280px;
+  max-width: 380px;
+  text-align: center;
+}
+
+.compare-panel h3 {
+  font-family: 'Bangers', cursive;
+  font-size: 1.4rem;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+.compare-panel svg {
+  border: 2px solid var(--marker-black);
+  box-shadow: var(--shadow);
+  display: block;
+  margin: 0 auto;
+}
+
+.why-bullets {
+  margin-top: 20px;
+  text-align: left;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.why-bullets li {
+  font-family: 'Patrick Hand', cursive;
+  font-size: 1.15rem;
+  margin-bottom: 6px;
+  list-style: none;
+  padding-left: 24px;
+  position: relative;
+}
+
+.why-bullets li::before {
+  content: '>';
+  position: absolute;
+  left: 4px;
+  font-family: 'Bangers', cursive;
+  color: var(--stoplight-green);
+  font-size: 1.3rem;
+}
+
+/* ===== MAIN SCENE ===== */
+.scene-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.main-scene-container {
+  position: relative;
+  width: 960px;
+  max-width: 100%;
+}
+
+.main-scene {
+  width: 960px;
+  height: 680px;
+  max-width: 100%;
+  border: 3px solid var(--marker-black);
+  box-shadow: 6px 6px 0px var(--marker-black);
+  display: block;
+}
+
+/* ===== HUD OVERLAY ===== */
+.hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hud-el {
+  position: absolute;
+  background: var(--paper-white);
+  border: 3px solid var(--marker-black);
+  box-shadow: 3px 3px 0 rgba(26,26,26,0.6);
+  font-family: 'Bangers', cursive;
+  padding: 8px 14px;
+  pointer-events: auto;
+}
+
+.hud-clock {
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-score {
+  top: 12px;
+  right: 12px;
+  text-align: center;
+}
+
+.hud-score .val {
+  font-size: 2rem;
+  color: var(--safety-yellow);
+  text-shadow: 2px 2px 0 var(--marker-black);
+  line-height: 1;
+}
+
+.hud-score .lbl {
+  font-size: 0.85rem;
+  color: var(--asphalt);
+  letter-spacing: 2px;
+}
+
+.hud-fatigue {
+  bottom: 12px;
+  left: 12px;
+  min-width: 160px;
+}
+
+.hud-confidence {
+  bottom: 12px;
+  right: 12px;
+  min-width: 160px;
+}
+
+.hud-bar {
+  width: 100%;
+  height: 18px;
+  background: #ddd;
+  border: 2px solid var(--marker-black);
+  margin-top: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hud-bar-fill {
+  height: 100%;
+}
+
+.hud-menu {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+/* ===== WEATHER DEMO ===== */
+.weather-scene-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.weather-scene {
+  width: 700px;
+  height: 420px;
+  max-width: 100%;
+  border: 3px solid var(--marker-black);
+  box-shadow: var(--shadow-strong);
+}
+
+.weather-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.raindrop-w {
+  position: absolute;
+  width: 10px;
+  height: 16px;
+  opacity: 0.35;
+  animation: rain-fall linear infinite;
+}
+
+@keyframes rain-fall {
+  0% { transform: translateY(-20px) rotate(8deg); opacity: 0; }
+  10% { opacity: 0.35; }
+  90% { opacity: 0.35; }
+  100% { transform: translateY(500px) rotate(8deg); opacity: 0; }
+}
+
+/* ===== REACTION BUBBLES ===== */
+.reaction-demo {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  min-height: 120px;
+  align-items: flex-end;
+}
+
+.rx-bubble {
+  background: var(--paper-white);
+  border: 3px solid var(--marker-black);
+  box-shadow: var(--shadow);
+  padding: 10px 18px;
+  font-family: 'Bangers', cursive;
+  font-size: 1.5rem;
+  position: relative;
+  display: inline-block;
+  animation: float-up 3s ease-in-out infinite;
+}
+
+.rx-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 18px;
+  width: 0; height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid var(--marker-black);
+}
+
+.rx-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 20px;
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 10px solid var(--paper-white);
+  z-index: 1;
+}
+
+@keyframes float-up {
+  0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+  50% { transform: translateY(-8px) rotate(var(--rot, 0deg)); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1000px) {
+  .main-scene-container { width: 100%; }
+  .main-scene { width: 100%; height: auto; }
+}
+
+@media (max-width: 768px) {
+  .section { padding: 20px; }
+  .section-card { padding: 24px; }
+  .title-banner h1 { font-size: 2.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SVG DEFS ===== -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="paperGrain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="saturate" values="0" in="noise" result="gray"/>
+      <feBlend in="SourceGraphic" in2="gray" mode="multiply"/>
+    </filter>
+    <filter id="roadGrain">
+      <feTurbulence type="fractalNoise" baseFrequency="2" numOctaves="2" stitchTiles="stitch" result="n"/>
+      <feColorMatrix type="saturate" values="0" in="n" result="g"/>
+      <feBlend in="SourceGraphic" in2="g" mode="multiply"/>
+    </filter>
+    <filter id="glowGreen">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <symbol id="teardrop" viewBox="0 0 10 16">
+      <path d="M5,0 C5,0 0,8 0,11 C0,14 2.2,16 5,16 C7.8,16 10,14 10,11 C10,8 5,0 5,0 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ===== TITLE BANNER ===== -->
+<div class="title-banner">
+  <h1>HONK FOR DEMOCRACY</h1>
+  <div class="subtitle">3/4 Paper Mario View &mdash; Design Mockup</div>
+  <div class="art-dir">Paper Mario Aesthetic &bull; 3/4 Angle Camera</div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 1. COMPARISON STRIP                         -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <div class="tape tape-tl"></div>
+    <div class="tape tape-tr"></div>
+    <h2 class="section-header">Why 3/4 View?</h2>
+    <p style="margin-bottom:20px; font-size:1.1rem;">Side-by-side: the top-down view vs the 3/4 angle. See why the tilted camera makes everything more readable and alive.</p>
+    <div class="comparison-strip">
+
+      <!-- TOP DOWN mini -->
+      <div class="compare-panel">
+        <h3 style="color:var(--asphalt);">Top-Down View</h3>
+        <svg width="300" height="220" viewBox="0 0 300 220">
+          <!-- Background -->
+          <rect width="300" height="220" fill="#d4c9a8"/>
+          <!-- Roads -->
+          <rect x="110" y="0" width="80" height="220" fill="var(--asphalt)"/>
+          <rect x="0" y="80" width="300" height="60" fill="var(--asphalt)"/>
+          <!-- Lane markings -->
+          <g fill="#e8e0d0" opacity="0.7">
+            <rect x="148" y="10" width="3" height="20"/>
+            <rect x="148" y="40" width="3" height="20"/>
+            <rect x="148" y="150" width="3" height="20"/>
+            <rect x="148" y="180" width="3" height="20"/>
+            <rect x="10" y="108" width="20" height="3"/>
+            <rect x="40" y="108" width="20" height="3"/>
+            <rect x="230" y="108" width="20" height="3"/>
+            <rect x="260" y="108" width="20" height="3"/>
+          </g>
+          <!-- Cars as rectangles (boring roof-only view) -->
+          <rect x="120" y="30" width="18" height="30" rx="3" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          <rect x="162" y="155" width="18" height="30" rx="3" fill="var(--stoplight-red)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          <rect x="30" y="88" width="30" height="18" rx="3" fill="var(--stoplight-green)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          <!-- Player dot -->
+          <circle cx="105" cy="148" r="7" fill="var(--safety-yellow)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          <rect x="92" y="140" width="10" height="7" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="1"/>
+          <!-- Labels -->
+          <text x="105" y="170" text-anchor="middle" font-family="Patrick Hand" font-size="10" fill="var(--asphalt)">Can't read sign</text>
+          <text x="130" y="55" text-anchor="middle" font-family="Patrick Hand" font-size="9" fill="white">Just a rectangle</text>
+        </svg>
+      </div>
+
+      <!-- 3/4 VIEW mini -->
+      <div class="compare-panel">
+        <h3 style="color:var(--stoplight-green);">3/4 View (This Mockup)</h3>
+        <svg width="300" height="220" viewBox="0 0 300 220">
+          <!-- Background with slight perspective -->
+          <rect width="300" height="220" fill="#d4c9a8"/>
+          <!-- Road with perspective -->
+          <g transform="skewY(-5)">
+            <rect x="100" y="20" width="100" height="220" fill="var(--asphalt)"/>
+          </g>
+          <g transform="skewX(-8)">
+            <rect x="0" y="90" width="320" height="50" fill="var(--asphalt)"/>
+          </g>
+          <!-- 3/4 car showing hood + side -->
+          <g transform="translate(120, 45)">
+            <!-- Shadow -->
+            <path d="M5,38 L55,38 L55,42 L5,42 Z" fill="rgba(26,26,26,0.35)"/>
+            <!-- Side panel -->
+            <path d="M0,18 L0,35 L50,35 L50,18 Z" fill="#2563eb" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Hood (top face) -->
+            <path d="M0,18 L15,10 L65,10 L50,18 Z" fill="#60a5fa" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Windshield -->
+            <path d="M30,18 L38,10 L58,10 L50,18 Z" fill="rgba(200,225,255,0.6)" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Window -->
+            <path d="M0,18 L8,10 L30,10 L22,18 Z" fill="rgba(200,225,255,0.6)" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Emoji face -->
+            <text x="16" y="17" font-size="8">&#x1F91F;</text>
+            <!-- Wheel -->
+            <circle cx="10" cy="35" r="5" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1"/>
+            <circle cx="42" cy="35" r="5" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1"/>
+          </g>
+          <!-- Player with VISIBLE sign -->
+          <g transform="translate(80, 130)">
+            <!-- Body -->
+            <rect x="0" y="12" width="14" height="22" rx="2" fill="var(--safety-yellow)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Head -->
+            <circle cx="7" cy="8" r="7" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <text x="3" y="11" font-size="7">&#x1F624;</text>
+            <!-- Sign (READABLE!) -->
+            <rect x="16" y="-8" width="36" height="22" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <text x="21" y="7" font-family="Bangers" font-size="11" fill="var(--marker-black)">HONK!</text>
+            <!-- Sign stick -->
+            <rect x="14" y="-2" width="3" height="32" fill="var(--cardboard)" stroke="var(--marker-black)" stroke-width="0.8"/>
+            <!-- Legs -->
+            <rect x="1" y="33" width="5" height="14" rx="1" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1"/>
+            <rect x="8" y="33" width="5" height="14" rx="1" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1"/>
+          </g>
+          <!-- Building facade -->
+          <g transform="translate(220, 30)">
+            <path d="M0,0 L60,0 L60,80 L0,80 Z" fill="#8b7355" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="8" y="10" width="12" height="14" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+            <rect x="28" y="10" width="12" height="14" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+            <rect x="8" y="35" width="12" height="14" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+            <rect x="28" y="35" width="12" height="14" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+          </g>
+          <!-- Call-outs -->
+          <text x="135" y="90" font-family="Patrick Hand" font-size="9" fill="var(--stoplight-green)">See the sign!</text>
+          <text x="200" y="75" font-family="Patrick Hand" font-size="9" fill="var(--stoplight-green)">Building facade</text>
+          <text x="140" y="40" font-family="Patrick Hand" font-size="9" fill="var(--stoplight-green)">Hood + side visible</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Why bullets -->
+    <div style="text-align:center; margin-top:24px;">
+      <h3 style="font-family:'Bangers',cursive; font-size:1.6rem; color:var(--stoplight-green); letter-spacing:2px;">ADVANTAGES OF 3/4</h3>
+    </div>
+    <div style="display:flex; justify-content:center;">
+      <ul class="why-bullets">
+        <li>See the sign you crafted (the whole selling point!)</li>
+        <li>Recognizable vehicle silhouettes (hood + side)</li>
+        <li>Building facades add depth and character</li>
+        <li>Emoji faces visible through windshields</li>
+        <li>More visual storytelling in every frame</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 2. MAIN 3/4 INTERSECTION SCENE (HERO)      -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card" style="padding:20px;">
+    <div class="tape tape-tl"></div>
+    <div class="tape tape-tr"></div>
+    <div class="tape tape-bl"></div>
+    <div class="tape tape-br"></div>
+    <h2 class="section-header">The 3/4 Intersection Scene</h2>
+    <p style="margin-bottom:16px; font-size:1.1rem;">Full 3/4 angle intersection with paper cutout everything. This is what gameplay looks like. HUD elements overlaid.</p>
+
+    <div class="scene-wrap">
+      <div class="main-scene-container">
+        <svg class="main-scene" viewBox="0 0 960 680" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="sceneGrain">
+              <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" stitchTiles="stitch" result="n"/>
+              <feColorMatrix type="saturate" values="0" in="n" result="g"/>
+              <feBlend in="SourceGraphic" in2="g" mode="multiply"/>
+            </filter>
+            <filter id="glowG">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <!-- Visibility cone gradient -->
+            <linearGradient id="visGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.05"/>
+            </linearGradient>
+          </defs>
+
+          <!-- ===== SKY / BACKGROUND ===== -->
+          <rect width="960" height="680" fill="#c8bfa8" filter="url(#sceneGrain)"/>
+
+          <!-- ===== BUILDINGS (back row, 3/4 angle) ===== -->
+          <!-- Far left building -->
+          <g>
+            <!-- Shadow -->
+            <polygon points="24,124 204,124 204,290 24,290" fill="rgba(26,26,26,0.25)"/>
+            <!-- Front face -->
+            <polygon points="20,120 200,120 200,286 20,286" fill="#8b7355" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Top face (roof, 3/4 perspective) -->
+            <polygon points="20,120 60,88 240,88 200,120" fill="#a08860" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Side face -->
+            <polygon points="200,120 240,88 240,254 200,286" fill="#705c3a" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Windows on front -->
+            <rect x="36" y="140" width="28" height="32" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="80" y="140" width="28" height="32" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="124" y="140" width="28" height="32" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="168" y="140" width="28" height="32" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="36" y="196" width="28" height="32" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="80" y="196" width="28" height="32" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="124" y="196" width="28" height="32" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="168" y="196" width="28" height="32" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Door -->
+            <rect x="100" y="248" width="30" height="38" rx="2" fill="#5c4a2a" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Awning -->
+            <polygon points="92,248 140,248 136,238 96,238" fill="var(--stoplight-red)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          </g>
+
+          <!-- Center-right building (taller) -->
+          <g>
+            <polygon points="624,80 834,80 834,286 624,286" fill="#a0845c" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <polygon points="624,80 664,48 874,48 834,80" fill="#b8986a" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <polygon points="834,80 874,48 874,254 834,286" fill="#887040" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Windows -->
+            <rect x="644" y="100" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="686" y="100" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="728" y="100" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="770" y="100" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="644" y="150" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="686" y="150" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="728" y="150" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="770" y="150" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="644" y="200" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="686" y="200" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="728" y="200" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="770" y="200" width="26" height="30" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Sign on building -->
+            <rect x="660" y="250" width="130" height="30" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2"/>
+            <text x="725" y="272" text-anchor="middle" font-family="Bangers" font-size="18" fill="var(--marker-black)">CITY HALL</text>
+          </g>
+
+          <!-- Small building far right -->
+          <g>
+            <polygon points="870,140 940,140 940,286 870,286" fill="#6b5b3e" stroke="var(--marker-black)" stroke-width="2"/>
+            <polygon points="870,140 890,120 960,120 940,140" fill="#7d6b48" stroke="var(--marker-black)" stroke-width="2"/>
+            <polygon points="940,140 960,120 960,266 940,286" fill="#5a4a2e" stroke="var(--marker-black)" stroke-width="2"/>
+            <rect x="885" y="160" width="20" height="24" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="885" y="200" width="20" height="24" fill="rgba(200,225,255,0.45)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          </g>
+
+          <!-- ===== TREES (construction paper) ===== -->
+          <!-- Tree left -->
+          <g transform="translate(250, 120)">
+            <!-- Trunk -->
+            <rect x="12" y="50" width="10" height="40" fill="var(--craft-brown)" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Shadow -->
+            <ellipse cx="17" cy="92" rx="18" ry="5" fill="rgba(26,26,26,0.2)"/>
+            <!-- Canopy (layered circles for paper-cut look) -->
+            <circle cx="17" cy="40" r="22" fill="#3d8b37" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <circle cx="8" cy="48" r="16" fill="#2d7a28" stroke="var(--marker-black)" stroke-width="2"/>
+            <circle cx="28" cy="44" r="18" fill="#4a9e43" stroke="var(--marker-black)" stroke-width="2"/>
+          </g>
+
+          <!-- Tree right -->
+          <g transform="translate(590, 108)">
+            <rect x="12" y="50" width="10" height="44" fill="var(--craft-brown)" stroke="var(--marker-black)" stroke-width="2"/>
+            <ellipse cx="17" cy="96" rx="18" ry="5" fill="rgba(26,26,26,0.2)"/>
+            <circle cx="17" cy="36" r="26" fill="#3d8b37" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <circle cx="5" cy="46" r="18" fill="#2d7a28" stroke="var(--marker-black)" stroke-width="2"/>
+            <circle cx="32" cy="42" r="20" fill="#4a9e43" stroke="var(--marker-black)" stroke-width="2"/>
+          </g>
+
+          <!-- ===== SIDEWALKS ===== -->
+          <!-- Sidewalk areas around intersection (isometric-ish parallelograms) -->
+          <!-- Top-left sidewalk -->
+          <polygon points="20,286 290,286 290,310 20,310" fill="#c5b99a" stroke="var(--marker-black)" stroke-width="2"/>
+          <!-- Top-right sidewalk -->
+          <polygon points="600,286 940,286 940,310 600,310" fill="#c5b99a" stroke="var(--marker-black)" stroke-width="2"/>
+          <!-- Bottom-left sidewalk -->
+          <polygon points="20,500 290,500 290,524 20,524" fill="#c5b99a" stroke="var(--marker-black)" stroke-width="2"/>
+          <!-- Bottom-right sidewalk -->
+          <polygon points="600,500 940,500 940,524 600,524" fill="#c5b99a" stroke="var(--marker-black)" stroke-width="2"/>
+          <!-- Left vertical sidewalk -->
+          <polygon points="278,286 302,286 302,500 278,500" fill="#c5b99a" stroke="var(--marker-black)" stroke-width="1.5"/>
+          <!-- Right vertical sidewalk -->
+          <polygon points="588,286 612,286 612,500 588,500" fill="#c5b99a" stroke="var(--marker-black)" stroke-width="1.5"/>
+
+          <!-- ===== ROAD SURFACE (3/4 perspective) ===== -->
+          <!-- North-south road (going "into" screen) -->
+          <rect x="302" y="100" width="286" height="186" fill="var(--asphalt)" filter="url(#sceneGrain)"/>
+          <!-- Intersection -->
+          <rect x="20" y="310" width="920" height="190" fill="var(--asphalt)" filter="url(#sceneGrain)"/>
+          <!-- North-south road south -->
+          <rect x="302" y="500" width="286" height="180" fill="var(--asphalt)" filter="url(#sceneGrain)"/>
+
+          <!-- ===== LANE MARKINGS (masking tape) ===== -->
+          <g fill="#e8e0d0" opacity="0.8">
+            <!-- Center dashes on N-S road (north segment) -->
+            <rect x="443" y="120" width="4" height="28" rx="1" transform="rotate(0.5,445,134)"/>
+            <rect x="442" y="160" width="5" height="28" rx="1" transform="rotate(-0.3,444,174)"/>
+            <rect x="443" y="200" width="4" height="28" rx="1" transform="rotate(0.7,445,214)"/>
+            <rect x="442" y="240" width="5" height="24" rx="1"/>
+
+            <!-- Center dashes on N-S road (south segment) -->
+            <rect x="443" y="520" width="4" height="28" rx="1" transform="rotate(-0.4,445,534)"/>
+            <rect x="442" y="560" width="5" height="28" rx="1" transform="rotate(0.5,444,574)"/>
+            <rect x="443" y="600" width="4" height="28" rx="1" transform="rotate(-0.3,445,614)"/>
+            <rect x="442" y="640" width="5" height="24" rx="1"/>
+
+            <!-- Center dashes on E-W road -->
+            <rect x="40" y="403" width="36" height="4" rx="1" transform="rotate(0.4,58,405)"/>
+            <rect x="90" y="402" width="36" height="5" rx="1" transform="rotate(-0.5,108,404)"/>
+            <rect x="140" y="403" width="36" height="4" rx="1" transform="rotate(0.3,158,405)"/>
+            <rect x="190" y="402" width="36" height="5" rx="1"/>
+            <rect x="240" y="403" width="36" height="4" rx="1" transform="rotate(0.6,258,405)"/>
+
+            <rect x="620" y="403" width="36" height="4" rx="1" transform="rotate(-0.3,638,405)"/>
+            <rect x="670" y="402" width="36" height="5" rx="1" transform="rotate(0.5,688,404)"/>
+            <rect x="720" y="403" width="36" height="4" rx="1" transform="rotate(-0.4,738,405)"/>
+            <rect x="770" y="402" width="36" height="5" rx="1"/>
+            <rect x="820" y="403" width="36" height="4" rx="1" transform="rotate(0.3,838,405)"/>
+            <rect x="870" y="402" width="36" height="5" rx="1"/>
+
+            <!-- Crosswalk stripes (east-west, at intersection edges) -->
+            <rect x="306" y="316" width="278" height="5" rx="1" opacity="0.6"/>
+            <rect x="306" y="326" width="278" height="5" rx="1" opacity="0.6"/>
+            <rect x="306" y="490" width="278" height="5" rx="1" opacity="0.6"/>
+            <rect x="306" y="480" width="278" height="5" rx="1" opacity="0.6"/>
+          </g>
+
+          <!-- ===== VISIBILITY CONE ===== -->
+          <!-- Semi-transparent arc from player toward the road -->
+          <path d="M180,510 Q300,380 440,370 Q560,365 620,420 L620,450 Q540,400 440,405 Q320,415 210,520 Z"
+                fill="url(#visGrad)" stroke="var(--safety-yellow)" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.7"/>
+          <!-- Label -->
+          <text x="420" y="358" text-anchor="middle" font-family="Bangers" font-size="14" fill="var(--safety-yellow)" opacity="0.9" transform="rotate(-3,420,358)">SIGN VISIBILITY ZONE</text>
+
+          <!-- ===== TRAFFIC LIGHT (3/4 angle) ===== -->
+          <g transform="translate(585, 290)">
+            <!-- Popsicle stick pole -->
+            <rect x="0" y="-140" width="10" height="145" fill="var(--cardboard)" stroke="var(--marker-black)" stroke-width="2" rx="2"/>
+            <!-- Shadow -->
+            <rect x="6" y="-178" width="32" height="56" fill="rgba(26,26,26,0.35)" rx="3"/>
+            <!-- Light box front face -->
+            <rect x="2" y="-182" width="32" height="56" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2.5" rx="3"/>
+            <!-- Light box side face (3/4) -->
+            <polygon points="34,-182 46,-190 46,-134 34,-126" fill="#2a2a2a" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Red light -->
+            <circle cx="18" cy="-168" r="7" fill="#6b2020" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Yellow light -->
+            <circle cx="18" cy="-150" r="7" fill="#6b5520" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Green light (ACTIVE) -->
+            <circle cx="18" cy="-132" r="9" fill="var(--stoplight-green)" opacity="0.3" filter="url(#glowG)"/>
+            <circle cx="18" cy="-132" r="7" fill="var(--stoplight-green)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          </g>
+
+          <!-- ===== CARS (3/4 angle - the key feature!) ===== -->
+
+          <!-- CAR 1: Blue sedan heading east on E-W road -->
+          <g transform="translate(100, 340)">
+            <!-- Ground shadow -->
+            <path d="M10,68 L140,68 L140,76 Q75,82 10,76 Z" fill="rgba(26,26,26,0.3)"/>
+            <!-- Side panel -->
+            <path d="M8,30 L8,62 L138,62 L138,30 L110,30 L100,14 L42,14 L30,30 Z" fill="#2563eb" stroke="var(--marker-black)" stroke-width="2.5" stroke-linejoin="round"/>
+            <!-- Hood/roof (top face, 3/4 perspective) -->
+            <path d="M8,30 L22,18 L152,18 L138,30 Z" fill="#60a5fa" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Windshield top face -->
+            <path d="M100,14 L108,6 L56,6 L42,14 Z" fill="rgba(180,210,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Rear window -->
+            <path d="M8,30 L22,18 L42,18 L30,30 Z" fill="rgba(180,210,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Side windows -->
+            <path d="M34,30 L44,16 L70,16 L70,30 Z" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <path d="M74,30 L74,16 L96,16 L108,30 Z" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Emoji face through window - supportive! -->
+            <text x="48" y="28" font-size="16">&#x1F91F;</text>
+            <!-- Wheels -->
+            <ellipse cx="32" cy="62" rx="12" ry="8" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2"/>
+            <ellipse cx="32" cy="62" rx="5" ry="4" fill="#666"/>
+            <ellipse cx="112" cy="62" rx="12" ry="8" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2"/>
+            <ellipse cx="112" cy="62" rx="5" ry="4" fill="#666"/>
+            <!-- Headlight -->
+            <rect x="134" y="36" width="7" height="10" rx="2" fill="var(--safety-yellow)" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Taillight -->
+            <rect x="4" y="36" width="6" height="10" rx="2" fill="var(--stoplight-red)" stroke="var(--marker-black)" stroke-width="1"/>
+          </g>
+
+          <!-- CAR 2: Red SUV heading west on E-W road -->
+          <g transform="translate(640, 420)">
+            <!-- Ground shadow -->
+            <path d="M8,72 L148,72 L148,80 Q78,86 8,80 Z" fill="rgba(26,26,26,0.3)"/>
+            <!-- Side panel (taller = SUV) -->
+            <path d="M6,18 L6,66 L146,66 L146,18 Z" fill="#dc2626" stroke="var(--marker-black)" stroke-width="2.5" stroke-linejoin="round"/>
+            <!-- Roof (top face) -->
+            <path d="M6,18 L20,6 L160,6 L146,18 Z" fill="#f87171" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Windshield (front of car is to the LEFT since heading west) -->
+            <path d="M6,18 L20,6 L38,6 L24,18 Z" fill="rgba(180,210,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Side windows -->
+            <rect x="28" y="20" width="28" height="24" rx="2" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="62" y="20" width="28" height="24" rx="2" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="96" y="20" width="28" height="24" rx="2" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Angry driver emoji -->
+            <text x="34" y="40" font-size="18">&#x1F624;</text>
+            <!-- Roof rack -->
+            <line x1="18" y1="6" x2="158" y2="6" stroke="var(--marker-black)" stroke-width="3"/>
+            <!-- Wheels -->
+            <ellipse cx="36" cy="66" rx="14" ry="8" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2"/>
+            <ellipse cx="36" cy="66" rx="6" ry="4" fill="#666"/>
+            <ellipse cx="120" cy="66" rx="14" ry="8" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2"/>
+            <ellipse cx="120" cy="66" rx="6" ry="4" fill="#666"/>
+          </g>
+
+          <!-- CAR 3: Green sedan on N-S road heading south (coming toward us) -->
+          <g transform="translate(340, 180)">
+            <!-- Ground shadow -->
+            <path d="M8,72 L108,72 L108,78 Q58,84 8,78 Z" fill="rgba(26,26,26,0.3)"/>
+            <!-- Side panel -->
+            <path d="M4,28 L4,66 L104,66 L104,28 L82,28 L74,12 L32,12 L24,28 Z" fill="var(--stoplight-green)" stroke="var(--marker-black)" stroke-width="2.5" stroke-linejoin="round"/>
+            <!-- Hood/roof top face -->
+            <path d="M4,28 L16,18 L116,18 L104,28 Z" fill="#4ade80" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Windshield top -->
+            <path d="M74,12 L80,4 L40,4 L32,12 Z" fill="rgba(180,210,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Side windows -->
+            <path d="M26,28 L34,14 L52,14 L52,28 Z" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <path d="M56,28 L56,14 L72,14 L80,28 Z" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Neutral driver -->
+            <text x="36" y="26" font-size="14">&#x1F610;</text>
+            <!-- Wheels -->
+            <ellipse cx="26" cy="66" rx="10" ry="7" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2"/>
+            <ellipse cx="82" cy="66" rx="10" ry="7" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2"/>
+          </g>
+
+          <!-- CAR 4: COAL ROLLER TRUCK (big, black, heading east) with smoke -->
+          <g transform="translate(390, 430)">
+            <!-- Ground shadow -->
+            <path d="M8,80 L188,80 L188,88 Q98,96 8,88 Z" fill="rgba(26,26,26,0.3)"/>
+            <!-- Truck bed -->
+            <path d="M4,36 L4,74 L90,74 L90,36 Z" fill="#333" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Truck bed top face -->
+            <path d="M4,36 L16,24 L102,24 L90,36 Z" fill="#444" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Truck bed rail -->
+            <line x1="4" y1="36" x2="90" y2="36" stroke="var(--marker-black)" stroke-width="3"/>
+            <!-- Cab -->
+            <path d="M90,20 L90,74 L170,74 L170,20 Z" fill="#2a2a2a" stroke="var(--marker-black)" stroke-width="2.5" stroke-linejoin="round"/>
+            <!-- Cab roof -->
+            <path d="M90,20 L102,8 L182,8 L170,20 Z" fill="#3a3a3a" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <!-- Cab side face -->
+            <polygon points="170,20 182,8 182,62 170,74" fill="#1a1a1a" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Windshield -->
+            <path d="M96,44 L96,24 L140,22 L150,44 Z" fill="rgba(180,210,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Angry driver -->
+            <text x="106" y="42" font-size="18">&#x1F621;</text>
+            <!-- Big wheels -->
+            <ellipse cx="28" cy="74" rx="16" ry="10" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <ellipse cx="28" cy="74" rx="7" ry="5" fill="#555"/>
+            <ellipse cx="70" cy="74" rx="16" ry="10" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <ellipse cx="70" cy="74" rx="7" ry="5" fill="#555"/>
+            <ellipse cx="148" cy="74" rx="16" ry="10" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2.5"/>
+            <ellipse cx="148" cy="74" rx="7" ry="5" fill="#555"/>
+            <!-- Bumper -->
+            <rect x="170" y="40" width="14" height="30" rx="3" fill="#555" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Exhaust stack -->
+            <rect x="86" y="2" width="8" height="20" fill="#333" stroke="var(--marker-black)" stroke-width="1.5" rx="1"/>
+
+            <!-- CRUMPLED PAPER SMOKE PUFFS -->
+            <g opacity="0.6">
+              <circle cx="-10" cy="30" r="16" fill="#999" stroke="var(--marker-black)" stroke-width="1.5"/>
+              <circle cx="-25" cy="22" r="20" fill="#aaa" stroke="var(--marker-black)" stroke-width="1.5"/>
+              <circle cx="-18" cy="40" r="14" fill="#bbb" stroke="var(--marker-black)" stroke-width="1.5"/>
+              <circle cx="-40" cy="14" r="18" fill="#ccc" stroke="var(--marker-black)" stroke-width="1.5"/>
+              <circle cx="-50" cy="30" r="14" fill="#bbb" stroke="var(--marker-black)" stroke-width="1.5"/>
+              <circle cx="-60" cy="8" r="12" fill="#ddd" stroke="var(--marker-black)" stroke-width="1"/>
+              <!-- Crumple lines on smoke -->
+              <line x1="-30" y1="18" x2="-20" y2="24" stroke="var(--marker-black)" stroke-width="1" opacity="0.4"/>
+              <line x1="-22" y1="28" x2="-12" y2="34" stroke="var(--marker-black)" stroke-width="1" opacity="0.4"/>
+              <line x1="-46" y1="10" x2="-36" y2="16" stroke="var(--marker-black)" stroke-width="1" opacity="0.4"/>
+            </g>
+          </g>
+
+          <!-- CAR 5: Yellow compact on N-S road heading north -->
+          <g transform="translate(460, 560)">
+            <!-- Shadow -->
+            <path d="M6,58 L86,58 L86,64 Q46,70 6,64 Z" fill="rgba(26,26,26,0.3)"/>
+            <!-- Side panel -->
+            <path d="M2,22 L2,52 L84,52 L84,22 L68,22 L62,10 L26,10 L20,22 Z" fill="var(--safety-yellow)" stroke="var(--marker-black)" stroke-width="2" stroke-linejoin="round"/>
+            <!-- Roof top -->
+            <path d="M2,22 L12,14 L94,14 L84,22 Z" fill="#fcd34d" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Windows -->
+            <path d="M22,22 L28,12 L42,12 L42,22 Z" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <path d="M46,22 L46,12 L60,12 L66,22 Z" fill="rgba(200,225,255,0.5)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Supportive driver! -->
+            <text x="30" y="21" font-size="12">&#x1F60A;</text>
+            <!-- Wheels -->
+            <ellipse cx="20" cy="52" rx="9" ry="6" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2"/>
+            <ellipse cx="68" cy="52" rx="9" ry="6" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="2"/>
+          </g>
+
+          <!-- ===== REACTION BUBBLES floating up from cars ===== -->
+          <!-- Honk from blue sedan -->
+          <g transform="translate(160, 310)">
+            <rect x="0" y="0" width="80" height="32" rx="4" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2.5" transform="rotate(-3,40,16)"/>
+            <polygon points="30,32 38,42 46,32" fill="var(--marker-black)"/>
+            <polygon points="32,30 38,38 44,30" fill="var(--paper-white)"/>
+            <text x="40" y="22" text-anchor="middle" font-family="Bangers" font-size="18" fill="var(--stoplight-red)" transform="rotate(-3,40,22)">HONK!</text>
+          </g>
+
+          <!-- Thumbs up from yellow car -->
+          <g transform="translate(500, 538)">
+            <rect x="0" y="0" width="38" height="30" rx="4" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2" transform="rotate(2,19,15)"/>
+            <polygon points="12,30 18,38 24,30" fill="var(--marker-black)"/>
+            <polygon points="14,28 18,34 22,28" fill="var(--paper-white)"/>
+            <text x="19" y="22" text-anchor="middle" font-size="18" transform="rotate(2,19,22)">&#128077;</text>
+          </g>
+
+          <!-- Expletive from red SUV -->
+          <g transform="translate(710, 400)">
+            <rect x="0" y="0" width="64" height="28" rx="4" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2" transform="rotate(4,32,14)"/>
+            <polygon points="20,28 26,36 32,28" fill="var(--marker-black)"/>
+            <polygon points="22,26 26,32 30,26" fill="var(--paper-white)"/>
+            <text x="32" y="20" text-anchor="middle" font-family="Bangers" font-size="16" fill="var(--stoplight-red)" transform="rotate(4,32,20)">&amp;*#%!</text>
+          </g>
+
+          <!-- Middle finger from coal roller -->
+          <g transform="translate(520, 410)">
+            <rect x="0" y="0" width="34" height="28" rx="4" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2" transform="rotate(-2,17,14)"/>
+            <polygon points="10,28 16,36 22,28" fill="var(--marker-black)"/>
+            <polygon points="12,26 16,32 20,26" fill="var(--paper-white)"/>
+            <text x="17" y="21" text-anchor="middle" font-size="18" transform="rotate(-2,17,21)">&#128405;</text>
+          </g>
+
+          <!-- Trumpet honk -->
+          <g transform="translate(195, 365)">
+            <rect x="0" y="0" width="70" height="28" rx="4" fill="var(--safety-yellow)" stroke="var(--marker-black)" stroke-width="2" transform="rotate(-1,35,14)"/>
+            <polygon points="25,28 31,36 37,28" fill="var(--marker-black)"/>
+            <polygon points="27,26 31,32 35,26" fill="var(--safety-yellow)"/>
+            <text x="35" y="20" text-anchor="middle" font-family="Bangers" font-size="14" transform="rotate(-1,35,20)">HONK!&#127930;</text>
+          </g>
+
+          <!-- ===== PLAYER CHARACTER (3/4 angle, holding visible sign) ===== -->
+          <g transform="translate(120, 440)">
+            <!-- Ground shadow -->
+            <ellipse cx="32" cy="82" rx="26" ry="8" fill="rgba(26,26,26,0.25)"/>
+
+            <!-- Sign stick -->
+            <rect x="52" y="-18" width="6" height="90" fill="var(--cardboard)" stroke="var(--marker-black)" stroke-width="2" rx="1" transform="rotate(-8,55,28)"/>
+
+            <!-- SIGN (THE KEY! Readable from 3/4) -->
+            <g transform="rotate(-8, 72, -10)">
+              <rect x="36" y="-52" width="72" height="48" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="3"/>
+              <!-- Sign text -->
+              <text x="72" y="-20" text-anchor="middle" font-family="Bangers" font-size="30" fill="var(--marker-black)" letter-spacing="2">HONK!</text>
+              <!-- Paper texture lines on sign -->
+              <line x1="40" y1="-48" x2="104" y2="-48" stroke="var(--marker-black)" stroke-width="0.5" opacity="0.15"/>
+              <line x1="40" y1="-38" x2="104" y2="-38" stroke="var(--marker-black)" stroke-width="0.5" opacity="0.15"/>
+            </g>
+
+            <!-- Legs -->
+            <rect x="18" y="54" width="11" height="26" rx="3" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="2" transform="rotate(-3,24,67)"/>
+            <rect x="34" y="54" width="11" height="26" rx="3" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="2" transform="rotate(3,40,67)"/>
+
+            <!-- Shoes -->
+            <ellipse cx="16" cy="80" rx="10" ry="5" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <ellipse cx="46" cy="80" rx="10" ry="5" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1.5"/>
+
+            <!-- Body (safety yellow shirt) -->
+            <rect x="12" y="22" width="40" height="36" rx="4" fill="var(--safety-yellow)" stroke="var(--marker-black)" stroke-width="2.5"/>
+
+            <!-- Left arm (by side) -->
+            <rect x="-2" y="26" width="10" height="30" rx="4" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="2" transform="rotate(8,-2,41)"/>
+
+            <!-- Right arm (holding sign UP) -->
+            <rect x="50" y="10" width="10" height="30" rx="4" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="2" transform="rotate(-15,55,25)"/>
+
+            <!-- Head -->
+            <circle cx="32" cy="12" r="16" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="2.5"/>
+
+            <!-- Determined protester emoji face -->
+            <text x="21" y="18" font-size="20">&#x1F624;</text>
+
+            <!-- Beanie -->
+            <path d="M16,4 Q18,-10 32,-12 Q46,-10 48,4" fill="var(--stoplight-red)" stroke="var(--marker-black)" stroke-width="2"/>
+            <circle cx="32" cy="-12" r="4" fill="var(--stoplight-red)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          </g>
+
+          <!-- ===== FELLOW PROTESTORS ===== -->
+          <!-- Protestor 2 -->
+          <g transform="translate(50, 455)">
+            <ellipse cx="24" cy="72" rx="18" ry="6" fill="rgba(26,26,26,0.2)"/>
+            <!-- Sign stick -->
+            <rect x="38" y="-10" width="5" height="70" fill="var(--cardboard)" stroke="var(--marker-black)" stroke-width="1.5" rx="1" transform="rotate(-5,40,24)"/>
+            <!-- Sign -->
+            <g transform="rotate(-5, 52, 0)">
+              <rect x="26" y="-40" width="56" height="36" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2.5"/>
+              <text x="54" y="-18" text-anchor="middle" font-family="Bangers" font-size="13" fill="var(--marker-black)">WE VOTE!</text>
+            </g>
+            <!-- Legs -->
+            <rect x="14" y="48" width="9" height="22" rx="2" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="26" y="48" width="9" height="22" rx="2" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Shoes -->
+            <ellipse cx="12" cy="70" rx="8" ry="4" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1"/>
+            <ellipse cx="36" cy="70" rx="8" ry="4" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Body (green shirt) -->
+            <rect x="10" y="20" width="30" height="30" rx="3" fill="var(--stoplight-green)" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Arms -->
+            <rect x="0" y="22" width="8" height="24" rx="3" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="1.5" transform="rotate(6,4,34)"/>
+            <rect x="40" y="10" width="8" height="26" rx="3" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="1.5" transform="rotate(-12,44,23)"/>
+            <!-- Head -->
+            <circle cx="24" cy="10" r="13" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Face -->
+            <text x="15" y="16" font-size="16">&#x1F60A;</text>
+          </g>
+
+          <!-- Protestor 3 -->
+          <g transform="translate(210, 470)">
+            <ellipse cx="20" cy="64" rx="16" ry="5" fill="rgba(26,26,26,0.2)"/>
+            <!-- Sign stick -->
+            <rect x="32" y="-6" width="5" height="62" fill="var(--cardboard)" stroke="var(--marker-black)" stroke-width="1.5" rx="1" transform="rotate(3,34,24)"/>
+            <!-- Sign -->
+            <g transform="rotate(3, 48, 2)">
+              <rect x="22" y="-34" width="52" height="32" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2.5"/>
+              <text x="48" y="-14" text-anchor="middle" font-family="Bangers" font-size="12" fill="var(--stoplight-red)">RESIST!</text>
+            </g>
+            <!-- Legs -->
+            <rect x="10" y="42" width="8" height="20" rx="2" fill="#4a3520" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="22" y="42" width="8" height="20" rx="2" fill="#4a3520" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Shoes -->
+            <ellipse cx="10" cy="62" rx="7" ry="3.5" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1"/>
+            <ellipse cx="30" cy="62" rx="7" ry="3.5" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Body (action blue shirt) -->
+            <rect x="6" y="16" width="28" height="28" rx="3" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Arms -->
+            <rect x="-2" y="18" width="7" height="22" rx="3" fill="#c9946e" stroke="var(--marker-black)" stroke-width="1.5" transform="rotate(5,2,29)"/>
+            <rect x="34" y="8" width="7" height="24" rx="3" fill="#c9946e" stroke="var(--marker-black)" stroke-width="1.5" transform="rotate(-8,38,20)"/>
+            <!-- Head -->
+            <circle cx="20" cy="6" r="12" fill="#c9946e" stroke="var(--marker-black)" stroke-width="2"/>
+            <!-- Face -->
+            <text x="11" y="12" font-size="14">&#x270A;</text>
+          </g>
+
+          <!-- Protestor 4 (further back) -->
+          <g transform="translate(170, 485)">
+            <ellipse cx="16" cy="52" rx="12" ry="4" fill="rgba(26,26,26,0.2)"/>
+            <!-- Sign -->
+            <rect x="24" y="-14" width="4" height="54" fill="var(--cardboard)" stroke="var(--marker-black)" stroke-width="1" rx="1" transform="rotate(-6,26,14)"/>
+            <g transform="rotate(-6, 36, -6)">
+              <rect x="14" y="-30" width="44" height="24" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2"/>
+              <text x="36" y="-14" text-anchor="middle" font-family="Bangers" font-size="10" fill="var(--marker-black)">NO MORE!</text>
+            </g>
+            <!-- Body (small, background) -->
+            <rect x="6" y="14" width="22" height="22" rx="2" fill="var(--stoplight-red)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="6" y="36" width="7" height="16" rx="2" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1"/>
+            <rect x="18" y="36" width="7" height="16" rx="2" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Head -->
+            <circle cx="16" cy="6" r="10" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <text x="9" y="11" font-size="12">&#x1F620;</text>
+          </g>
+
+          <!-- ===== PEDESTRIANS ===== -->
+          <!-- Pedestrian with coffee -->
+          <g transform="translate(650, 290)">
+            <ellipse cx="12" cy="50" rx="10" ry="4" fill="rgba(26,26,26,0.2)"/>
+            <!-- Legs -->
+            <rect x="5" y="34" width="6" height="14" rx="2" fill="#4a3520" stroke="var(--marker-black)" stroke-width="1" transform="rotate(-8,8,41)"/>
+            <rect x="14" y="34" width="6" height="14" rx="2" fill="#4a3520" stroke="var(--marker-black)" stroke-width="1" transform="rotate(8,17,41)"/>
+            <!-- Body -->
+            <rect x="3" y="14" width="20" height="22" rx="2" fill="#9333ea" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Coffee cup in hand -->
+            <rect x="24" y="20" width="8" height="12" rx="1" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="1"/>
+            <rect x="23" y="18" width="10" height="4" rx="1" fill="var(--craft-brown)" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Steam -->
+            <path d="M28,16 Q26,12 29,10" fill="none" stroke="#999" stroke-width="1" opacity="0.5"/>
+            <path d="M31,16 Q29,11 32,8" fill="none" stroke="#999" stroke-width="1" opacity="0.5"/>
+            <!-- Arm -->
+            <rect x="22" y="16" width="6" height="16" rx="3" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Head -->
+            <circle cx="14" cy="6" r="9" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <text x="8" y="10" font-size="10">&#x1F642;</text>
+          </g>
+
+          <!-- Pedestrian walking -->
+          <g transform="translate(820, 295)">
+            <ellipse cx="10" cy="48" rx="8" ry="3" fill="rgba(26,26,26,0.2)"/>
+            <rect x="3" y="32" width="6" height="14" rx="2" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1" transform="rotate(10,6,39)"/>
+            <rect x="12" y="32" width="6" height="14" rx="2" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1" transform="rotate(-6,15,39)"/>
+            <rect x="2" y="12" width="18" height="22" rx="2" fill="#f97316" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <circle cx="12" cy="4" r="8" fill="#d4a574" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <text x="6" y="8" font-size="9">&#x1F9D1;</text>
+          </g>
+
+          <!-- ===== BUILDINGS (bottom / foreground) ===== -->
+          <!-- Bottom left building (partial, foreground) -->
+          <g>
+            <rect x="0" y="524" width="278" height="160" fill="#7b6b4e" stroke="var(--marker-black)" stroke-width="2"/>
+            <polygon points="0,524 30,500 308,500 278,524" fill="#8d7b58" stroke="var(--marker-black)" stroke-width="2"/>
+            <polygon points="278,524 308,500 308,680 278,680" fill="#6a5a3e" stroke="var(--marker-black)" stroke-width="2"/>
+            <rect x="20" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="70" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="120" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="170" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="220" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="20" y="600" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="70" y="600" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="120" y="600" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          </g>
+
+          <!-- Bottom right building -->
+          <g>
+            <rect x="612" y="524" width="350" height="160" fill="#a0845c" stroke="var(--marker-black)" stroke-width="2"/>
+            <polygon points="612,524 642,500 990,500 960,524" fill="#b8986a" stroke="var(--marker-black)" stroke-width="2"/>
+            <rect x="632" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="682" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="732" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="782" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="832" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="882" y="544" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="632" y="600" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="682" y="600" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="732" y="600" width="30" height="36" fill="rgba(200,225,255,0.4)" stroke="var(--marker-black)" stroke-width="1.5"/>
+          </g>
+
+        </svg>
+
+        <!-- ===== HUD OVERLAY ===== -->
+        <div class="hud-overlay">
+          <!-- Clock -->
+          <div class="hud-el hud-clock">
+            <svg width="48" height="48" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="22" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2.5"/>
+              <line x1="24" y1="6" x2="24" y2="10" stroke="var(--marker-black)" stroke-width="2"/>
+              <line x1="24" y1="38" x2="24" y2="42" stroke="var(--marker-black)" stroke-width="2"/>
+              <line x1="6" y1="24" x2="10" y2="24" stroke="var(--marker-black)" stroke-width="2"/>
+              <line x1="38" y1="24" x2="42" y2="24" stroke="var(--marker-black)" stroke-width="2"/>
+              <!-- 10:30 - hour hand between 10 and 11 -->
+              <line x1="24" y1="24" x2="14" y2="12" stroke="var(--marker-black)" stroke-width="3" stroke-linecap="round"/>
+              <!-- Minute hand at 6 (30 min) -->
+              <line x1="24" y1="24" x2="24" y2="40" stroke="var(--marker-black)" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="24" cy="24" r="2.5" fill="var(--stoplight-red)"/>
+            </svg>
+            <span style="font-size:1.2rem;">10:30 AM</span>
+          </div>
+
+          <!-- Score -->
+          <div class="hud-el hud-score">
+            <div class="val">847</div>
+            <div class="lbl">HONKS</div>
+          </div>
+
+          <!-- Menu -->
+          <div class="hud-el hud-menu">
+            <svg width="28" height="28" viewBox="0 0 28 28">
+              <path d="M14,3 L16,3 L17,6 L19,7 L21,5 L23,7 L21,9 L22,11 L25,12 L25,14 L22,15 L21,17 L23,19 L21,21 L19,19 L17,20 L16,23 L14,23 L13,20 L11,19 L9,21 L7,19 L9,17 L8,15 L5,14 L5,12 L8,11 L9,9 L7,7 L9,5 L11,7 L13,6 L14,3 Z" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1.5"/>
+              <circle cx="15" cy="13" r="3.5" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="1"/>
+            </svg>
+          </div>
+
+          <!-- Fatigue -->
+          <div class="hud-el hud-fatigue">
+            <div style="font-size:0.8rem; letter-spacing:1px; color:var(--asphalt);">ARM FATIGUE</div>
+            <div class="hud-bar">
+              <div class="hud-bar-fill" style="width:40%; background:var(--safety-yellow);"></div>
+            </div>
+          </div>
+
+          <!-- Confidence -->
+          <div class="hud-el hud-confidence">
+            <div style="font-size:0.8rem; letter-spacing:1px; color:var(--asphalt);">CONFIDENCE</div>
+            <div class="hud-bar">
+              <div class="hud-bar-fill" style="width:78%; background:var(--stoplight-green);"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 3. WEATHER DEMO (Rain)                     -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <div class="tape tape-tr"></div>
+    <h2 class="section-header">Weather: Rainy Day</h2>
+    <p style="margin-bottom:16px; font-size:1.1rem;">Rainy weather effect: paper teardrop particles, blue-tinted color, marker bleed on signs. Rain makes protesting harder!</p>
+    <p style="margin-bottom:16px; font-family:'Bangers',cursive; font-size:1.2rem; color:var(--action-blue);">Rainy Weather &mdash; marker bleed + paper teardrops</p>
+
+    <div class="weather-scene-wrap">
+      <svg class="weather-scene" viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="rainGrain">
+            <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" stitchTiles="stitch" result="n"/>
+            <feColorMatrix type="saturate" values="0" in="n" result="g"/>
+            <feBlend in="SourceGraphic" in2="g" mode="multiply"/>
+          </filter>
+          <!-- Blue tint overlay filter -->
+          <filter id="rainTint">
+            <feColorMatrix type="matrix" values="
+              0.7 0 0 0 0.05
+              0 0.75 0 0 0.08
+              0 0 0.9 0 0.12
+              0 0 0 1 0
+            "/>
+          </filter>
+          <filter id="markerBleed">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </defs>
+
+        <!-- Everything desaturated / blue tinted -->
+        <g filter="url(#rainTint)">
+          <!-- Background -->
+          <rect width="700" height="420" fill="#b0a890" filter="url(#rainGrain)"/>
+
+          <!-- Road -->
+          <rect x="220" y="0" width="200" height="180" fill="var(--asphalt)"/>
+          <rect x="0" y="180" width="700" height="140" fill="var(--asphalt)"/>
+          <rect x="220" y="320" width="200" height="100" fill="var(--asphalt)"/>
+
+          <!-- Sidewalks -->
+          <rect x="210" y="170" width="10" height="160" fill="#b5a988"/>
+          <rect x="420" y="170" width="10" height="160" fill="#b5a988"/>
+          <rect x="0" y="170" width="210" height="10" fill="#b5a988"/>
+          <rect x="430" y="170" width="270" height="10" fill="#b5a988"/>
+          <rect x="0" y="320" width="210" height="10" fill="#b5a988"/>
+          <rect x="430" y="320" width="270" height="10" fill="#b5a988"/>
+
+          <!-- Lane markings -->
+          <g fill="#e8e0d0" opacity="0.5">
+            <rect x="318" y="20" width="4" height="24" rx="1"/>
+            <rect x="317" y="56" width="5" height="24" rx="1"/>
+            <rect x="318" y="92" width="4" height="24" rx="1"/>
+            <rect x="318" y="340" width="4" height="24" rx="1"/>
+            <rect x="317" y="376" width="5" height="24" rx="1"/>
+            <rect x="40" y="248" width="30" height="4" rx="1"/>
+            <rect x="90" y="247" width="30" height="5" rx="1"/>
+            <rect x="140" y="248" width="30" height="4" rx="1"/>
+            <rect x="450" y="248" width="30" height="4" rx="1"/>
+            <rect x="500" y="247" width="30" height="5" rx="1"/>
+            <rect x="550" y="248" width="30" height="4" rx="1"/>
+            <rect x="610" y="247" width="30" height="5" rx="1"/>
+          </g>
+
+          <!-- Buildings (desaturated in rain) -->
+          <rect x="10" y="20" width="140" height="140" fill="#7a6d50" stroke="var(--marker-black)" stroke-width="2"/>
+          <polygon points="10,20 30,4 170,4 150,20" fill="#8a7d60" stroke="var(--marker-black)" stroke-width="2"/>
+          <rect x="30" y="40" width="22" height="28" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+          <rect x="70" y="40" width="22" height="28" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+          <rect x="110" y="40" width="22" height="28" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+
+          <rect x="500" y="30" width="170" height="130" fill="#70634a" stroke="var(--marker-black)" stroke-width="2"/>
+          <polygon points="500,30 520,14 690,14 670,30" fill="#807350" stroke="var(--marker-black)" stroke-width="2"/>
+          <rect x="520" y="50" width="22" height="26" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+          <rect x="560" y="50" width="22" height="26" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+          <rect x="600" y="50" width="22" height="26" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+          <rect x="640" y="50" width="22" height="26" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+
+          <!-- Car in rain (headlights on) -->
+          <g transform="translate(80, 210)">
+            <path d="M6,54 L106,54 L106,60 Q56,66 6,60 Z" fill="rgba(26,26,26,0.3)"/>
+            <path d="M4,20 L4,48 L100,48 L100,20 L78,20 L70,8 L30,8 L22,20 Z" fill="#666" stroke="var(--marker-black)" stroke-width="2"/>
+            <path d="M4,20 L14,12 L110,12 L100,20 Z" fill="#777" stroke="var(--marker-black)" stroke-width="2"/>
+            <path d="M24,20 L32,10 L48,10 L48,20 Z" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+            <path d="M52,20 L52,10 L68,10 L76,20 Z" fill="rgba(180,200,220,0.4)" stroke="var(--marker-black)" stroke-width="1"/>
+            <text x="34" y="19" font-size="12">&#x1F610;</text>
+            <ellipse cx="20" cy="48" rx="9" ry="6" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <ellipse cx="82" cy="48" rx="9" ry="6" fill="var(--asphalt)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Headlight glow -->
+            <circle cx="102" cy="28" r="8" fill="var(--safety-yellow)" opacity="0.3"/>
+            <rect x="98" y="24" width="5" height="8" rx="1" fill="var(--safety-yellow)" stroke="var(--marker-black)" stroke-width="1"/>
+            <!-- Wipers -->
+            <line x1="40" y1="10" x2="58" y2="6" stroke="var(--marker-black)" stroke-width="1.5" opacity="0.6"/>
+          </g>
+
+          <!-- Player in rain -->
+          <g transform="translate(200, 325)">
+            <ellipse cx="20" cy="60" rx="16" ry="5" fill="rgba(26,26,26,0.2)"/>
+            <!-- Sign stick -->
+            <rect x="32" y="-8" width="5" height="60" fill="var(--cardboard)" stroke="var(--marker-black)" stroke-width="1.5" rx="1" transform="rotate(-5,34,22)"/>
+            <!-- Sign with MARKER BLEED effect -->
+            <g transform="rotate(-5, 48, -2)">
+              <rect x="22" y="-34" width="52" height="34" fill="var(--paper-white)" stroke="var(--marker-black)" stroke-width="2"/>
+              <!-- Blurred/bleeding text -->
+              <text x="48" y="-12" text-anchor="middle" font-family="Bangers" font-size="18" fill="var(--marker-black)" opacity="0.3" transform="translate(1,1)">HONK!</text>
+              <text x="48" y="-12" text-anchor="middle" font-family="Bangers" font-size="18" fill="var(--marker-black)" opacity="0.4" transform="translate(-1,0)">HONK!</text>
+              <text x="48" y="-12" text-anchor="middle" font-family="Bangers" font-size="18" fill="var(--marker-black)" opacity="0.6">HONK!</text>
+              <!-- Wet paper discoloration -->
+              <rect x="26" y="-30" width="44" height="26" fill="rgba(100,120,150,0.08)" rx="2"/>
+            </g>
+            <!-- Body -->
+            <rect x="8" y="14" width="26" height="28" rx="3" fill="var(--safety-yellow)" stroke="var(--marker-black)" stroke-width="2" opacity="0.85"/>
+            <!-- Legs -->
+            <rect x="10" y="42" width="8" height="16" rx="2" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <rect x="22" y="42" width="8" height="16" rx="2" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="1.5"/>
+            <!-- Head -->
+            <circle cx="20" cy="6" r="11" fill="#e8b88a" stroke="var(--marker-black)" stroke-width="2"/>
+            <text x="12" y="11" font-size="13">&#x1F625;</text>
+            <!-- Beanie (wet) -->
+            <path d="M9,0 Q10,-10 20,-12 Q30,-10 31,0" fill="#cc3333" stroke="var(--marker-black)" stroke-width="1.5"/>
+          </g>
+        </g>
+
+        <!-- RAIN TEARDROPS (on top, not tinted) -->
+        <g class="rain-drops">
+          <!-- Rain drops will be added by script, but also put some static ones -->
+          <g opacity="0.4">
+            <path d="M80,60 C80,60 76,70 76,73 C76,76 77.5,78 80,78 C82.5,78 84,76 84,73 C84,70 80,60 80,60 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.35">
+            <path d="M200,120 C200,120 196,130 196,133 C196,136 197.5,138 200,138 C202.5,138 204,136 204,133 C204,130 200,120 200,120 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.3">
+            <path d="M350,40 C350,40 346,50 346,53 C346,56 347.5,58 350,58 C352.5,58 354,56 354,53 C354,50 350,40 350,40 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.4">
+            <path d="M500,90 C500,90 496,100 496,103 C496,106 497.5,108 500,108 C502.5,108 504,106 504,103 C504,100 500,90 500,90 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.35">
+            <path d="M620,150 C620,150 616,160 616,163 C616,166 617.5,168 620,168 C622.5,168 624,166 624,163 C624,160 620,150 620,150 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.3">
+            <path d="M140,200 C140,200 136,210 136,213 C136,216 137.5,218 140,218 C142.5,218 144,216 144,213 C144,210 140,200 140,200 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.4">
+            <path d="M430,170 C430,170 426,180 426,183 C426,186 427.5,188 430,188 C432.5,188 434,186 434,183 C434,180 430,170 430,170 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.35">
+            <path d="M280,280 C280,280 276,290 276,293 C276,296 277.5,298 280,298 C282.5,298 284,296 284,293 C284,290 280,280 280,280 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.3">
+            <path d="M560,250 C560,250 556,260 556,263 C556,266 557.5,268 560,268 C562.5,268 564,266 564,263 C564,260 560,250 560,250 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.35">
+            <path d="M40,310 C40,310 36,320 36,323 C36,326 37.5,328 40,328 C42.5,328 44,326 44,323 C44,320 40,310 40,310 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <g opacity="0.4">
+            <path d="M660,310 C660,310 656,320 656,323 C656,326 657.5,328 660,328 C662.5,328 664,326 664,323 C664,320 660,310 660,310 Z" fill="var(--action-blue)" stroke="var(--marker-black)" stroke-width="0.5"/>
+          </g>
+          <!-- Puddle reflections on road -->
+          <ellipse cx="300" cy="260" rx="40" ry="8" fill="rgba(100,140,200,0.15)" stroke="rgba(100,140,200,0.2)" stroke-width="1"/>
+          <ellipse cx="480" cy="240" rx="30" ry="6" fill="rgba(100,140,200,0.12)" stroke="rgba(100,140,200,0.15)" stroke-width="1"/>
+        </g>
+
+      </svg>
+
+      <!-- Animated rain overlay -->
+      <div class="weather-overlay" id="rainOverlay"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================== -->
+<!-- 4. REACTION BUBBLES DEMO                   -->
+<!-- ========================================== -->
+<div class="section">
+  <div class="section-card">
+    <div class="tape tape-bl"></div>
+    <h2 class="section-header">Reaction Bubbles in 3/4 View</h2>
+    <p style="margin-bottom:16px; font-size:1.1rem;">Paper cutout speech bubbles float up from cars at slight angles. Each one is a paper cutout with hard shadows.</p>
+
+    <div class="reaction-demo">
+      <div class="rx-bubble" style="--rot:-3deg; color:var(--stoplight-red); font-size:2rem; animation-delay:0s;">
+        HONK! &#127930;
+      </div>
+      <div class="rx-bubble" style="--rot:2deg; font-size:2rem; animation-delay:0.5s;">
+        &#128077;
+      </div>
+      <div class="rx-bubble" style="--rot:4deg; color:var(--stoplight-red); animation-delay:1s;">
+        &amp;*#%!
+      </div>
+      <div class="rx-bubble" style="--rot:-2deg; font-size:1.8rem; animation-delay:1.5s;">
+        &#128405;
+      </div>
+      <div class="rx-bubble" style="--rot:1deg; background:var(--safety-yellow); animation-delay:0.8s;">
+        YEAH!
+      </div>
+      <div class="rx-bubble" style="--rot:-4deg; font-size:2rem; animation-delay:0.3s;">
+        &#128248; <span style="font-size:0.9rem;">*snap*</span>
+      </div>
+    </div>
+
+    <p style="margin-top:24px; text-align:center; font-size:1rem; color:var(--asphalt);">Bubbles rise and fade from vehicles as they pass through the intersection. At 3/4 angle, they float naturally upward from visible car bodies.</p>
+  </div>
+</div>
+
+
+<!-- ===== FOOTER ===== -->
+<div style="text-align:center; padding:40px 20px 60px; font-family:'Patrick Hand',cursive; color:var(--paper-white); text-shadow:1px 1px 0 var(--marker-black);">
+  <p style="font-size:1.2rem;">Honk For Democracy &mdash; 3/4 Paper Mario View Mockup</p>
+  <p style="font-size:0.9rem; opacity:0.7;">February 2026</p>
+</div>
+
+
+<!-- ===== RAIN GENERATION SCRIPT ===== -->
+<script>
+(function() {
+  const overlay = document.getElementById('rainOverlay');
+  if (!overlay) return;
+  const count = 40;
+  for (let i = 0; i < count; i++) {
+    const drop = document.createElement('div');
+    drop.className = 'raindrop-w';
+    drop.style.left = (Math.random() * 100) + '%';
+    drop.style.animationDuration = (1.2 + Math.random() * 1.5) + 's';
+    drop.style.animationDelay = (Math.random() * 3) + 's';
+    drop.style.opacity = 0.12 + Math.random() * 0.25;
+    drop.innerHTML = '<svg viewBox="0 0 10 16" width="10" height="16"><path d="M5,0 C5,0 0,8 0,11 C0,14 2.2,16 5,16 C7.8,16 10,14 10,11 C10,8 5,0 5,0 Z" fill="#3b82f6" stroke="#1a1a1a" stroke-width="0.5"/></svg>';
+    overlay.appendChild(drop);
+  }
+})();
+</script>
+
+</body>
+</html>

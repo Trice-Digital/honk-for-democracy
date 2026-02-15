@@ -77,7 +77,7 @@ export class SignCraftScene extends Phaser.Scene {
     container.style.left = '0';
     container.style.width = '100%';
     container.style.height = '100%';
-    container.style.backgroundColor = '#1a1a2e';
+    container.style.backgroundColor = '#b8956a'; // Cardboard/craft-table
     container.style.zIndex = '1000';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
@@ -85,21 +85,23 @@ export class SignCraftScene extends Phaser.Scene {
     container.style.padding = '20px';
     container.style.boxSizing = 'border-box';
     container.style.overflow = 'auto';
-    container.style.fontFamily = 'system-ui, sans-serif';
+    container.style.fontFamily = "'Patrick Hand', cursive, system-ui, sans-serif";
 
     // Title
     const title = document.createElement('h1');
     title.textContent = 'CRAFT YOUR SIGN';
-    title.style.color = '#ffffff';
-    title.style.fontSize = '32px';
-    title.style.fontWeight = 'bold';
+    title.style.color = '#1a1a1a';
+    title.style.fontSize = '36px';
+    title.style.fontFamily = "'Bangers', cursive";
+    title.style.fontWeight = 'normal';
+    title.style.letterSpacing = '4px';
     title.style.margin = '0 0 8px 0';
     title.style.textAlign = 'center';
     container.appendChild(title);
 
     const subtitle = document.createElement('p');
     subtitle.textContent = 'Pick your material, font, and color';
-    subtitle.style.color = '#8892a4';
+    subtitle.style.color = '#3a3a3a';
     subtitle.style.fontSize = '16px';
     subtitle.style.margin = '0 0 20px 0';
     subtitle.style.textAlign = 'center';
@@ -165,7 +167,7 @@ export class SignCraftScene extends Phaser.Scene {
 
     const label = document.createElement('div');
     label.textContent = 'MATERIAL';
-    label.style.color = '#6b7280';
+    label.style.color = '#1a1a1a';
     label.style.fontSize = '14px';
     label.style.fontWeight = 'bold';
     label.style.letterSpacing = '2px';
@@ -195,7 +197,7 @@ export class SignCraftScene extends Phaser.Scene {
     btn.style.height = '80px';
     btn.style.border = selected ? '3px solid #3b82f6' : '2px solid #4b5563';
     btn.style.borderRadius = '8px';
-    btn.style.backgroundColor = '#2a2a4a';
+    btn.style.backgroundColor = '#f5f0e8';
     btn.style.cursor = 'pointer';
     btn.style.padding = '8px';
     btn.style.display = 'flex';
@@ -264,7 +266,7 @@ export class SignCraftScene extends Phaser.Scene {
 
     const label = document.createElement('div');
     label.textContent = 'YOUR MESSAGE';
-    label.style.color = '#6b7280';
+    label.style.color = '#1a1a1a';
     label.style.fontSize = '14px';
     label.style.fontWeight = 'bold';
     label.style.letterSpacing = '2px';
@@ -281,9 +283,9 @@ export class SignCraftScene extends Phaser.Scene {
     input.style.width = '100%';
     input.style.padding = '12px';
     input.style.fontSize = '18px';
-    input.style.color = '#ffffff';
-    input.style.backgroundColor = '#2a2a4a';
-    input.style.border = '2px solid #3b82f6';
+    input.style.color = '#1a1a1a';
+    input.style.backgroundColor = '#f5f0e8';
+    input.style.border = '3px solid #1a1a1a';
     input.style.borderRadius = '8px';
     input.style.outline = 'none';
     input.style.fontFamily = 'system-ui, sans-serif';
@@ -323,7 +325,7 @@ export class SignCraftScene extends Phaser.Scene {
 
     const label = document.createElement('div');
     label.textContent = 'FONT';
-    label.style.color = '#6b7280';
+    label.style.color = '#1a1a1a';
     label.style.fontSize = '14px';
     label.style.fontWeight = 'bold';
     label.style.letterSpacing = '2px';
@@ -354,8 +356,8 @@ export class SignCraftScene extends Phaser.Scene {
     btn.style.padding = '12px 16px';
     btn.style.border = selected ? '3px solid #3b82f6' : '2px solid #4b5563';
     btn.style.borderRadius = '8px';
-    btn.style.backgroundColor = '#2a2a4a';
-    btn.style.color = '#ffffff';
+    btn.style.backgroundColor = '#f5f0e8';
+    btn.style.color = '#1a1a1a';
     btn.style.fontSize = '14px';
     btn.style.fontFamily = font;
     btn.style.cursor = 'pointer';
@@ -409,7 +411,7 @@ export class SignCraftScene extends Phaser.Scene {
 
     const label = document.createElement('div');
     label.textContent = 'COLOR';
-    label.style.color = '#6b7280';
+    label.style.color = '#1a1a1a';
     label.style.fontSize = '14px';
     label.style.fontWeight = 'bold';
     label.style.letterSpacing = '2px';
@@ -486,7 +488,7 @@ export class SignCraftScene extends Phaser.Scene {
 
     const label = document.createElement('div');
     label.textContent = 'DECORATIONS';
-    label.style.color = '#6b7280';
+    label.style.color = '#1a1a1a';
     label.style.fontSize = '14px';
     label.style.fontWeight = 'bold';
     label.style.letterSpacing = '2px';
@@ -730,7 +732,7 @@ export class SignCraftScene extends Phaser.Scene {
         btn.style.height = '44px';
         btn.style.border = '2px solid #4b5563';
         btn.style.borderRadius = '8px';
-        btn.style.backgroundColor = '#2a2a4a';
+        btn.style.backgroundColor = '#f5f0e8';
         btn.style.cursor = 'pointer';
         btn.style.padding = '4px';
         btn.style.display = 'flex';
@@ -777,28 +779,31 @@ export class SignCraftScene extends Phaser.Scene {
     btn.textContent = 'START PROTESTING';
     btn.style.width = '100%';
     btn.style.maxWidth = '400px';
-    btn.style.padding = '16px 32px';
-    btn.style.fontSize = '22px';
-    btn.style.fontWeight = 'bold';
-    btn.style.color = '#ffffff';
-    btn.style.backgroundColor = '#22c55e';
-    btn.style.border = '2px solid rgba(255, 255, 255, 0.3)';
-    btn.style.borderRadius = '12px';
+    btn.style.padding = '18px 32px';
+    btn.style.fontSize = '26px';
+    btn.style.fontWeight = 'normal';
+    btn.style.color = '#f5f0e8';
+    btn.style.backgroundColor = '#ef4444';
+    btn.style.border = '4px solid #1a1a1a';
+    btn.style.borderRadius = '0';
     btn.style.cursor = 'pointer';
-    btn.style.transition = 'all 0.2s';
-    btn.style.fontFamily = 'system-ui, sans-serif';
+    btn.style.transition = 'transform 0.1s, box-shadow 0.1s';
+    btn.style.fontFamily = "'Bangers', cursive";
     btn.style.marginTop = '8px';
+    btn.style.letterSpacing = '4px';
+    btn.style.boxShadow = '6px 6px 0 #1a1a1a';
+    btn.style.transform = 'rotate(0.5deg)';
 
     btn.addEventListener('click', () => this.launchGame());
 
     btn.addEventListener('mouseenter', () => {
-      btn.style.backgroundColor = '#16a34a';
-      btn.style.transform = 'scale(1.02)';
+      btn.style.transform = 'translate(3px, 3px) rotate(0.5deg)';
+      btn.style.boxShadow = '3px 3px 0 #1a1a1a';
     });
 
     btn.addEventListener('mouseleave', () => {
-      btn.style.backgroundColor = '#22c55e';
-      btn.style.transform = 'scale(1)';
+      btn.style.transform = 'rotate(0.5deg)';
+      btn.style.boxShadow = '6px 6px 0 #1a1a1a';
     });
 
     return btn;
