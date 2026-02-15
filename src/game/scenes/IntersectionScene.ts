@@ -1,19 +1,9 @@
 import Phaser from 'phaser';
 import { INTERSECTION_CONFIG } from '../config/intersectionConfig';
-import type { LaneDefinition, TrafficDirection } from '../config/intersectionConfig';
 import { DIFFICULTY_MEDIUM } from '../config/difficultyConfig';
-import { CONFIDENCE_DEFAULTS } from '../config/confidenceConfig';
 import { getSignData, type SignData } from '../config/signConfig';
 import { PALETTE } from '../config/paletteConfig';
-import {
-  drawPaperShadow,
-  drawPaperShadowCircle,
-  drawScissorCutRect,
-  drawMaskingTapeStrip,
-  applyPaperGrain,
-  drawPopsicleStick,
-  wobbleSine,
-} from '../utils/paperArt';
+import { drawPaperShadow, drawScissorCutRect, applyPaperGrain, wobbleSine } from '../utils/paperArt';
 import { GameStateManager } from '../systems/GameStateManager';
 import { TrafficLightSystem } from '../systems/TrafficLightSystem';
 import { ReactionSystem } from '../systems/ReactionSystem';
@@ -27,9 +17,15 @@ import { AmbientSystem } from '../systems/AmbientSystem';
 import { MusicSystem } from '../systems/MusicSystem';
 import { ReactiveCueSystem } from '../systems/ReactiveCueSystem';
 import { DebugOverlay } from '../systems/DebugOverlay';
-import { Car } from '../entities/Car';
 import { Player } from '../entities/Player';
 import { VisibilityCone } from '../entities/VisibilityCone';
+import { IntersectionRenderer } from '../managers/IntersectionRenderer';
+import { TrafficLightRenderer } from '../managers/TrafficLightRenderer';
+import { TrafficManager } from '../managers/TrafficManager';
+import { ReactionFeedbackManager } from '../managers/ReactionFeedbackManager';
+import { PlayerController } from '../managers/PlayerController';
+import { HUDManager } from '../managers/HUDManager';
+import { MenuManager } from '../managers/MenuManager';
 
 /**
  * IntersectionScene — Core gameplay scene.
@@ -37,8 +33,9 @@ import { VisibilityCone } from '../entities/VisibilityCone';
  * Top-down intersection with traffic lights, cars, player,
  * visibility cone, reactions, scoring, confidence meter,
  * arm fatigue, and raise sign mechanic. This is the game.
+ *
+ * Slim orchestrator that delegates to manager classes.
  */
-
 export class IntersectionScene extends Phaser.Scene {
   // Systems
   private gameState!: GameStateManager;
@@ -57,72 +54,21 @@ export class IntersectionScene extends Phaser.Scene {
   // Entities
   private player!: Player;
   private cone!: VisibilityCone;
-  private cars: Car[] = [];
-  private carPool: Car[] = [];
 
-  // UI elements (fixed to camera)
-  private scoreText!: Phaser.GameObjects.Text;
-  private timerText!: Phaser.GameObjects.Text;
-
-  // Confidence UI
-  private confidenceBarBg!: Phaser.GameObjects.Rectangle;
-  private confidenceBarFill!: Phaser.GameObjects.Rectangle;
-  private confidenceLabel!: Phaser.GameObjects.Text;
-
-  // Fatigue UI
-  private fatigueBarBg!: Phaser.GameObjects.Rectangle;
-  private fatigueBarFill!: Phaser.GameObjects.Rectangle;
-  private fatigueLabel!: Phaser.GameObjects.Text;
-
-  // Action buttons
-  private switchArmBtn!: Phaser.GameObjects.Container;
-  private restBtn!: Phaser.GameObjects.Container;
-  private restBtnText!: Phaser.GameObjects.Text;
-  private raiseBtn!: Phaser.GameObjects.Container;
-  private raiseBtnBg!: Phaser.GameObjects.Rectangle;
-  private raiseBtnText!: Phaser.GameObjects.Text;
-
-  // Mute button
-  private muteBtn!: Phaser.GameObjects.Text;
-  private muteBtnBg!: Phaser.GameObjects.Graphics;
-
-  // Neobrutalist button shadows (press-into-shadow effect)
-  private raiseBtnShadow!: Phaser.GameObjects.Graphics;
-  private switchBtnShadow!: Phaser.GameObjects.Graphics;
-  private switchBtnBg!: Phaser.GameObjects.Rectangle;
-  private restBtnShadow!: Phaser.GameObjects.Graphics;
-  private restBtnBg!: Phaser.GameObjects.Rectangle;
-
-  // Stopped traffic banner
-  private stoppedTrafficBanner: Phaser.GameObjects.Container | null = null;
-  private isShowingStoppedBanner: boolean = false;
+  // Managers
+  private intersectionRenderer!: IntersectionRenderer;
+  private trafficLightRenderer!: TrafficLightRenderer;
+  private trafficManager!: TrafficManager;
+  private reactionFeedback!: ReactionFeedbackManager;
+  private playerController!: PlayerController;
+  private hudManager!: HUDManager;
+  private menuManager!: MenuManager;
 
   // Debug overlay (dev only)
   private debugOverlay: DebugOverlay | null = null;
 
   // Tree canopy sprites for idle wobble animation (baked from Graphics)
-  private treeCanopies: (Phaser.GameObjects.Graphics | Phaser.GameObjects.Image)[] = [];
-
-  // Paper cutout analog clock
-  private clockContainer!: Phaser.GameObjects.Container;
-  private clockHourHand!: Phaser.GameObjects.Image;
-  private clockMinuteHand!: Phaser.GameObjects.Image;
-
-  // Menu / Pause
-  private isPaused: boolean = false;
-  private menuOverlay: Phaser.GameObjects.Container | null = null;
-
-  // Raise tap mechanic
-  private raiseHoldActive: boolean = false;
-  private raiseTapTimer: Phaser.Time.TimerEvent | null = null;
-
-  // Traffic light visuals
-  private lightGraphics!: Phaser.GameObjects.Graphics;
-  private trafficLightContainers: Phaser.GameObjects.Container[] = [];
-  private trafficLightActiveCircles: Phaser.GameObjects.Graphics[] = [];
-
-  // Spawn timers per lane
-  private spawnTimers: Map<string, number> = new Map();
+  private treeCanopies: Phaser.GameObjects.Image[] = [];
 
   // Config shorthand
   private readonly config = INTERSECTION_CONFIG;
@@ -220,8 +166,9 @@ export class IntersectionScene extends Phaser.Scene {
     this.cameras.main.scrollX = this.config.centerX - viewW / 2;
     this.cameras.main.scrollY = this.config.centerY - viewH / 2;
 
-    // --- Draw intersection ---
-    this.drawIntersection();
+    // --- Delegate rendering to IntersectionRenderer ---
+    this.intersectionRenderer = new IntersectionRenderer(this, this.config);
+    this.treeCanopies = this.intersectionRenderer.render();
 
     // --- Global paper grain overlay (fixed to camera) ---
     // Bake to texture immediately — the Graphics has thousands of path ops
@@ -234,9 +181,8 @@ export class IntersectionScene extends Phaser.Scene {
     grainImg.setScrollFactor(0);
     grainImg.setDepth(200);
 
-    // --- Traffic lights visual ---
-    this.lightGraphics = this.add.graphics();
-    this.lightGraphics.setDepth(10);
+    // --- Traffic light rendering manager ---
+    this.trafficLightRenderer = new TrafficLightRenderer(this, this.config, this.trafficLights);
 
     // --- Player ---
     this.player = new Player(this, this.config.playerX, this.config.playerY);
@@ -264,36 +210,38 @@ export class IntersectionScene extends Phaser.Scene {
     // --- Visibility cone ---
     this.cone = new VisibilityCone(this, this.config.playerX, this.config.playerY);
 
-    // --- Input: drag to rotate cone ---
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.gameState.isActive() || this.isPaused) return;
+    // --- Traffic manager ---
+    this.trafficManager = new TrafficManager(this, this.config, this.difficulty, this.trafficLights, this.gameState);
+    this.trafficManager.initSpawnTimers();
 
-      // Convert screen pointer to world coordinates
-      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      const dx = worldPoint.x - this.config.playerX;
-      const dy = worldPoint.y - this.config.playerY;
-      const angle = Math.atan2(dy, dx);
-      this.cone.setDirection(angle);
-    });
+    // --- Reaction feedback manager ---
+    this.reactionFeedback = new ReactionFeedbackManager(this);
 
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // Audio disabled for Phase 12 tuning — re-enable after listening test
-      if (!this.gameState.isActive() || this.isPaused) return;
-      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      const dx = worldPoint.x - this.config.playerX;
-      const dy = worldPoint.y - this.config.playerY;
-      const angle = Math.atan2(dy, dx);
-      this.cone.setDirection(angle);
-    });
+    // --- Player controller ---
+    this.playerController = new PlayerController(
+      this,
+      this.config,
+      this.cone,
+      this.gameState,
+      this.fatigueSystem,
+      this.audioSystem,
+      this.reactionSystem,
+      this.reactionFeedback,
+      () => this.trafficManager.getCars()
+    );
 
-    // --- Initialize spawn timers ---
-    for (const lane of this.config.lanes) {
-      const key = `${lane.direction}-${lane.laneIndex}`;
-      this.spawnTimers.set(key, this.getRandomSpawnDelay());
-    }
+    // --- HUD manager ---
+    this.hudManager = new HUDManager(this, this.gameState, this.fatigueSystem, this.trafficLights, this.config);
+    this.hudManager.createUI(viewW, viewH);
 
-    // --- UI overlay ---
-    this.createUI();
+    // --- Menu manager ---
+    this.menuManager = new MenuManager(this, this.audioSystem, this.mixerSystem);
+    this.menuManager.createMuteButton();
+    this.menuManager.createMenuButton(viewW, viewH);
+
+    // --- Wire player controller input (after MenuManager created) ---
+    this.playerController.setupInput(this.menuManager);
+    this.playerController.createActionButtons(viewW, viewH);
 
     // --- Listen for session end ---
     this.gameState.on('sessionEnd', () => {
@@ -311,7 +259,8 @@ export class IntersectionScene extends Phaser.Scene {
 
     // --- Listen for traffic light changes ---
     this.trafficLights.on('phaseChanged', () => {
-      for (const car of this.cars) {
+      const cars = this.trafficManager.getCars();
+      for (const car of cars) {
         if (car.active && car.isStopped) {
           if (this.trafficLights.isGreen(car.direction)) {
             car.isStopped = false;
@@ -323,10 +272,11 @@ export class IntersectionScene extends Phaser.Scene {
       this.audioSystem.playTrafficLightChange();
 
       // Redraw traffic lights with new phase colors
-      this.drawTrafficLights();
+      this.trafficLightRenderer.draw();
 
       // Scale-bounce the active light circles
-      for (const lightCircle of this.trafficLightActiveCircles) {
+      const activeCircles = this.trafficLightRenderer.getActiveCircles();
+      for (const lightCircle of activeCircles) {
         this.tweens.add({
           targets: lightCircle,
           scaleX: 1.3,
@@ -336,6 +286,13 @@ export class IntersectionScene extends Phaser.Scene {
           ease: 'Quad.easeOut',
         });
       }
+    });
+
+    // --- Listen for resize ---
+    this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
+      this.cameras.main.scrollX = this.config.centerX - gameSize.width / 2;
+      this.cameras.main.scrollY = this.config.centerY - gameSize.height / 2;
+      this.hudManager.repositionUI(gameSize.width, gameSize.height);
     });
 
     // Prevent context menu
@@ -350,20 +307,20 @@ export class IntersectionScene extends Phaser.Scene {
         fatigueSystem: this.fatigueSystem,
         eventSystem: this.eventSystem,
         weatherSystem: this.weatherSystem,
-        cars: () => this.cars,
+        cars: () => this.trafficManager.getCars(),
         cone: this.cone,
       });
     }
 
     // Initial traffic light draw (subsequent updates are event-driven via phaseChanged)
-    this.drawTrafficLights();
+    this.trafficLightRenderer.draw();
 
-    console.log('[HFD] IntersectionScene created. Phase 5 event system active.');
+    console.log('[HFD] IntersectionScene created. Manager-based architecture active.');
   }
 
   update(time: number, delta: number): void {
     if (!this.gameState.isActive()) return;
-    if (this.isPaused) return;
+    if (this.menuManager.getIsPaused()) return;
 
     // Update systems
     this.gameState.updateTime(delta);
@@ -378,20 +335,17 @@ export class IntersectionScene extends Phaser.Scene {
     this.musicSystem.updateConfidence(confidence);
     this.cueSystem.update(confidence, delta);
 
-    // Spawn cars
-    this.updateCarSpawning(delta);
+    // Delegate to traffic manager
+    this.trafficManager.updateSpawning(delta);
+    this.trafficManager.updateCars(time, delta);
 
-    // Update cars
-    this.updateCars(time, delta);
+    // Delegate to player controller
+    this.playerController.checkConeIntersections();
+    this.playerController.updateConeFromFatigue();
+    this.playerController.updateRaiseButtonState();
 
-    // Check cone intersections
-    this.checkConeIntersections();
-
-    // Update cone width based on fatigue
-    this.updateConeFromFatigue();
-
-    // Update visuals (traffic lights are event-driven, not per-frame)
-    this.updateUI();
+    // Delegate to HUD manager
+    this.hudManager.updateUI();
 
     // Player idle wobble and fatigue visuals
     const state = this.gameState.getState();
@@ -399,8 +353,9 @@ export class IntersectionScene extends Phaser.Scene {
     this.player.updateFatigueVisuals(state.armFatigue);
 
     // Traffic light container idle wobble (1 degree = ~0.01745 rad)
-    for (let i = 0; i < this.trafficLightContainers.length; i++) {
-      const tlc = this.trafficLightContainers[i];
+    const trafficLightContainers = this.trafficLightRenderer.getContainers();
+    for (let i = 0; i < trafficLightContainers.length; i++) {
+      const tlc = trafficLightContainers[i];
       tlc.rotation = wobbleSine(0, time + i * 700, 0.01745, 0.0012);
     }
 
@@ -418,1738 +373,7 @@ export class IntersectionScene extends Phaser.Scene {
   }
 
   // ============================================================
-  // INTERSECTION RENDERING
-  // ============================================================
-
-  /**
-   * Draw intersection — Paper Mario construction paper diorama.
-   * Layered construction paper aesthetic: sky -> grass -> sidewalks -> roads ->
-   * masking tape lane markings -> crosswalks -> stop lines -> corner dressing.
-   * All colors from PALETTE, all shapes via paperArt utilities.
-   */
-  private drawIntersection(): void {
-    const cx = this.config.centerX;
-    const cy = this.config.centerY;
-    const rw = this.config.roadWidth;
-    const hw = rw / 2;
-    const ww = this.config.worldWidth;
-    const wh = this.config.worldHeight;
-    const swW = 18; // Sidewalk width
-
-    // Reset tree canopies array
-    this.treeCanopies = [];
-
-    // All static scenery drawn to one Graphics, then baked to texture.
-    // Eliminates per-frame earcut triangulation (~45% of CPU per Firefox profile).
-    const g = this.add.graphics();
-
-    // =========================================================
-    // Layer 0: Sky / background (muted blue construction paper)
-    // =========================================================
-    g.fillStyle(PALETTE.skyBlue, 1);
-    g.fillRect(0, 0, ww, wh);
-
-    // =========================================================
-    // Layer 1: Grass / ground corners (construction paper green)
-    // Four quadrants outside the road cross, each slightly varied
-    // =========================================================
-    const grassShades = [
-      PALETTE.grassGreen,
-      PALETTE.grassGreen + 0x060806,
-      PALETTE.grassGreen - 0x080608,
-      PALETTE.grassGreen + 0x040404,
-    ];
-
-    // Top-left grass
-    drawScissorCutRect(g, 0, 0, cx - hw - swW, cy - hw - swW, grassShades[0]);
-    // Top-right grass
-    drawScissorCutRect(g, cx + hw + swW, 0, ww - cx - hw - swW, cy - hw - swW, grassShades[1]);
-    // Bottom-left grass
-    drawScissorCutRect(g, 0, cy + hw + swW, cx - hw - swW, wh - cy - hw - swW, grassShades[2]);
-    // Bottom-right grass
-    drawScissorCutRect(g, cx + hw + swW, cy + hw + swW, ww - cx - hw - swW, wh - cy - hw - swW, grassShades[3]);
-
-    // =========================================================
-    // Layer 2: Sidewalks (construction paper tan borders)
-    // =========================================================
-
-    // Horizontal sidewalks (above and below horizontal road)
-    drawScissorCutRect(g, 0, cy - hw - swW, cx - hw, swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(g, cx + hw, cy - hw - swW, ww - cx - hw, swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(g, 0, cy + hw, cx - hw, swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(g, cx + hw, cy + hw, ww - cx - hw, swW, PALETTE.sidewalkTan);
-
-    // Vertical sidewalks (left and right of vertical road)
-    drawScissorCutRect(g, cx - hw - swW, 0, swW, cy - hw - swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(g, cx + hw, 0, swW, cy - hw - swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(g, cx - hw - swW, cy + hw + swW, swW, wh - cy - hw - swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(g, cx + hw, cy + hw + swW, swW, wh - cy - hw - swW, PALETTE.sidewalkTan);
-
-    // =========================================================
-    // Layer 3: Roads (dark asphalt construction paper)
-    // =========================================================
-
-    // Vertical road
-    drawScissorCutRect(g, cx - hw, 0, rw, wh, PALETTE.asphalt);
-    // Horizontal road
-    drawScissorCutRect(g, 0, cy - hw, ww, rw, PALETTE.asphalt);
-
-    // Center intersection box (slightly lighter asphalt)
-    const centerAsphalt = PALETTE.asphalt + 0x0a0a0a;
-    g.fillStyle(centerAsphalt, 1);
-    g.fillRect(cx - hw, cy - hw, rw, rw);
-
-    // =========================================================
-    // Layer 4: Lane markings (masking tape strips)
-    // =========================================================
-
-    // Vertical center dashes (top approach — heading toward intersection)
-    for (let y = 15; y < cy - hw - 10; y += 55) {
-      const dashLen = 38 + Math.random() * 10;
-      drawMaskingTapeStrip(g, cx, y, cx, y + dashLen, 6);
-    }
-    // Vertical center dashes (bottom approach)
-    for (let y = cy + hw + 15; y < wh - 10; y += 55) {
-      const dashLen = 38 + Math.random() * 10;
-      drawMaskingTapeStrip(g, cx, y, cx, y + dashLen, 6);
-    }
-    // Horizontal center dashes (left approach)
-    for (let x = 15; x < cx - hw - 10; x += 55) {
-      const dashLen = 38 + Math.random() * 10;
-      drawMaskingTapeStrip(g, x, cy, x + dashLen, cy, 6);
-    }
-    // Horizontal center dashes (right approach)
-    for (let x = cx + hw + 15; x < ww - 10; x += 55) {
-      const dashLen = 38 + Math.random() * 10;
-      drawMaskingTapeStrip(g, x, cy, x + dashLen, cy, 6);
-    }
-
-    // =========================================================
-    // Layer 4b: Crosswalks (wider masking tape strips)
-    // =========================================================
-    const cwStripeW = 7;
-    const cwGap = 5;
-
-    // Top crosswalk (horizontal stripes across vertical road)
-    for (let i = 0; i < 4; i++) {
-      const stripeY = cy - hw - swW + 2 + i * (cwStripeW + cwGap);
-      drawMaskingTapeStrip(g, cx - hw + 6, stripeY, cx + hw - 6, stripeY, cwStripeW);
-    }
-    // Bottom crosswalk
-    for (let i = 0; i < 4; i++) {
-      const stripeY = cy + hw + 2 + i * (cwStripeW + cwGap);
-      drawMaskingTapeStrip(g, cx - hw + 6, stripeY, cx + hw - 6, stripeY, cwStripeW);
-    }
-    // Left crosswalk (vertical stripes across horizontal road)
-    for (let i = 0; i < 4; i++) {
-      const stripeX = cx - hw - swW + 2 + i * (cwStripeW + cwGap);
-      drawMaskingTapeStrip(g, stripeX, cy - hw + 6, stripeX, cy + hw - 6, cwStripeW);
-    }
-    // Right crosswalk
-    for (let i = 0; i < 4; i++) {
-      const stripeX = cx + hw + 2 + i * (cwStripeW + cwGap);
-      drawMaskingTapeStrip(g, stripeX, cy - hw + 6, stripeX, cy + hw - 6, cwStripeW);
-    }
-
-    // =========================================================
-    // Layer 4c: Stop lines (wider masking tape)
-    // =========================================================
-    const stopOff = hw + 3;
-    drawMaskingTapeStrip(g, cx - hw + 4, cy - stopOff, cx + hw - 4, cy - stopOff, 8);
-    drawMaskingTapeStrip(g, cx - hw + 4, cy + stopOff, cx + hw - 4, cy + stopOff, 8);
-    drawMaskingTapeStrip(g, cx - stopOff, cy - hw + 4, cx - stopOff, cy + hw - 4, 8);
-    drawMaskingTapeStrip(g, cx + stopOff, cy - hw + 4, cx + stopOff, cy + hw - 4, 8);
-
-    // =========================================================
-    // Layer 5: Corner environmental dressing
-    // =========================================================
-
-    // --- Buildings (paper cutout facades with scissor-cut edges) ---
-    const buildingColors = [
-      PALETTE.sidewalkTan - 0x101010,
-      PALETTE.cardboard,
-      PALETTE.sidewalkTan + 0x080808,
-      PALETTE.cardboard - 0x101008,
-    ];
-
-    // Helper: draw a paper cutout building with shadow and window cutouts
-    const drawBuilding = (bx: number, by: number, bw: number, bh: number, color: number) => {
-      drawPaperShadow(g, bx, by, bw, bh);
-      drawScissorCutRect(g, bx, by, bw, bh, color);
-      const winRows = Math.max(1, Math.floor(bh / 30));
-      const winCols = Math.max(1, Math.floor(bw / 35));
-      const winW = 12;
-      const winH = 14;
-      for (let r = 0; r < winRows; r++) {
-        for (let c = 0; c < winCols; c++) {
-          const wx = bx + 10 + c * (bw - 20) / Math.max(1, winCols);
-          const wy = by + 10 + r * (bh - 20) / Math.max(1, winRows);
-          g.fillStyle(PALETTE.asphalt, 0.6);
-          g.fillRect(wx, wy, winW, winH);
-        }
-      }
-    };
-
-    drawBuilding(cx - hw - swW - 180, cy - hw - swW - 160, 130, 90, buildingColors[0]);
-    drawBuilding(cx - hw - swW - 100, cy - hw - swW - 60, 70, 50, buildingColors[1]);
-    drawBuilding(cx + hw + swW + 40, cy - hw - swW - 170, 120, 80, buildingColors[2]);
-    drawBuilding(cx + hw + swW + 170, cy - hw - swW - 130, 100, 70, buildingColors[3]);
-    drawBuilding(cx - hw - swW - 170, cy + hw + swW + 40, 110, 80, buildingColors[1]);
-    drawBuilding(cx + hw + swW + 60, cy + hw + swW + 50, 130, 90, buildingColors[0]);
-
-    // --- Trees ---
-    const treePositions = [
-      { tx: cx - hw - swW - 60, ty: cy - hw - swW - 30, r: 18 },
-      { tx: cx - hw - swW - 280, ty: cy - hw - swW - 100, r: 15 },
-      { tx: cx + hw + swW + 250, ty: cy + hw + swW + 90, r: 20 },
-      { tx: cx + hw + swW + 90, ty: cy - hw - swW - 80, r: 16 },
-      { tx: cx - hw - swW - 120, ty: cy + hw + swW + 160, r: 17 },
-    ];
-
-    for (const tree of treePositions) {
-      // Trunk drawn onto main graphics (gets baked)
-      drawPopsicleStick(g, tree.tx - 3, tree.ty - 5, 6, 20);
-
-      // Canopy — bake to texture for wobble animation
-      const canopyG = this.add.graphics();
-      const pad = 8;
-      const dim = (tree.r + pad) * 2;
-      const cx2 = tree.r + pad;
-      const cy2 = tree.r + pad;
-      drawPaperShadowCircle(canopyG, cx2, cy2, tree.r);
-      canopyG.fillStyle(PALETTE.grassGreen + (Math.random() > 0.5 ? 0x0a0a06 : -0x060604), 0.92);
-      canopyG.fillCircle(cx2, cy2, tree.r);
-      canopyG.lineStyle(2, PALETTE.markerBlack, 0.7);
-      canopyG.strokeCircle(cx2, cy2, tree.r);
-
-      const texKey = `treeCanopy_${tree.tx}_${tree.ty}`;
-      canopyG.generateTexture(texKey, dim, dim);
-      canopyG.destroy();
-
-      const canopyImg = this.add.image(tree.tx, tree.ty, texKey);
-      canopyImg.setDepth(5);
-      this.treeCanopies.push(canopyImg as any);
-    }
-
-    // =========================================================
-    // BAKE: Convert single Graphics → texture → Image.
-    // Eliminates per-frame earcut polygon triangulation.
-    // =========================================================
-    g.generateTexture('staticScenery', ww, wh);
-    g.destroy();
-
-    const sceneryImg = this.add.image(0, 0, 'staticScenery');
-    sceneryImg.setOrigin(0, 0);
-    sceneryImg.setDepth(0);
-  }
-
-  // ============================================================
-  // TRAFFIC LIGHTS
-  // ============================================================
-
-  /**
-   * Draw traffic lights — Paper cutout on popsicle stick mounts.
-   * Each light is a Container with:
-   *  - popsicle stick pole
-   *  - paper cutout housing (dark rectangle, scissor-cut edges)
-   *  - 3 light circles: active glows through paper, inactive dim
-   *  - drop shadow on housing
-   *
-   * Called every frame to update active/inactive light states.
-   * Containers are created once (first call), then redrawn.
-   */
-  private drawTrafficLights(): void {
-    const cx = this.config.centerX;
-    const cy = this.config.centerY;
-    const hw = this.config.roadWidth / 2;
-    const offset = hw + 20;
-
-    const positions: { px: number; py: number; armDx: number; armDy: number; direction: TrafficDirection }[] = [
-      { px: cx + offset, py: cy - offset, armDx: -1, armDy: 0, direction: 'south' },
-      { px: cx - offset, py: cy + offset, armDx: 1, armDy: 0, direction: 'north' },
-      { px: cx + offset, py: cy + offset, armDx: 0, armDy: -1, direction: 'west' },
-      { px: cx - offset, py: cy - offset, armDx: 0, armDy: 1, direction: 'east' },
-    ];
-
-    // First call: create containers. Subsequent calls: just redraw light graphics.
-    const isFirstDraw = this.trafficLightContainers.length === 0;
-
-    // Clear active circles tracking for phase change pulse
-    this.trafficLightActiveCircles = [];
-
-    // Redraw the shared graphics layer
-    this.lightGraphics.clear();
-
-    for (let i = 0; i < positions.length; i++) {
-      const pos = positions[i];
-      const color = this.trafficLights.getLightColor(pos.direction);
-
-      if (isFirstDraw) {
-        // Create a container at the pole position for wobble
-        const container = this.add.container(pos.px, pos.py);
-        container.setDepth(10);
-        this.trafficLightContainers.push(container);
-
-        // Popsicle stick pole (vertical, from ground up to housing)
-        const stickG = this.add.graphics();
-        drawPopsicleStick(stickG, -3, -30, 6, 30);
-        container.add(stickG);
-      }
-
-      // Draw lights onto the shared graphics layer (redrawn each frame)
-      const g = this.lightGraphics;
-
-      // Housing dimensions
-      const isHorizontal = pos.armDx !== 0;
-      const housingW = isHorizontal ? 50 : 18;
-      const housingH = isHorizontal ? 18 : 50;
-
-      // Housing position: offset from pole toward intersection center
-      const hx = pos.px + pos.armDx * 30 - housingW / 2;
-      const hy = pos.py + pos.armDy * 30 - housingH / 2;
-
-      // Drop shadow on housing
-      drawPaperShadow(g, hx, hy, housingW, housingH);
-
-      // Paper cutout housing (dark background)
-      drawScissorCutRect(g, hx, hy, housingW, housingH, PALETTE.asphalt, PALETTE.markerBlack);
-
-      // 3 light circles inside housing
-      const spacing = 15;
-      const lightDefs: { dx: number; dy: number; lc: string }[] = [
-        { dx: isHorizontal ? -spacing : 0, dy: isHorizontal ? 0 : -spacing, lc: 'red' },
-        { dx: 0, dy: 0, lc: 'yellow' },
-        { dx: isHorizontal ? spacing : 0, dy: isHorizontal ? 0 : spacing, lc: 'green' },
-      ];
-
-      const lightCenterX = pos.px + pos.armDx * 30;
-      const lightCenterY = pos.py + pos.armDy * 30;
-
-      for (const light of lightDefs) {
-        const lx = lightCenterX + light.dx;
-        const ly = lightCenterY + light.dy;
-        const isActive = light.lc === color;
-
-        if (isActive) {
-          // Glow halo behind active light (glow-through-paper effect)
-          g.fillStyle(this.getLightHex(light.lc), 0.3);
-          g.fillCircle(lx, ly, 10);
-
-          // Active light circle — full brightness
-          g.fillStyle(this.getLightHex(light.lc), 1);
-          g.fillCircle(lx, ly, 6);
-
-          // Glow on road surface
-          g.fillStyle(this.getLightHex(light.lc), 0.06);
-          g.fillEllipse(lx + pos.armDx * 20, ly + pos.armDy * 20, 50, 30);
-
-          // Track active circle graphics for pulse on phase change
-          const activeG = this.add.graphics();
-          activeG.fillStyle(this.getLightHex(light.lc), 1);
-          activeG.fillCircle(lx, ly, 6);
-          activeG.setDepth(11);
-          this.trafficLightActiveCircles.push(activeG);
-
-          // Auto-destroy the overlay after a brief moment (it's just for pulse tweening)
-          this.time.delayedCall(500, () => {
-            if (activeG && activeG.active) activeG.destroy();
-          });
-        } else {
-          // Inactive light — very dim
-          g.fillStyle(this.getDimLightHex(light.lc), 0.15);
-          g.fillCircle(lx, ly, 6);
-        }
-
-        // Light outline
-        g.lineStyle(1.5, PALETTE.markerBlack, 0.8);
-        g.strokeCircle(lx, ly, 6);
-      }
-    }
-  }
-
-  private getLightHex(lc: string): number {
-    switch (lc) {
-      case 'red': return 0xef4444;
-      case 'yellow': return 0xfbbf24;
-      case 'green': return 0x22c55e;
-      default: return 0x333333;
-    }
-  }
-
-  private getDimLightHex(lc: string): number {
-    switch (lc) {
-      case 'red': return 0x6b2020;
-      case 'yellow': return 0x6b5520;
-      case 'green': return 0x206b30;
-      default: return 0x333333;
-    }
-  }
-
-  // ============================================================
-  // CAR SPAWNING
-  // ============================================================
-
-  private getRandomSpawnDelay(): number {
-    const { min, max } = this.config.spawnRateMs;
-    const base = Phaser.Math.Between(min, max);
-    return base / this.difficulty.trafficDensityMultiplier;
-  }
-
-  private getRandomCarSpeed(): number {
-    const { min, max } = this.config.carSpeed;
-    const base = Phaser.Math.Between(min, max);
-    return base * this.difficulty.trafficSpeedMultiplier;
-  }
-
-  private updateCarSpawning(delta: number): void {
-    for (const lane of this.config.lanes) {
-      const key = `${lane.direction}-${lane.laneIndex}`;
-      let timer = this.spawnTimers.get(key)!;
-      timer -= delta;
-
-      if (timer <= 0) {
-        const isGreen = this.trafficLights.isGreen(lane.direction);
-        const shouldSpawn = isGreen || Math.random() < 0.3;
-
-        if (shouldSpawn) {
-          this.spawnCar(lane);
-        }
-
-        this.spawnTimers.set(key, this.getRandomSpawnDelay());
-      } else {
-        this.spawnTimers.set(key, timer);
-      }
-    }
-  }
-
-  private spawnCar(lane: LaneDefinition): void {
-    const tooClose = this.cars.some((car) => {
-      if (!car.active || car.direction !== lane.direction) return false;
-      const dx = car.x - lane.spawnX;
-      const dy = car.y - lane.spawnY;
-      return Math.sqrt(dx * dx + dy * dy) < 80;
-    });
-
-    if (tooClose) return;
-
-    const speed = this.getRandomCarSpeed();
-
-    // Reuse pooled car if available, otherwise create new
-    const pooled = this.carPool.pop();
-    if (pooled) {
-      pooled.resetCar(lane, speed);
-      pooled.setDepth(8);
-      this.cars.push(pooled);
-    } else {
-      const car = new Car(this, lane, speed);
-      car.setDepth(8);
-      this.cars.push(car);
-    }
-  }
-
-  // ============================================================
-  // CAR UPDATE
-  // ============================================================
-
-  private updateCars(time: number, delta: number): void {
-    for (let i = this.cars.length - 1; i >= 0; i--) {
-      const car = this.cars[i];
-
-      if (!car.active) continue;
-
-      const isGreen = this.trafficLights.isGreen(car.direction);
-
-      if (!car.isPastStopLine()) {
-        const carAhead = this.getCarAhead(car);
-        if (carAhead && carAhead.isStopped) {
-          const dist = this.getDistanceBetweenCars(car, carAhead);
-          if (dist < 70) {
-            car.isStopped = true;
-          }
-        } else {
-          car.shouldStop(isGreen);
-        }
-      } else {
-        car.isStopped = false;
-      }
-
-      car.update(time, delta);
-
-      if (car.isOffScreen(this.config.worldWidth, this.config.worldHeight)) {
-        if (!car.hasBeenReached && !car.hasPassed) {
-          car.hasPassed = true;
-          this.gameState.recordMissedCar();
-        }
-        car.setActive(false);
-        car.setVisible(false);
-        this.cars.splice(i, 1);
-        this.carPool.push(car);
-      }
-    }
-  }
-
-  private getCarAhead(car: Car): Car | null {
-    let closest: Car | null = null;
-    let closestDist = Infinity;
-
-    for (const other of this.cars) {
-      if (other === car || !other.active || other.direction !== car.direction) continue;
-      if (other.lane.laneIndex !== car.lane.laneIndex) continue;
-
-      let ahead = false;
-      switch (car.direction) {
-        case 'north': ahead = other.y < car.y; break;
-        case 'south': ahead = other.y > car.y; break;
-        case 'east':  ahead = other.x > car.x; break;
-        case 'west':  ahead = other.x < car.x; break;
-      }
-
-      if (ahead) {
-        const dist = this.getDistanceBetweenCars(car, other);
-        if (dist < closestDist) {
-          closestDist = dist;
-          closest = other;
-        }
-      }
-    }
-
-    return closest;
-  }
-
-  private getDistanceBetweenCars(a: Car, b: Car): number {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  // ============================================================
-  // CONE INTERSECTION DETECTION + RAISE MECHANIC
-  // ============================================================
-
-  private checkConeIntersections(): void {
-    const state = this.gameState.getState();
-    // Reduce cone effectiveness while resting
-    const visibilityFactor = this.fatigueSystem.getVisibilityFactor();
-
-    for (const car of this.cars) {
-      if (!car.active || car.hasBeenReached) continue;
-
-      if (this.cone.containsPoint(car.x, car.y)) {
-        // While resting, only catch a fraction of cars
-        if (visibilityFactor < 1.0 && Math.random() > visibilityFactor) {
-          continue;
-        }
-
-        car.hasBeenReached = true;
-
-        // Roll a reaction
-        const event = this.reactionSystem.react(car.x, car.y);
-        const reaction = event.reaction;
-
-        // --- Raise sign mechanic ---
-        let finalScoreValue = reaction.scoreValue;
-        let wasDeflected = false;
-        let wasRaiseBoosted = false;
-
-        if (state.isRaised) {
-          if (reaction.sentiment === 'positive' && reaction.scoreValue > 0) {
-            // Raised during positive reaction = bonus!
-            const raiseConfig = this.fatigueSystem.getRaiseConfig();
-            finalScoreValue = Math.round(reaction.scoreValue * raiseConfig.raisePositiveBonus);
-            wasRaiseBoosted = true;
-          } else if (reaction.sentiment === 'negative' && reaction.scoreValue < 0) {
-            // Raised during negative reaction = deflect!
-            const raiseConfig = this.fatigueSystem.getRaiseConfig();
-            finalScoreValue = raiseConfig.deflectScoreValue;
-            wasDeflected = true;
-            // Bonus confidence for the deflect
-            this.gameState.addConfidence(raiseConfig.deflectConfidenceBonus);
-          }
-        }
-
-        // Record in game state
-        this.gameState.recordReaction(reaction.id, finalScoreValue);
-
-        // Play reaction sound
-        if (wasDeflected) {
-          this.audioSystem.playDeflect();
-        } else {
-          this.audioSystem.playReactionSound(reaction.id);
-        }
-
-        // Show visual feedback
-        this.showReactionFeedback(car.x, car.y, reaction, wasRaiseBoosted, wasDeflected, finalScoreValue);
-      }
-    }
-  }
-
-  // ============================================================
-  // FATIGUE -> CONE WIDTH
-  // ============================================================
-
-  private updateConeFromFatigue(): void {
-    const coneWidth = this.fatigueSystem.getConeWidth();
-    this.cone.setConeWidth(coneWidth);
-  }
-
-  // ============================================================
-  // VISUAL FEEDBACK
-  // ============================================================
-
-  /**
-   * Show paper cutout speech bubble reaction feedback.
-   * Paper speech bubble with scissor-cut edges, marker outline, triangle tail,
-   * Bangers font, paper flutter animation (wobble + drift).
-   * Stopped cars get larger bubbles; moving cars get smaller/faster ones.
-   */
-  private showReactionFeedback(
-    worldX: number,
-    worldY: number,
-    reaction: { emoji: string; scoreValue: number; color: number; label: string; sentiment?: string },
-    wasRaiseBoosted: boolean,
-    wasDeflected: boolean,
-    finalScoreValue: number,
-  ): void {
-    const rotation = (Math.random() - 0.5) * 8; // -4 to +4 degrees
-    const xDrift = (Math.random() - 0.5) * 40; // paper flutter drift
-
-    // Determine if car is stopped (larger bubbles for stopped cars)
-    let carIsStopped = false;
-    for (const car of this.cars) {
-      if (car.active && Math.abs(car.x - worldX) < 5 && Math.abs(car.y - worldY) < 5) {
-        const sentiment = reaction.sentiment || (finalScoreValue > 0 ? 'positive' : finalScoreValue < 0 ? 'negative' : 'neutral');
-        car.setReactionFace(sentiment as 'positive' | 'negative' | 'neutral');
-        carIsStopped = car.isStopped;
-        break;
-      }
-    }
-
-    // Size scaling: stopped cars = bigger bubbles, moving cars = smaller
-    const sizeScale = carIsStopped ? 1.2 : 0.9;
-    const animDuration = carIsStopped ? 1600 : 1100;
-
-    // Speech bubble (paper cutout with scissor-cut edges)
-    if (reaction.emoji || reaction.label) {
-      const bubbleText = wasDeflected
-        ? '\uD83D\uDEE1\uFE0F'
-        : reaction.emoji
-          ? `${reaction.emoji}`
-          : '';
-
-      const bubbleLabel = wasRaiseBoosted
-        ? `${bubbleText} YEAH!`
-        : wasDeflected
-          ? `${bubbleText} DEFLECT!`
-          : reaction.label === 'Honk!'
-            ? `HONK! \uD83C\uDFBA`
-            : bubbleText || reaction.label;
-
-      if (bubbleLabel) {
-        const baseFontSize = (wasRaiseBoosted || wasDeflected) ? 14 : 12;
-        const fontSize = Math.round(baseFontSize * sizeScale);
-        const bubbleW = Math.max(55, bubbleLabel.length * (10 * sizeScale) + 24);
-        const bubbleH = Math.round(28 * sizeScale);
-
-        const bg = this.add.graphics();
-        const isNegative = finalScoreValue < 0;
-        const bubbleFill = isNegative ? 0xf5d0d0 : PALETTE.paperWhite;
-
-        // Hard offset shadow (paper lifted off table)
-        bg.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-        bg.fillRoundedRect(
-          worldX - bubbleW / 2 + PALETTE.shadowOffsetX,
-          worldY - 44 + PALETTE.shadowOffsetY,
-          bubbleW, bubbleH, 4
-        );
-
-        // Scissor-cut bubble body
-        drawScissorCutRect(bg, worldX - bubbleW / 2, worldY - 44, bubbleW, bubbleH, bubbleFill);
-
-        // Triangle tail pointing down toward car
-        bg.fillStyle(bubbleFill, 1);
-        bg.fillTriangle(
-          worldX - 6, worldY - 44 + bubbleH,
-          worldX + 6, worldY - 44 + bubbleH,
-          worldX, worldY - 44 + bubbleH + 8,
-        );
-        // Tail outline
-        bg.lineStyle(2, PALETTE.markerBlack, 0.9);
-        bg.beginPath();
-        bg.moveTo(worldX - 6, worldY - 44 + bubbleH);
-        bg.lineTo(worldX, worldY - 44 + bubbleH + 8);
-        bg.lineTo(worldX + 6, worldY - 44 + bubbleH);
-        bg.strokePath();
-
-        bg.setDepth(20);
-        bg.setAngle(rotation);
-
-        const text = this.add.text(worldX, worldY - 44 + bubbleH / 2, bubbleLabel, {
-          fontFamily: "'Bangers', cursive",
-          fontSize: `${fontSize}px`,
-          color: isNegative ? '#ef4444' : '#1a1a1a',
-          letterSpacing: 1,
-        });
-        text.setOrigin(0.5);
-        text.setDepth(21);
-        text.setAngle(rotation);
-
-        // Paper flutter animation: float up + wobble rotation + x drift + fade
-        this.tweens.add({
-          targets: [bg, text],
-          y: `-=${60 + Math.random() * 20}`,
-          x: `+=${xDrift}`,
-          alpha: 0,
-          angle: rotation + (Math.random() - 0.5) * 12,
-          duration: animDuration,
-          delay: 350,
-          ease: 'Quad.easeOut',
-          onComplete: () => { bg.destroy(); text.destroy(); },
-        });
-      }
-    }
-
-    // Score floater (Bangers font with scale-bounce)
-    if (finalScoreValue !== 0) {
-      const sign = finalScoreValue > 0 ? '+' : '';
-      const label = `${sign}${finalScoreValue}`;
-      const isPositive = finalScoreValue > 0;
-      const color = isPositive ? '#22c55e' : '#ef4444';
-      const baseFontPx = (wasRaiseBoosted || wasDeflected) ? 28 : 22;
-      const fontPx = Math.round(baseFontPx * sizeScale);
-
-      const floater = this.add.text(worldX + 25, worldY - 15, label, {
-        fontFamily: "'Bangers', cursive",
-        fontSize: `${fontPx}px`,
-        color,
-        stroke: '#1a1a1a',
-        strokeThickness: 3,
-        letterSpacing: 1,
-      });
-      floater.setOrigin(0.5);
-      floater.setDepth(22);
-      floater.setScale(0.5);
-
-      // Scale-bounce on appear: 0.5 -> 1.1 -> 1.0
-      this.tweens.add({
-        targets: floater,
-        scale: 1.1,
-        duration: 120,
-        ease: 'Back.easeOut',
-        onComplete: () => {
-          this.tweens.add({
-            targets: floater,
-            scale: 1.0,
-            duration: 80,
-            ease: 'Sine.easeOut',
-          });
-        },
-      });
-
-      // Float up and fade
-      this.tweens.add({
-        targets: floater,
-        y: worldY - 75,
-        alpha: 0,
-        duration: 1000,
-        delay: 200,
-        ease: 'Quad.easeOut',
-        onComplete: () => floater.destroy(),
-      });
-    }
-  }
-
-  // ============================================================
-  // STOPPED TRAFFIC BANNER
-  // ============================================================
-
-  /**
-   * Show/hide "STOPPED TRAFFIC x2" paper cutout banner when all lights are red.
-   * Slides in from top, slides out when lights go green.
-   */
-  private updateStoppedTrafficBanner(): void {
-    // Disabled — banner is distracting and adds no gameplay value
-    return;
-  }
-
-  private showStoppedBanner(): void {
-    if (this.stoppedTrafficBanner) {
-      this.stoppedTrafficBanner.destroy();
-    }
-
-    const viewW = this.scale.width;
-    const bannerW = 220;
-    const bannerH = 36;
-
-    // Paper cutout background
-    const bg = this.add.graphics();
-    // Shadow
-    bg.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-    bg.fillRoundedRect(-bannerW / 2 + 3, 3, bannerW, bannerH, 4);
-    // Body
-    drawScissorCutRect(bg, -bannerW / 2, 0, bannerW, bannerH, PALETTE.stoplightRed);
-
-    const text = this.add.text(0, bannerH / 2, 'STOPPED TRAFFIC x2', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '18px',
-      color: '#fbbf24',
-      stroke: '#1a1a1a',
-      strokeThickness: 3,
-      letterSpacing: 2,
-    });
-    text.setOrigin(0.5);
-
-    this.stoppedTrafficBanner = this.add.container(viewW / 2, -40, [bg, text]);
-    this.stoppedTrafficBanner.setScrollFactor(0);
-    this.stoppedTrafficBanner.setDepth(150);
-
-    // Slide in from top
-    this.tweens.add({
-      targets: this.stoppedTrafficBanner,
-      y: 70,
-      duration: 300,
-      ease: 'Back.easeOut',
-    });
-  }
-
-  private hideStoppedBanner(): void {
-    if (!this.stoppedTrafficBanner) return;
-
-    const banner = this.stoppedTrafficBanner;
-    this.tweens.add({
-      targets: banner,
-      y: -50,
-      duration: 250,
-      ease: 'Quad.easeIn',
-      onComplete: () => {
-        banner.destroy();
-        if (this.stoppedTrafficBanner === banner) {
-          this.stoppedTrafficBanner = null;
-        }
-      },
-    });
-  }
-
-  // ============================================================
-  // UI OVERLAY
-  // ============================================================
-
-  private createUI(): void {
-    const viewW = this.scale.width;
-    const viewH = this.scale.height;
-
-    // --- Score display (top right, neobrutalist paper cutout card) ---
-    const scoreCardW = 155;
-    const scoreCardH = 42;
-    const scoreX = viewW - scoreCardW - 20;
-    const scoreY = 15;
-
-    // Hard offset shadow
-    const scoreShadow = this.add.graphics();
-    scoreShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-    scoreShadow.fillRoundedRect(scoreX + 3, scoreY + 3, scoreCardW, scoreCardH, 4);
-    scoreShadow.setScrollFactor(0);
-    scoreShadow.setDepth(98);
-
-    const scoreBg = this.add.graphics();
-    scoreBg.fillStyle(PALETTE.paperWhite, 0.95);
-    scoreBg.fillRoundedRect(scoreX, scoreY, scoreCardW, scoreCardH, 4);
-    scoreBg.lineStyle(3, PALETTE.markerBlack, 1);
-    scoreBg.strokeRoundedRect(scoreX, scoreY, scoreCardW, scoreCardH, 4);
-    scoreBg.setScrollFactor(0);
-    scoreBg.setDepth(99);
-
-    this.scoreText = this.add.text(0, 0, '0 HONKS', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '32px',
-      color: '#fbbf24',
-      stroke: '#1a1a1a',
-      strokeThickness: 4,
-      letterSpacing: 2,
-    });
-    this.scoreText.setScrollFactor(0);
-    this.scoreText.setDepth(100);
-    this.scoreText.setOrigin(0.5);
-    this.scoreText.setPosition(scoreX + scoreCardW / 2, scoreY + scoreCardH / 2);
-
-    // --- Timer / Clock display (top center, neobrutalist card) ---
-    const timerCardW = 100;
-    const timerCardH = 48;
-    const timerX = viewW / 2 - timerCardW / 2;
-    const timerY = 10;
-
-    const timerShadow = this.add.graphics();
-    timerShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-    timerShadow.fillRoundedRect(timerX + 3, timerY + 3, timerCardW, timerCardH, 4);
-    timerShadow.setScrollFactor(0);
-    timerShadow.setDepth(98);
-
-    const timerBg = this.add.graphics();
-    timerBg.fillStyle(PALETTE.paperWhite, 0.95);
-    timerBg.fillRoundedRect(timerX, timerY, timerCardW, timerCardH, 4);
-    timerBg.lineStyle(3, PALETTE.markerBlack, 1);
-    timerBg.strokeRoundedRect(timerX, timerY, timerCardW, timerCardH, 4);
-    timerBg.setScrollFactor(0);
-    timerBg.setDepth(99);
-
-    this.timerText = this.add.text(0, 0, '3:00', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '30px',
-      color: '#f5f0e8',
-      stroke: '#1a1a1a',
-      strokeThickness: 4,
-    });
-    this.timerText.setScrollFactor(0);
-    this.timerText.setDepth(100);
-    this.timerText.setOrigin(0.5);
-    this.timerText.setPosition(viewW / 2, timerY + timerCardH / 2);
-
-    // --- Confidence meter ---
-    this.createConfidenceUI(viewW, viewH);
-
-    // --- Fatigue meter ---
-    this.createFatigueUI(viewW, viewH);
-
-    // --- Action buttons (bottom) ---
-    this.createActionButtons(viewW, viewH);
-
-    // --- Paper cutout analog clock (top center, above timer) ---
-    this.createClockUI(viewW);
-
-    // --- In-game menu button (top left, below mute) ---
-    this.createMenuButton(viewW, viewH);
-
-    // --- Settings/Mute button (top left, neobrutalist card) ---
-    const muteShadow = this.add.graphics();
-    muteShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-    muteShadow.fillRoundedRect(18, 18, 42, 42, 4);
-    muteShadow.setScrollFactor(0);
-    muteShadow.setDepth(98);
-
-    this.muteBtnBg = this.add.graphics();
-    this.muteBtnBg.fillStyle(PALETTE.paperWhite, 0.9);
-    this.muteBtnBg.fillRoundedRect(15, 15, 42, 42, 4);
-    this.muteBtnBg.lineStyle(3, PALETTE.markerBlack, 1);
-    this.muteBtnBg.strokeRoundedRect(15, 15, 42, 42, 4);
-    this.muteBtnBg.setScrollFactor(0);
-    this.muteBtnBg.setDepth(99);
-
-    this.muteBtn = this.add.text(36, 36, '\uD83D\uDD0A', {
-      fontSize: '20px',
-    });
-    this.muteBtn.setOrigin(0.5);
-    this.muteBtn.setScrollFactor(0);
-    this.muteBtn.setDepth(100);
-    this.muteBtn.setInteractive({ useHandCursor: true });
-    this.muteBtn.on('pointerdown', () => {
-      this.muteBtnBg.setPosition(2, 2);
-      this.muteBtn.setPosition(38, 38);
-    });
-    this.muteBtn.on('pointerup', () => {
-      this.muteBtnBg.setPosition(0, 0);
-      this.muteBtn.setPosition(36, 36);
-      const muted = this.audioSystem.toggleMute();
-      this.mixerSystem.setMasterMute(muted);
-      this.muteBtn.setText(muted ? '\uD83D\uDD07' : '\uD83D\uDD0A');
-    });
-    this.muteBtn.on('pointerout', () => {
-      this.muteBtnBg.setPosition(0, 0);
-      this.muteBtn.setPosition(36, 36);
-    });
-
-    // Listen for resize
-    this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
-      this.timerText.setPosition(gameSize.width / 2, timerY + timerCardH / 2);
-      this.cameras.main.scrollX = this.config.centerX - gameSize.width / 2;
-      this.cameras.main.scrollY = this.config.centerY - gameSize.height / 2;
-      this.repositionUI(gameSize.width, gameSize.height);
-    });
-  }
-
-  /**
-   * Confidence meter — Neobrutalist paper cutout card, bottom-right.
-   * Paper-textured bar background with cardboard grain lines, marker border,
-   * hard offset shadow. Bangers label.
-   */
-  private createConfidenceUI(viewW: number, viewH: number): void {
-    const cardW = 165;
-    const cardH = 40;
-    const barX = viewW - cardW - 15;
-    const barY = viewH - cardH - 15;
-
-    // Hard offset shadow
-    const confShadow = this.add.graphics();
-    confShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-    confShadow.fillRoundedRect(barX + 3, barY + 3, cardW, cardH, 4);
-    confShadow.setScrollFactor(0);
-    confShadow.setDepth(98);
-
-    // Paper card background
-    const confCard = this.add.graphics();
-    confCard.fillStyle(PALETTE.paperWhite, 0.95);
-    confCard.fillRoundedRect(barX, barY, cardW, cardH, 4);
-    confCard.lineStyle(3, PALETTE.markerBlack, 1);
-    confCard.strokeRoundedRect(barX, barY, cardW, cardH, 4);
-    confCard.setScrollFactor(0);
-    confCard.setDepth(99);
-
-    // Label
-    this.confidenceLabel = this.add.text(barX + 12, barY + 5, 'CONFIDENCE', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '10px',
-      color: '#3a3a3a',
-      letterSpacing: 1,
-    });
-    this.confidenceLabel.setScrollFactor(0);
-    this.confidenceLabel.setDepth(100);
-
-    // Bar background (paper-textured with grain lines)
-    const barInnerX = barX + 10;
-    const barInnerY = barY + 20;
-    const barWidth = 145;
-    const barHeight = 12;
-
-    this.confidenceBarBg = this.add.rectangle(barInnerX, barInnerY, barWidth, barHeight, PALETTE.cardboard);
-    this.confidenceBarBg.setOrigin(0, 0);
-    this.confidenceBarBg.setStrokeStyle(2, PALETTE.markerBlack, 0.9);
-    this.confidenceBarBg.setScrollFactor(0);
-    this.confidenceBarBg.setDepth(100);
-
-    // Bar fill
-    const initialWidth = (CONFIDENCE_DEFAULTS.startingConfidence / 100) * barWidth;
-    this.confidenceBarFill = this.add.rectangle(barInnerX + 1, barInnerY + 1, initialWidth - 2, barHeight - 2, PALETTE.stoplightGreen);
-    this.confidenceBarFill.setOrigin(0, 0);
-    this.confidenceBarFill.setScrollFactor(0);
-    this.confidenceBarFill.setDepth(101);
-  }
-
-  /**
-   * Fatigue meter — Neobrutalist paper cutout card, bottom-left.
-   * Paper-textured bar background, marker border, hard offset shadow.
-   * Border color-codes to traffic phase: green = push, yellow = conserve.
-   */
-  private createFatigueUI(_viewW: number, viewH: number): void {
-    const cardW = 160;
-    const cardH = 40;
-    const barX = 15;
-    const barY = viewH - cardH - 15;
-
-    // Hard offset shadow
-    const fatShadow = this.add.graphics();
-    fatShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-    fatShadow.fillRoundedRect(barX + 3, barY + 3, cardW, cardH, 4);
-    fatShadow.setScrollFactor(0);
-    fatShadow.setDepth(98);
-
-    // Paper card background
-    const fatCard = this.add.graphics();
-    fatCard.fillStyle(PALETTE.paperWhite, 0.95);
-    fatCard.fillRoundedRect(barX, barY, cardW, cardH, 4);
-    fatCard.lineStyle(3, PALETTE.markerBlack, 1);
-    fatCard.strokeRoundedRect(barX, barY, cardW, cardH, 4);
-    fatCard.setScrollFactor(0);
-    fatCard.setDepth(99);
-
-    // Muscle emoji
-    const muscleEmoji = this.add.text(barX + 18, barY + 22, '\uD83D\uDCAA', {
-      fontSize: '16px',
-    });
-    muscleEmoji.setOrigin(0.5);
-    muscleEmoji.setScrollFactor(0);
-    muscleEmoji.setDepth(100);
-
-    // Label
-    this.fatigueLabel = this.add.text(barX + 36, barY + 5, 'ARM STRONG', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '10px',
-      color: '#22c55e',
-      letterSpacing: 1,
-    });
-    this.fatigueLabel.setScrollFactor(0);
-    this.fatigueLabel.setDepth(100);
-
-    // Bar background (paper-textured)
-    const barInnerX = barX + 36;
-    const barInnerY = barY + 18;
-    const barWidth = 110;
-    const barHeight = 16;
-
-    this.fatigueBarBg = this.add.rectangle(barInnerX, barInnerY, barWidth, barHeight, PALETTE.cardboard);
-    this.fatigueBarBg.setOrigin(0, 0);
-    this.fatigueBarBg.setStrokeStyle(2, PALETTE.markerBlack, 0.9);
-    this.fatigueBarBg.setScrollFactor(0);
-    this.fatigueBarBg.setDepth(100);
-
-    // Bar fill (starts empty)
-    this.fatigueBarFill = this.add.rectangle(barInnerX + 1, barInnerY + 1, 0, barHeight - 2, PALETTE.stoplightGreen);
-    this.fatigueBarFill.setOrigin(0, 0);
-    this.fatigueBarFill.setScrollFactor(0);
-    this.fatigueBarFill.setDepth(101);
-  }
-
-  /**
-   * Action buttons — Neobrutalist style: thick borders, hard offset shadows,
-   * press-into-shadow on pointerdown.
-   */
-  private createActionButtons(viewW: number, viewH: number): void {
-    const btnY = viewH - 80;
-    const btnHeight = 48;
-    const btnGap = 12;
-
-    // --- RAISE button (center, large) --- Neobrutalist style
-    const raiseBtnWidth = 140;
-
-    // Shadow (behind the container, fixed position)
-    this.raiseBtnShadow = this.add.graphics();
-    this.raiseBtnShadow.fillStyle(PALETTE.shadowDark, 0.5);
-    this.raiseBtnShadow.fillRoundedRect(-raiseBtnWidth / 2 + 3, -btnHeight / 2 + 3, raiseBtnWidth, btnHeight, 4);
-    this.raiseBtnShadow.setScrollFactor(0);
-    this.raiseBtnShadow.setDepth(109);
-    this.raiseBtnShadow.setPosition(viewW / 2, btnY);
-
-    const raiseBg = this.add.rectangle(0, 0, raiseBtnWidth, btnHeight, PALETTE.safetyYellow);
-    raiseBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
-    const raiseText = this.add.text(0, 0, 'RAISE', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '24px',
-      color: '#1a1a1a',
-      letterSpacing: 3,
-    });
-    raiseText.setOrigin(0.5);
-
-    this.raiseBtn = this.add.container(viewW / 2, btnY, [raiseBg, raiseText]);
-    this.raiseBtn.setScrollFactor(0);
-    this.raiseBtn.setDepth(110);
-    this.raiseBtn.setSize(raiseBtnWidth, btnHeight);
-    this.raiseBtn.setInteractive({ useHandCursor: true });
-    this.raiseBtnBg = raiseBg;
-    this.raiseBtnText = raiseText;
-
-    // Raise button: supports both tap (auto-lower after 0.8s) and hold
-    let raiseDownTime = 0;
-    const HOLD_THRESHOLD = 200;
-    const TAP_RAISE_DURATION = 800;
-
-    this.raiseBtn.on('pointerdown', () => {
-      if (!this.gameState.isActive()) return;
-      raiseDownTime = this.time.now;
-      this.raiseHoldActive = true;
-      this.fatigueSystem.setRaised(true);
-      this.audioSystem.playRaiseSign();
-      this.raiseBtnBg.setFillStyle(0xe89b0c);
-      this.raiseBtnText.setText('RAISED!');
-      // Press-into-shadow effect
-      this.raiseBtn.setPosition(viewW / 2 + 2, btnY + 2);
-    });
-
-    this.raiseBtn.on('pointerup', () => {
-      if (!this.raiseHoldActive) return;
-      this.raiseHoldActive = false;
-      // Restore position
-      this.raiseBtn.setPosition(viewW / 2, btnY);
-      const holdDuration = this.time.now - raiseDownTime;
-
-      if (holdDuration < HOLD_THRESHOLD) {
-        if (this.raiseTapTimer) this.raiseTapTimer.destroy();
-        this.raiseTapTimer = this.time.delayedCall(TAP_RAISE_DURATION, () => {
-          this.fatigueSystem.setRaised(false);
-          this.raiseBtnBg.setFillStyle(PALETTE.safetyYellow);
-          this.raiseBtnText.setText('RAISE');
-          this.raiseTapTimer = null;
-        });
-      } else {
-        this.fatigueSystem.setRaised(false);
-        this.raiseBtnBg.setFillStyle(PALETTE.safetyYellow);
-        this.raiseBtnText.setText('RAISE');
-      }
-    });
-
-    this.raiseBtn.on('pointerout', () => {
-      if (!this.raiseHoldActive) return;
-      this.raiseHoldActive = false;
-      this.raiseBtn.setPosition(viewW / 2, btnY);
-      if (!this.raiseTapTimer) {
-        this.fatigueSystem.setRaised(false);
-        this.raiseBtnBg.setFillStyle(PALETTE.safetyYellow);
-        this.raiseBtnText.setText('RAISE');
-      }
-    });
-
-    // --- Switch Arms button (left of raise) --- Neobrutalist style
-    const switchBtnWidth = 100;
-    const switchX = viewW / 2 - raiseBtnWidth / 2 - btnGap - switchBtnWidth / 2;
-
-    this.switchBtnShadow = this.add.graphics();
-    this.switchBtnShadow.fillStyle(PALETTE.shadowDark, 0.5);
-    this.switchBtnShadow.fillRoundedRect(-switchBtnWidth / 2 + 3, -btnHeight / 2 + 3, switchBtnWidth, btnHeight, 4);
-    this.switchBtnShadow.setScrollFactor(0);
-    this.switchBtnShadow.setDepth(109);
-    this.switchBtnShadow.setPosition(switchX, btnY);
-
-    const switchBg = this.add.rectangle(0, 0, switchBtnWidth, btnHeight, PALETTE.actionBlue);
-    switchBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
-    this.switchBtnBg = switchBg;
-    const switchText = this.add.text(0, 0, 'SWITCH\nARMS', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '14px',
-      color: '#f5f0e8',
-      align: 'center',
-      letterSpacing: 1,
-    });
-    switchText.setOrigin(0.5);
-
-    this.switchArmBtn = this.add.container(switchX, btnY, [switchBg, switchText]);
-    this.switchArmBtn.setScrollFactor(0);
-    this.switchArmBtn.setDepth(110);
-    this.switchArmBtn.setSize(switchBtnWidth, btnHeight);
-    this.switchArmBtn.setInteractive({ useHandCursor: true });
-    this.switchArmBtn.on('pointerdown', () => {
-      if (!this.gameState.isActive()) return;
-      // Press-into-shadow
-      this.switchArmBtn.setPosition(switchX + 2, btnY + 2);
-      const switched = this.fatigueSystem.trySwitchArm();
-      if (switched) {
-        switchBg.setFillStyle(PALETTE.stoplightGreen);
-        const arm = this.gameState.getState().activeArm;
-        switchText.setText(`${arm === 'left' ? 'Left' : 'Right'}\nArm`);
-        this.time.delayedCall(500, () => {
-          switchBg.setFillStyle(PALETTE.actionBlue);
-          switchText.setText('SWITCH\nARMS');
-        });
-      } else {
-        switchBg.setFillStyle(PALETTE.stoplightRed);
-        this.time.delayedCall(300, () => {
-          switchBg.setFillStyle(PALETTE.actionBlue);
-        });
-      }
-    });
-    this.switchArmBtn.on('pointerup', () => {
-      this.switchArmBtn.setPosition(switchX, btnY);
-    });
-    this.switchArmBtn.on('pointerout', () => {
-      this.switchArmBtn.setPosition(switchX, btnY);
-    });
-
-    // --- Rest button (right of raise) --- Neobrutalist style
-    const restBtnWidth = 100;
-    const restX = viewW / 2 + raiseBtnWidth / 2 + btnGap + restBtnWidth / 2;
-
-    this.restBtnShadow = this.add.graphics();
-    this.restBtnShadow.fillStyle(PALETTE.shadowDark, 0.5);
-    this.restBtnShadow.fillRoundedRect(-restBtnWidth / 2 + 3, -btnHeight / 2 + 3, restBtnWidth, btnHeight, 4);
-    this.restBtnShadow.setScrollFactor(0);
-    this.restBtnShadow.setDepth(109);
-    this.restBtnShadow.setPosition(restX, btnY);
-
-    const restBg = this.add.rectangle(0, 0, restBtnWidth, btnHeight, 0x6b7280);
-    restBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
-    this.restBtnBg = restBg;
-    const restText = this.add.text(0, 0, 'REST', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '18px',
-      color: '#f5f0e8',
-      letterSpacing: 2,
-    });
-    restText.setOrigin(0.5);
-
-    this.restBtn = this.add.container(restX, btnY, [restBg, restText]);
-    this.restBtn.setScrollFactor(0);
-    this.restBtn.setDepth(110);
-    this.restBtn.setSize(restBtnWidth, btnHeight);
-    this.restBtn.setInteractive({ useHandCursor: true });
-    this.restBtnText = restText;
-
-    this.restBtn.on('pointerdown', () => {
-      if (!this.gameState.isActive()) return;
-      // Press-into-shadow
-      this.restBtn.setPosition(restX + 2, btnY + 2);
-      this.fatigueSystem.toggleRest();
-      const isResting = this.gameState.getState().isResting;
-      restBg.setFillStyle(isResting ? PALETTE.stoplightGreen : 0x6b7280);
-      restText.setText(isResting ? 'Resting...' : 'REST');
-    });
-    this.restBtn.on('pointerup', () => {
-      this.restBtn.setPosition(restX, btnY);
-    });
-    this.restBtn.on('pointerout', () => {
-      this.restBtn.setPosition(restX, btnY);
-    });
-  }
-
-  /**
-   * Paper cutout analog clock — baked face texture + rotated hand Images.
-   * Hour/minute hands animate from 10:00 AM to 12:00 PM over session duration.
-   */
-  private createClockUI(viewW: number): void {
-    const clockX = viewW / 2;
-    const clockY = 100; // Below the timer card
-    const radius = 38;
-
-    this.clockContainer = this.add.container(clockX, clockY);
-    this.clockContainer.setScrollFactor(0);
-    this.clockContainer.setDepth(100);
-
-    // Bake entire clock face (stick, shadow, face, ticks) to one texture
-    const clockFaceG = this.add.graphics();
-
-    // Popsicle stick mount below the clock
-    drawPopsicleStick(clockFaceG, -4 + radius + 8, radius + 2 + radius + 8, 8, 22);
-
-    // Clock face shadow (hard offset)
-    drawPaperShadowCircle(clockFaceG, radius + 8, radius + 8, radius);
-
-    // Clock face circle (paper white with scissor-cut wobble)
-    const numSegments = 24;
-    const facePoints: { x: number; y: number }[] = [];
-    for (let i = 0; i < numSegments; i++) {
-      const angle = (i / numSegments) * Math.PI * 2;
-      const wobble = (Math.random() - 0.5) * 2.5;
-      facePoints.push({
-        x: Math.cos(angle) * (radius + wobble) + radius + 8,
-        y: Math.sin(angle) * (radius + wobble) + radius + 8,
-      });
-    }
-    clockFaceG.fillStyle(PALETTE.paperWhite, 1);
-    clockFaceG.lineStyle(2, PALETTE.markerBlack, 0.9);
-    clockFaceG.beginPath();
-    clockFaceG.moveTo(facePoints[0].x, facePoints[0].y);
-    for (let i = 1; i < facePoints.length; i++) {
-      clockFaceG.lineTo(facePoints[i].x, facePoints[i].y);
-    }
-    clockFaceG.closePath();
-    clockFaceG.fillPath();
-    clockFaceG.strokePath();
-
-    // 12 tick marks
-    for (let h = 0; h < 12; h++) {
-      const angle = (h / 12) * Math.PI * 2 - Math.PI / 2;
-      const innerR = radius - 8;
-      const outerR = radius - 3;
-      clockFaceG.lineStyle(h % 3 === 0 ? 2.5 : 1.5, PALETTE.markerBlack, 0.85);
-      clockFaceG.beginPath();
-      clockFaceG.moveTo(Math.cos(angle) * innerR + radius + 8, Math.sin(angle) * innerR + radius + 8);
-      clockFaceG.lineTo(Math.cos(angle) * outerR + radius + 8, Math.sin(angle) * outerR + radius + 8);
-      clockFaceG.strokePath();
-    }
-
-    // Center dot
-    clockFaceG.fillStyle(PALETTE.markerBlack, 1);
-    clockFaceG.fillCircle(radius + 8, radius + 8, 3);
-
-    // Bake to texture
-    const faceDim = (radius + 8) * 2;
-    clockFaceG.generateTexture('clockFace', faceDim, faceDim + 30); // extra height for stick
-    clockFaceG.destroy();
-    const clockFaceImg = this.add.image(0, 4, 'clockFace');
-    clockFaceImg.setOrigin(0.5, (radius + 8) / (faceDim + 30));
-    this.clockContainer.add(clockFaceImg);
-
-    // Hour numbers: 12, 3, 6, 9 (Text objects are cheap, no earcut)
-    const numberPositions = [
-      { text: '12', angle: -Math.PI / 2, dist: radius - 15 },
-      { text: '3', angle: 0, dist: radius - 13 },
-      { text: '6', angle: Math.PI / 2, dist: radius - 15 },
-      { text: '9', angle: Math.PI, dist: radius - 13 },
-    ];
-    for (const np of numberPositions) {
-      const nx = Math.cos(np.angle) * np.dist;
-      const ny = Math.sin(np.angle) * np.dist;
-      const numText = this.add.text(nx, ny, np.text, {
-        fontFamily: "'Bangers', cursive",
-        fontSize: '9px',
-        color: '#3a3a3a',
-      });
-      numText.setOrigin(0.5);
-      this.clockContainer.add(numText);
-    }
-
-    // Clock hands — bake as tiny line textures, rotate via angle property (no per-frame earcut)
-    // Hour hand texture (short thick line)
-    const hourG = this.add.graphics();
-    hourG.lineStyle(3, PALETTE.markerBlack, 1);
-    hourG.beginPath();
-    hourG.moveTo(2, 18);  // pivot point near bottom
-    hourG.lineTo(2, 2);   // line extends up
-    hourG.strokePath();
-    hourG.generateTexture('clockHourHand', 4, 20);
-    hourG.destroy();
-    this.clockHourHand = this.add.image(0, 0, 'clockHourHand');
-    this.clockHourHand.setOrigin(0.5, 1); // pivot at bottom center
-    this.clockContainer.add(this.clockHourHand);
-
-    // Minute hand texture (longer thinner line)
-    const minG = this.add.graphics();
-    minG.lineStyle(2, PALETTE.markerBlack, 0.9);
-    minG.beginPath();
-    minG.moveTo(2, 28);
-    minG.lineTo(2, 2);
-    minG.strokePath();
-    minG.generateTexture('clockMinuteHand', 4, 30);
-    minG.destroy();
-    this.clockMinuteHand = this.add.image(0, 0, 'clockMinuteHand');
-    this.clockMinuteHand.setOrigin(0.5, 1); // pivot at bottom center
-    this.clockContainer.add(this.clockMinuteHand);
-  }
-
-  /**
-   * Paper cutout menu button — hamburger icon in top-left, below mute button.
-   * Opens pause overlay with Resume, Restart, Quit to Title.
-   */
-  private createMenuButton(_viewW: number, _viewH: number): void {
-    const btnX = 15;
-    const btnY = 65; // Below the mute button
-    const btnSize = 36;
-
-    // Shadow
-    const menuShadow = this.add.graphics();
-    menuShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-    menuShadow.fillRoundedRect(btnX + 3, btnY + 3, btnSize, btnSize, 4);
-    menuShadow.setScrollFactor(0);
-    menuShadow.setDepth(104);
-
-    // Button background (paper cutout)
-    const menuBg = this.add.graphics();
-    menuBg.fillStyle(PALETTE.paperWhite, 0.9);
-    menuBg.fillRoundedRect(btnX, btnY, btnSize, btnSize, 4);
-    menuBg.lineStyle(2.5, PALETTE.markerBlack, 1);
-    menuBg.strokeRoundedRect(btnX, btnY, btnSize, btnSize, 4);
-    menuBg.setScrollFactor(0);
-    menuBg.setDepth(105);
-
-    // Hamburger icon (three marker lines)
-    const iconG = this.add.graphics();
-    const cx = btnX + btnSize / 2;
-    const cy = btnY + btnSize / 2;
-    iconG.lineStyle(3, PALETTE.markerBlack, 0.9);
-    for (let i = -1; i <= 1; i++) {
-      const ly = cy + i * 7;
-      iconG.beginPath();
-      iconG.moveTo(cx - 9, ly);
-      iconG.lineTo(cx + 9, ly);
-      iconG.strokePath();
-    }
-    iconG.setScrollFactor(0);
-    iconG.setDepth(106);
-
-    // Interactive hit area
-    const hitArea = this.add.rectangle(cx, cy, btnSize, btnSize);
-    hitArea.setScrollFactor(0);
-    hitArea.setDepth(107);
-    hitArea.setInteractive({ useHandCursor: true });
-    hitArea.setAlpha(0.001); // Invisible but interactive
-
-    hitArea.on('pointerdown', () => {
-      this.toggleMenuOverlay();
-    });
-  }
-
-  /**
-   * Toggle menu overlay — creates or destroys the pause panel.
-   */
-  private toggleMenuOverlay(): void {
-    if (this.menuOverlay) {
-      // Close overlay, resume
-      this.menuOverlay.destroy();
-      this.menuOverlay = null;
-      this.isPaused = false;
-      return;
-    }
-
-    // Open overlay, pause
-    this.isPaused = true;
-
-    const viewW = this.scale.width;
-    const viewH = this.scale.height;
-
-    // Dark overlay background
-    const darkBg = this.add.rectangle(0, 0, viewW, viewH, 0x000000, 0.6);
-    darkBg.setOrigin(0, 0);
-
-    // Paper cutout panel
-    const panelW = 240;
-    const panelH = 220;
-    const panelX = viewW / 2 - panelW / 2;
-    const panelY = viewH / 2 - panelH / 2;
-
-    const panelG = this.add.graphics();
-    // Shadow
-    drawPaperShadow(panelG, panelX, panelY, panelW, panelH);
-    // Body
-    drawScissorCutRect(panelG, panelX, panelY, panelW, panelH, PALETTE.cardboard);
-
-    // Title: "PAUSED"
-    const titleText = this.add.text(viewW / 2, panelY + 30, 'PAUSED', {
-      fontFamily: "'Bangers', cursive",
-      fontSize: '32px',
-      color: '#fbbf24',
-      stroke: '#1a1a1a',
-      strokeThickness: 4,
-      letterSpacing: 3,
-    });
-    titleText.setOrigin(0.5);
-
-    // Button factory
-    const createMenuBtn = (
-      y: number,
-      label: string,
-      fillColor: number,
-      callback: () => void,
-    ): Phaser.GameObjects.Container => {
-      const bw = 180;
-      const bh = 42;
-      const bx = viewW / 2;
-
-      const btnShadow = this.add.graphics();
-      btnShadow.fillStyle(PALETTE.shadowDark, 0.5);
-      btnShadow.fillRoundedRect(-bw / 2 + 3, -bh / 2 + 3, bw, bh, 4);
-
-      const bg = this.add.rectangle(0, 0, bw, bh, fillColor);
-      bg.setStrokeStyle(3, PALETTE.markerBlack, 1);
-
-      const text = this.add.text(0, 0, label, {
-        fontFamily: "'Bangers', cursive",
-        fontSize: '20px',
-        color: '#f5f0e8',
-        letterSpacing: 2,
-      });
-      text.setOrigin(0.5);
-
-      const container = this.add.container(bx, y, [btnShadow, bg, text]);
-      container.setSize(bw, bh);
-      container.setInteractive({ useHandCursor: true });
-
-      container.on('pointerdown', () => {
-        container.setPosition(bx + 2, y + 2);
-      });
-      container.on('pointerup', () => {
-        container.setPosition(bx, y);
-        callback();
-      });
-      container.on('pointerout', () => {
-        container.setPosition(bx, y);
-      });
-
-      return container;
-    };
-
-    const btnStartY = panelY + 75;
-    const btnGap = 50;
-
-    // Resume button
-    const resumeBtn = createMenuBtn(btnStartY, 'RESUME', PALETTE.stoplightGreen, () => {
-      this.toggleMenuOverlay();
-    });
-
-    // Restart button
-    const restartBtn = createMenuBtn(btnStartY + btnGap, 'RESTART', PALETTE.actionBlue, () => {
-      this.menuOverlay?.destroy();
-      this.menuOverlay = null;
-      this.isPaused = false;
-      this.scene.restart();
-    });
-
-    // Quit to Title button
-    const quitBtn = createMenuBtn(btnStartY + btnGap * 2, 'QUIT TO TITLE', PALETTE.stoplightRed, () => {
-      this.menuOverlay?.destroy();
-      this.menuOverlay = null;
-      this.isPaused = false;
-      this.scene.start('BootScene');
-    });
-
-    this.menuOverlay = this.add.container(0, 0, [
-      darkBg, panelG, titleText, resumeBtn, restartBtn, quitBtn,
-    ]);
-    this.menuOverlay.setScrollFactor(0);
-    this.menuOverlay.setDepth(500);
-  }
-
-  /**
-   * Update clock hands based on game progress.
-   * Maps session time to 10:00 AM -> 12:00 PM (2 hours).
-   */
-  private updateClock(): void {
-    if (!this.clockHourHand) return;
-
-    const state = this.gameState.getState();
-    const sessionDuration = this.config.sessionDuration;
-    const gameProgress = 1 - (state.timeRemaining / sessionDuration); // 0.0 -> 1.0
-
-    // 10 o'clock → 12 o'clock (60 degree sweep) mapped to Phaser rotation degrees
-    // 10 o'clock = 300 degrees from 12, 12 o'clock = 360/0 degrees
-    const hourStartDeg = 300;
-    const hourEndDeg = 360;
-    const hourDeg = hourStartDeg + (hourEndDeg - hourStartDeg) * gameProgress;
-    this.clockHourHand.setAngle(hourDeg);
-
-    // Minute hand: 2 full rotations (0 → 720 degrees)
-    const minuteDeg = gameProgress * 720;
-    this.clockMinuteHand.setAngle(minuteDeg);
-  }
-
-  private repositionUI(viewW: number, viewH: number): void {
-    // Reposition fatigue bar
-    const barWidth = 160;
-    const barX = viewW - barWidth - 24;
-    this.fatigueBarBg.setPosition(barX, 70);
-    this.fatigueBarFill.setPosition(barX + 2, 72);
-    this.fatigueLabel.setPosition(barX, 66);
-
-    // Reposition buttons
-    const btnY = viewH - 80;
-    const raiseBtnWidth = 140;
-    const btnGap = 12;
-    const switchBtnWidth = 100;
-    const restBtnWidth = 100;
-
-    this.raiseBtn.setPosition(viewW / 2, btnY);
-    this.switchArmBtn.setPosition(viewW / 2 - raiseBtnWidth / 2 - btnGap - switchBtnWidth / 2, btnY);
-    this.restBtn.setPosition(viewW / 2 + raiseBtnWidth / 2 + btnGap + restBtnWidth / 2, btnY);
-  }
-
-  private updateUI(): void {
-    const state = this.gameState.getState();
-
-    // Score (neobrutalist HUD, Bangers font, safety yellow with marker stroke)
-    this.scoreText.setText(`${state.score} HONKS`);
-
-    // Timer (marker-style font)
-    const minutes = Math.floor(state.timeRemaining / 60);
-    const seconds = Math.floor(state.timeRemaining % 60);
-    this.timerText.setText(`${minutes}:${seconds.toString().padStart(2, '0')}`);
-
-    if (state.timeRemaining <= 30) {
-      this.timerText.setColor(state.timeRemaining % 1 < 0.5 ? '#ef4444' : '#ffffff');
-    }
-
-    // --- Confidence bar ---
-    const confPct = state.confidence / 100;
-    const confBarMaxWidth = 145 - 2;
-    const targetWidth = confPct * confBarMaxWidth;
-
-    // Smooth animation: lerp toward target
-    const currentWidth = this.confidenceBarFill.width;
-    const lerpSpeed = 0.08;
-    const newWidth = currentWidth + (targetWidth - currentWidth) * lerpSpeed;
-    this.confidenceBarFill.width = Math.max(0, newWidth);
-
-    // Color: red (0-30), yellow (30-60), green (60-100)
-    let confColor: number;
-    if (state.confidence < 30) {
-      confColor = PALETTE.stoplightRed;
-    } else if (state.confidence < 60) {
-      confColor = PALETTE.safetyYellow;
-    } else {
-      confColor = PALETTE.stoplightGreen;
-    }
-    this.confidenceBarFill.setFillStyle(confColor);
-    this.confidenceLabel.setText('CONFIDENCE');
-
-    // --- Fatigue bar ---
-    const fatPct = state.armFatigue / 100;
-    const fatBarMaxWidth = 110 - 2;
-    this.fatigueBarFill.width = fatPct * fatBarMaxWidth;
-
-    // Color: green (0-40), orange (40-70), red (70-100)
-    let fatColor: number;
-    if (state.armFatigue < 40) {
-      fatColor = PALETTE.stoplightGreen;
-    } else if (state.armFatigue < 70) {
-      fatColor = 0xf97316;
-    } else {
-      fatColor = PALETTE.stoplightRed;
-    }
-    this.fatigueBarFill.setFillStyle(fatColor);
-
-    // Update fatigue label text and color
-    if (state.armFatigue < 40) {
-      this.fatigueLabel.setText('ARM STRONG');
-      this.fatigueLabel.setColor('#22c55e');
-    } else if (state.armFatigue < 70) {
-      this.fatigueLabel.setText('ARM TIRED');
-      this.fatigueLabel.setColor('#fbbf24');
-    } else {
-      this.fatigueLabel.setText('ARM DEAD');
-      this.fatigueLabel.setColor('#ef4444');
-    }
-
-    // --- Fatigue bar traffic light hint ---
-    // Green border = push now (traffic red, cars stopped)
-    // Yellow border = conserve (traffic green, cars moving)
-    const greenDirs = this.trafficLights.getGreenDirections();
-    const isAllRedPhase = greenDirs.length === 0;
-    if (isAllRedPhase) {
-      this.fatigueBarBg.setStrokeStyle(2.5, PALETTE.stoplightGreen, 1);
-    } else {
-      this.fatigueBarBg.setStrokeStyle(2, PALETTE.safetyYellow, 0.8);
-    }
-
-    // --- Paper clock hands ---
-    this.updateClock();
-
-    // --- Stopped traffic banner ---
-    this.updateStoppedTrafficBanner();
-
-    // Disable raise button while resting
-    if (state.isResting) {
-      this.raiseBtnBg.setAlpha(0.4);
-    } else {
-      this.raiseBtnBg.setAlpha(1);
-    }
-  }
-
-  // ============================================================
-  // SESSION END
-  // ============================================================
-
-  private showSessionOver(): void {
-    const state = this.gameState.getState();
-
-    // Clean up systems
-    this.confidenceSystem.destroy();
-    this.fatigueSystem.destroy();
-    this.eventSystem.destroy();
-    this.weatherSystem.destroy();
-
-    // Clean up audio systems (scene-scoped; mixer persists across scenes via registry)
-    if (this.ambientSystem) this.ambientSystem.destroy();
-    if (this.musicSystem) this.musicSystem.destroy();
-    if (this.cueSystem) this.cueSystem.destroy();
-
-    // Clean up raise tap timer
-    if (this.raiseTapTimer) {
-      this.raiseTapTimer.destroy();
-      this.raiseTapTimer = null;
-    }
-
-    // Clean up menu overlay
-    if (this.menuOverlay) {
-      this.menuOverlay.destroy();
-      this.menuOverlay = null;
-      this.isPaused = false;
-    }
-
-    // Clean up stopped traffic banner
-    if (this.stoppedTrafficBanner) {
-      this.stoppedTrafficBanner.destroy();
-      this.stoppedTrafficBanner = null;
-    }
-
-    // Clean up debug overlay
-    if (this.debugOverlay) {
-      this.debugOverlay.destroy();
-      this.debugOverlay = null;
-    }
-
-    // Store final game state snapshot in registry for ScoreScene
-    this.registry.set('finalGameState', { ...state, reactions: { ...state.reactions } });
-
-    // Extended delay to let audio fade out smoothly before scene transition (AUDI-05)
-    this.time.delayedCall(1500, () => {
-      this.scene.start('ScoreScene');
-    });
-  }
-
-  // ============================================================
-  // SIGN QUALITY -> REACTION MULTIPLIER
+  // SIGN QUALITY MULTIPLIER (Phase 2)
   // ============================================================
 
   private applySignQualityMultiplier(): void {
@@ -2252,12 +476,39 @@ export class IntersectionScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: bannerContainer,
+      y: '-=60',
       alpha: 0,
-      y: -20,
-      duration: 1000,
-      delay: 2500,
-      ease: 'Quad.easeOut',
+      duration: 3000,
+      delay: 1500,
+      ease: 'Quad.easeInOut',
       onComplete: () => bannerContainer.destroy(),
+    });
+  }
+
+  // ============================================================
+  // SESSION END
+  // ============================================================
+
+  private showSessionOver(): void {
+    // Clean up systems
+    this.confidenceSystem.destroy();
+    this.fatigueSystem.destroy();
+    this.eventSystem.destroy();
+    this.weatherSystem.destroy();
+
+    // Clean up audio systems (scene-scoped; mixer persists across scenes via registry)
+    if (this.ambientSystem) this.ambientSystem.destroy();
+    if (this.musicSystem) this.musicSystem.destroy();
+    if (this.cueSystem) this.cueSystem.destroy();
+
+    // Clean up managers
+    this.trafficManager.destroy();
+    this.playerController.destroy();
+    this.menuManager.destroy();
+
+    // Transition to score scene after delay
+    this.time.delayedCall(1500, () => {
+      this.scene.start('ScoreScene');
     });
   }
 }
