@@ -38,6 +38,11 @@ interface DebugSystems {
   weatherSystem: WeatherSystem;
   cars: () => Car[];
   cone: VisibilityCone;
+  devControls?: {
+    lastTriggeredEvent: string;
+    getSpeedMultiplier: () => number;
+    getPaused: () => boolean;
+  };
 }
 
 interface TunableValue {
@@ -286,6 +291,15 @@ export class DebugOverlay {
 
     // Build values display
     const lines: string[] = [];
+
+    // Dev controls section (only if devControls is provided)
+    if (this.systems.devControls) {
+      const devControls = this.systems.devControls;
+      lines.push(this.section('DEV CONTROLS'));
+      lines.push(this.row('Speed', `${devControls.getSpeedMultiplier()}x`));
+      lines.push(this.row('Paused', devControls.getPaused() ? 'yes' : 'no'));
+      lines.push(this.row('Last Event Trigger', devControls.lastTriggeredEvent || 'none'));
+    }
 
     // Performance
     lines.push(this.section('PERFORMANCE'));

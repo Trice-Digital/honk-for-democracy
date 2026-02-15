@@ -17,6 +17,7 @@ import { AmbientSystem } from '../systems/AmbientSystem';
 import { MusicSystem } from '../systems/MusicSystem';
 import { ReactiveCueSystem } from '../systems/ReactiveCueSystem';
 import { DebugOverlay } from '../systems/DebugOverlay';
+import { DevControls } from '../systems/DevControls';
 import { Player } from '../entities/Player';
 import { VisibilityCone } from '../entities/VisibilityCone';
 import { IntersectionRenderer } from '../managers/IntersectionRenderer';
@@ -64,8 +65,12 @@ export class IntersectionScene extends Phaser.Scene {
   private hudManager!: HUDManager;
   private menuManager!: MenuManager;
 
-  // Debug overlay (dev only)
+  // Debug overlay and dev controls (dev only)
   private debugOverlay: DebugOverlay | null = null;
+  private devControls: DevControls | null = null;
+  private devSpeedMultiplier: number = 1;
+  private devPaused: boolean = false;
+  private devStepOneFrame: boolean = false;
 
   // Tree canopy sprites for idle wobble animation (baked from Graphics)
   private treeCanopies: Phaser.GameObjects.Image[] = [];
@@ -298,8 +303,21 @@ export class IntersectionScene extends Phaser.Scene {
     // Prevent context menu
     this.input.mouse?.disableContextMenu();
 
-    // --- Debug overlay (dev only) ---
+    // --- Debug overlay and dev controls (dev only) ---
     if (import.meta.env.DEV) {
+      // Create DevControls first
+      this.devControls = new DevControls(
+        this,
+        this.eventSystem,
+        () => this.devSpeedMultiplier,
+        (v) => { this.devSpeedMultiplier = v; },
+        (v) => { this.devPaused = v; },
+        () => this.devPaused,
+        () => { this.devStepOneFrame = true; },
+        () => { this.scene.restart(); }
+      );
+
+      // Create DebugOverlay with devControls reference
       this.debugOverlay = new DebugOverlay(this, {
         gameState: this.gameState,
         trafficLights: this.trafficLights,
@@ -309,6 +327,11 @@ export class IntersectionScene extends Phaser.Scene {
         weatherSystem: this.weatherSystem,
         cars: () => this.trafficManager.getCars(),
         cone: this.cone,
+        devControls: {
+          lastTriggeredEvent: this.devControls.lastTriggeredEvent,
+          getSpeedMultiplier: () => this.devSpeedMultiplier,
+          getPaused: () => this.devPaused,
+        },
       });
     }
 
@@ -320,24 +343,32 @@ export class IntersectionScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (!this.gameState.isActive()) return;
+
+    // Dev pause/step (only in dev mode)
+    if (import.meta.env.DEV && this.devPaused && !this.devStepOneFrame) return;
+    if (import.meta.env.DEV && this.devStepOneFrame) this.devStepOneFrame = false;
+
     if (this.menuManager.getIsPaused()) return;
 
-    // Update systems
-    this.gameState.updateTime(delta);
-    this.trafficLights.update(delta);
-    this.confidenceSystem.update(delta);
-    this.fatigueSystem.update(delta);
-    this.eventSystem.update(delta);
-    this.weatherSystem.update(delta);
+    // Apply dev speed multiplier to delta
+    const effectiveDelta = import.meta.env.DEV ? delta * this.devSpeedMultiplier : delta;
 
-    // Update audio systems with current confidence
+    // Update systems
+    this.gameState.updateTime(effectiveDelta);
+    this.trafficLights.update(effectiveDelta);
+    this.confidenceSystem.update(effectiveDelta);
+    this.fatigueSystem.update(effectiveDelta);
+    this.eventSystem.update(effectiveDelta);
+    this.weatherSystem.update(effectiveDelta);
+
+    // Update audio systems with current confidence (use real delta for audio)
     const confidence = this.gameState.getState().confidence;
     this.musicSystem.updateConfidence(confidence);
-    this.cueSystem.update(confidence, delta);
+    this.cueSystem.update(confidence, effectiveDelta);
 
     // Delegate to traffic manager
-    this.trafficManager.updateSpawning(delta);
-    this.trafficManager.updateCars(time, delta);
+    this.trafficManager.updateSpawning(effectiveDelta);
+    this.trafficManager.updateCars(time, effectiveDelta);
 
     // Delegate to player controller
     this.playerController.checkConeIntersections();
@@ -505,6 +536,11 @@ export class IntersectionScene extends Phaser.Scene {
     this.trafficManager.destroy();
     this.playerController.destroy();
     this.menuManager.destroy();
+
+    // Clean up dev controls (dev only)
+    if (import.meta.env.DEV && this.devControls) {
+      this.devControls.destroy();
+    }
 
     // Transition to score scene after delay
     this.time.delayedCall(1500, () => {
