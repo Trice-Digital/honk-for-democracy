@@ -8,16 +8,14 @@ import {
   getSignRatingStars,
   formatTime,
 } from '../config/scoreConfig';
+import { PALETTE, FONTS } from '../config/paletteConfig';
+import { drawScissorCutRect, drawPaperShadow, drawPaperShadowCircle, applyPaperGrain, drawMaskingTapeStrip } from '../utils/paperArt';
 
 /**
  * ScoreScene — End-of-session score screen.
  *
- * Bold, clean, screenshot-ready layout featuring:
- * - Player's sign message
- * - Final score with grade
- * - Stats grid
- * - Reaction breakdown
- * - Continue to activism screen + Play Again
+ * Paper craft aesthetic: cardboard background, paper grain overlay,
+ * scissor-cut panels, marker fonts, neobrutalist buttons.
  */
 export class ScoreScene extends Phaser.Scene {
   constructor() {
@@ -29,7 +27,6 @@ export class ScoreScene extends Phaser.Scene {
     const signData = this.registry.get('signData') as SignData | undefined;
 
     if (!finalState || !signData) {
-      // Fallback: go back to sign craft
       this.scene.start('SignCraftScene');
       return;
     }
@@ -37,10 +34,17 @@ export class ScoreScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const cx = width / 2;
 
-    // Use a scrollable layout by tracking Y position
     let y = 0;
 
-    this.cameras.main.setBackgroundColor('#0f0f1a');
+    // ============================================================
+    // BACKGROUND — Cardboard with paper grain
+    // ============================================================
+
+    this.cameras.main.setBackgroundColor(PALETTE.cardboard);
+
+    // Paper grain overlay
+    const grain = applyPaperGrain(this, 0, 0, width, height, 0.04);
+    grain.setDepth(100); // on top of everything as overlay
 
     // ============================================================
     // TITLE
@@ -51,20 +55,22 @@ export class ScoreScene extends Phaser.Scene {
     const titleColor = isEarlyEnd ? '#ef4444' : '#fbbf24';
 
     const title = this.add.text(cx, 40, titleText, {
-      fontFamily: 'system-ui, sans-serif',
+      fontFamily: FONTS.ui,
       fontSize: '36px',
-      fontStyle: 'bold',
       color: titleColor,
       align: 'center',
+      letterSpacing: 4,
+      stroke: '#1a1a1a',
+      strokeThickness: isEarlyEnd ? 3 : 2,
     });
     title.setOrigin(0.5, 0);
     y = 85;
 
     if (isEarlyEnd) {
       const subtitle = this.add.text(cx, y, 'Your confidence hit zero...', {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: FONTS.ui,
         fontSize: '16px',
-        color: '#9ca3af',
+        color: '#3a3a3a',
         align: 'center',
       });
       subtitle.setOrigin(0.5, 0);
@@ -77,19 +83,15 @@ export class ScoreScene extends Phaser.Scene {
 
     y += 10;
 
-    // Check if we have a crafted sign PNG (M2) or fallback to rectangle rendering (M1)
     if (signData.signImageDataUrl) {
-      // M2: Display crafted sign PNG prominently
       const signDisplayWidth = Math.min(width - 60, 280);
       const signDisplayHeight = 200;
 
-      // Stick
-      this.add.rectangle(cx, y + signDisplayHeight / 2 + 30, 5, 40, 0x92400e);
+      // Popsicle stick
+      this.add.rectangle(cx, y + signDisplayHeight / 2 + 30, 5, 40, PALETTE.craftBrown);
 
-      // Capture y in closure for async callback
       const signY = y;
 
-      // Load PNG directly as an Image element, then add as texture
       const imgEl = new Image();
       imgEl.onload = () => {
         if (this.textures.exists('scoreSign')) {
@@ -100,47 +102,42 @@ export class ScoreScene extends Phaser.Scene {
         const signImg = this.add.image(cx, signY + signDisplayHeight / 2, 'scoreSign');
         signImg.setOrigin(0.5);
 
-        // Scale to fit display area, maintaining aspect ratio
         const scaleX = signDisplayWidth / signImg.width;
         const scaleY = signDisplayHeight / signImg.height;
         const scale = Math.min(scaleX, scaleY);
         signImg.setScale(scale);
 
-        // Subtle border/shadow
+        // Paper shadow behind the sign
         const borderPadding = 8;
-        const borderRect = this.add.rectangle(
-          cx,
-          signY + signDisplayHeight / 2,
+        const shadowG = this.add.graphics();
+        drawPaperShadow(
+          shadowG,
+          cx - (signImg.displayWidth + borderPadding * 2) / 2,
+          signY + signDisplayHeight / 2 - (signImg.displayHeight + borderPadding * 2) / 2,
           signImg.displayWidth + borderPadding * 2,
           signImg.displayHeight + borderPadding * 2,
-          0x1a1a1a,
-          0.3
         );
-        borderRect.setStrokeStyle(2, 0xffffff, 0.2);
-        borderRect.setDepth(-1);
+        shadowG.setDepth(-1);
         signImg.setDepth(0);
       };
       imgEl.src = signData.signImageDataUrl;
 
       y += signDisplayHeight + 55;
     } else {
-      // M1 backward compatibility: Rectangle-based sign rendering
       const signBoardWidth = Math.min(width - 60, 340);
       const signBoardHeight = 80;
 
-      // Stick
-      this.add.rectangle(cx, y + signBoardHeight / 2 + 30, 5, 40, 0x92400e);
+      // Popsicle stick
+      this.add.rectangle(cx, y + signBoardHeight / 2 + 30, 5, 40, PALETTE.craftBrown);
 
-      // Board stroke
-      this.add.rectangle(cx, y + signBoardHeight / 2, signBoardWidth + 6, signBoardHeight + 6, signData.material.strokeColor);
+      // Scissor-cut sign board with shadow
+      const signG = this.add.graphics();
+      drawPaperShadow(signG, cx - signBoardWidth / 2, y, signBoardWidth, signBoardHeight);
+      drawScissorCutRect(signG, cx - signBoardWidth / 2, y, signBoardWidth, signBoardHeight, signData.material.boardColor);
 
-      // Board fill
-      this.add.rectangle(cx, y + signBoardHeight / 2, signBoardWidth, signBoardHeight, signData.material.boardColor);
-
-      // Message text on sign
       const msgFontSize = signData.message.length > 25 ? '16px' : signData.message.length > 15 ? '20px' : '24px';
       this.add.text(cx, y + signBoardHeight / 2, signData.message, {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: FONTS.ui,
         fontSize: msgFontSize,
         fontStyle: 'bold',
         color: signData.material.textColor,
@@ -157,37 +154,40 @@ export class ScoreScene extends Phaser.Scene {
 
     const grade = getScoreGrade(finalState.score);
 
-    // Grade badge
+    // Grade badge — paper cutout circle with drop shadow + scissor-cut edge
+    const gradeShadowG = this.add.graphics();
+    drawPaperShadowCircle(gradeShadowG, cx - 80, y + 20, 28);
+
     const gradeCircle = this.add.circle(cx - 80, y + 20, 28, Phaser.Display.Color.HexStringToColor(grade.color).color);
-    gradeCircle.setStrokeStyle(2, 0xffffff, 0.4);
+    gradeCircle.setStrokeStyle(2, PALETTE.markerBlack, 1);
 
     this.add.text(cx - 80, y + 20, grade.label, {
-      fontFamily: 'system-ui, sans-serif',
+      fontFamily: FONTS.ui,
       fontSize: '28px',
       fontStyle: 'bold',
-      color: '#ffffff',
+      color: '#1a1a1a',
     }).setOrigin(0.5);
 
     // Score number
     this.add.text(cx + 10, y + 8, `${finalState.score}`, {
-      fontFamily: 'system-ui, sans-serif',
+      fontFamily: FONTS.ui,
       fontSize: '48px',
       fontStyle: 'bold',
       color: '#fbbf24',
     }).setOrigin(0, 0);
 
     this.add.text(cx + 10, y + 52, 'POINTS', {
-      fontFamily: 'system-ui, sans-serif',
+      fontFamily: FONTS.ui,
       fontSize: '14px',
       fontStyle: 'bold',
-      color: '#6b7280',
+      color: '#92400e',
       letterSpacing: 3,
     }).setOrigin(0, 0);
 
     y += 85;
 
     // ============================================================
-    // STATS GRID
+    // STATS GRID — on a paper cutout panel
     // ============================================================
 
     const timeStood = finalState.sessionDuration - finalState.timeRemaining;
@@ -201,57 +201,59 @@ export class ScoreScene extends Phaser.Scene {
       { label: 'Final Confidence', value: `${Math.round(finalState.confidence)}%` },
     ];
 
-    // Divider
-    const dividerG = this.add.graphics();
-    dividerG.lineStyle(1, 0x374151, 0.6);
-    dividerG.beginPath();
-    dividerG.moveTo(cx - 140, y);
-    dividerG.lineTo(cx + 140, y);
-    dividerG.strokePath();
-    y += 12;
+    const panelWidth = 290;
+    const panelHeight = stats.length * 26 + 24;
+    const panelX = cx - panelWidth / 2;
+    const panelY = y;
+
+    // Paper cutout panel with shadow and scissor-cut edges
+    const panelG = this.add.graphics();
+    drawPaperShadow(panelG, panelX, panelY, panelWidth, panelHeight);
+    drawScissorCutRect(panelG, panelX, panelY, panelWidth, panelHeight, PALETTE.paperWhite);
+
+    // Masking tape divider at the top of the panel
+    const tapeG = this.add.graphics();
+    drawMaskingTapeStrip(tapeG, panelX + 10, panelY, panelX + panelWidth - 10, panelY, 10);
+
+    y += 14;
 
     for (const stat of stats) {
       this.add.text(cx - 130, y, stat.label, {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: FONTS.ui,
         fontSize: '16px',
-        color: '#9ca3af',
+        color: '#3a3a3a',
       }).setOrigin(0, 0);
 
       this.add.text(cx + 130, y, stat.value, {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: FONTS.ui,
         fontSize: '16px',
         fontStyle: 'bold',
-        color: '#ffffff',
+        color: '#1a1a1a',
       }).setOrigin(1, 0);
 
       y += 26;
     }
 
-    y += 8;
+    y += 16;
 
     // ============================================================
     // REACTION BREAKDOWN
     // ============================================================
 
-    // Divider
-    const dividerG2 = this.add.graphics();
-    dividerG2.lineStyle(1, 0x374151, 0.6);
-    dividerG2.beginPath();
-    dividerG2.moveTo(cx - 140, y);
-    dividerG2.lineTo(cx + 140, y);
-    dividerG2.strokePath();
-    y += 12;
+    // Masking tape divider
+    const tapeG2 = this.add.graphics();
+    drawMaskingTapeStrip(tapeG2, cx - 140, y, cx + 140, y, 10);
+    y += 14;
 
     this.add.text(cx, y, 'REACTIONS', {
-      fontFamily: 'system-ui, sans-serif',
+      fontFamily: FONTS.ui,
       fontSize: '14px',
       fontStyle: 'bold',
-      color: '#6b7280',
+      color: '#92400e',
       letterSpacing: 3,
     }).setOrigin(0.5, 0);
     y += 24;
 
-    // Show reactions in a compact grid (2 columns)
     const reactionsWithCounts = REACTION_TYPES
       .map((rt) => ({
         ...rt,
@@ -269,10 +271,10 @@ export class ScoreScene extends Phaser.Scene {
 
       const sentColor = r.sentiment === 'positive' ? '#22c55e'
         : r.sentiment === 'negative' ? '#ef4444'
-        : '#6b7280';
+        : '#92400e';
 
       this.add.text(rx, ry, `${r.emoji} ${r.label}: ${r.count}`, {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: FONTS.ui,
         fontSize: '15px',
         color: sentColor,
       }).setOrigin(0.5, 0);
@@ -282,50 +284,60 @@ export class ScoreScene extends Phaser.Scene {
     y += reactionRows * 24 + 20;
 
     // ============================================================
-    // BUTTONS
+    // BUTTONS — Neobrutalist with hard offset shadow
     // ============================================================
 
-    // Ensure minimum space for buttons
     const buttonAreaY = Math.max(y, height - 140);
 
-    // Continue button (primary)
-    const continueBg = this.add.rectangle(cx, buttonAreaY, 260, 52, 0x3b82f6);
-    continueBg.setStrokeStyle(2, 0xffffff, 0.3);
+    // Continue button (primary) — neobrutalist action blue
+    const continueShadow = this.add.rectangle(cx + 3, buttonAreaY + 3, 260, 52, PALETTE.markerBlack);
+    const continueBg = this.add.rectangle(cx, buttonAreaY, 260, 52, PALETTE.actionBlue);
+    continueBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
     continueBg.setInteractive({ useHandCursor: true });
 
-    this.add.text(cx, buttonAreaY, 'Continue', {
-      fontFamily: 'system-ui, sans-serif',
+    this.add.text(cx, buttonAreaY, 'CONTINUE', {
+      fontFamily: FONTS.ui,
       fontSize: '22px',
       fontStyle: 'bold',
-      color: '#ffffff',
+      color: '#f5f0e8',
     }).setOrigin(0.5);
 
     continueBg.on('pointerover', () => continueBg.setFillStyle(0x2563eb));
-    continueBg.on('pointerout', () => continueBg.setFillStyle(0x3b82f6));
+    continueBg.on('pointerout', () => continueBg.setFillStyle(PALETTE.actionBlue));
     continueBg.on('pointerdown', () => {
-      this.scene.start('ActivismScene');
+      // Press into shadow effect
+      continueBg.setPosition(cx + 2, buttonAreaY + 2);
+      continueShadow.setVisible(false);
+      this.time.delayedCall(100, () => {
+        this.scene.start('ActivismScene');
+      });
     });
 
-    // Play Again button (secondary)
-    const playAgainBg = this.add.rectangle(cx, buttonAreaY + 64, 260, 44, 0x1a1a2e);
-    playAgainBg.setStrokeStyle(2, 0x6b7280, 0.5);
+    // Play Again button (secondary) — lighter neobrutalist
+    const playAgainShadow = this.add.rectangle(cx + 3, buttonAreaY + 64 + 3, 260, 44, PALETTE.markerBlack, 0.5);
+    const playAgainBg = this.add.rectangle(cx, buttonAreaY + 64, 260, 44, PALETTE.paperWhite);
+    playAgainBg.setStrokeStyle(3, PALETTE.markerBlack, 0.8);
     playAgainBg.setInteractive({ useHandCursor: true });
 
-    this.add.text(cx, buttonAreaY + 64, 'Play Again', {
-      fontFamily: 'system-ui, sans-serif',
+    this.add.text(cx, buttonAreaY + 64, 'PLAY AGAIN', {
+      fontFamily: FONTS.ui,
       fontSize: '18px',
-      color: '#9ca3af',
+      color: '#3a3a3a',
     }).setOrigin(0.5);
 
-    playAgainBg.on('pointerover', () => playAgainBg.setStrokeStyle(2, 0x3b82f6, 0.8));
-    playAgainBg.on('pointerout', () => playAgainBg.setStrokeStyle(2, 0x6b7280, 0.5));
+    playAgainBg.on('pointerover', () => playAgainBg.setStrokeStyle(3, PALETTE.actionBlue, 1));
+    playAgainBg.on('pointerout', () => playAgainBg.setStrokeStyle(3, PALETTE.markerBlack, 0.8));
     playAgainBg.on('pointerdown', () => {
-      this.scene.start('SignCraftScene');
+      playAgainBg.setPosition(cx + 2, buttonAreaY + 64 + 2);
+      playAgainShadow.setVisible(false);
+      this.time.delayedCall(100, () => {
+        this.scene.start('SignCraftScene');
+      });
     });
 
     // Prevent context menu
     this.input.mouse?.disableContextMenu();
 
-    console.log('[HFD] ScoreScene created. Phase 6 score screen active.');
+    console.log('[HFD] ScoreScene created. Paper craft aesthetic active.');
   }
 }
