@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 Phase: 8 of 12 (Sign Creator) — in progress
 Plan: 2 of 3 completed
 Status: Phase 8 in progress (decorations system complete)
-Last activity: 2026-02-15 - Completed quick task 1: Refactor IntersectionScene.ts into reusable managers for multi-scene support
+Last activity: 2026-02-15 - Completed quick task 2: Fix car rendering (scale, rotation, driver seat, passengers)
 
 ## Performance Metrics
 
@@ -85,10 +85,11 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Refactor IntersectionScene.ts into reusable managers for multi-scene support | 2026-02-15 | 2b9b931 | [1-refactor-intersectionscene-ts-into-reusa](./quick/1-refactor-intersectionscene-ts-into-reusa/) |
+| 2 | Fix car rendering: scale, rotation, driver seat, passengers | 2026-02-15 | aa8f0f8 | [2-fix-car-rendering-size-rotation-emoji-pl](./quick/2-fix-car-rendering-size-rotation-emoji-pl/) |
 
 ## Session Continuity
 
-Last session: 2026-02-14
-Stopped at: Phase 08-02 complete (decorations system)
+Last session: 2026-02-15
+Stopped at: Quick task 2 complete (car rendering fixes)
 Resume file: None
 Next action: Execute 08-03 or /gsd:verify-work
