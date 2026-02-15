@@ -4,7 +4,12 @@
  * No asset files needed. All sounds synthesized on the fly.
  * Lazy AudioContext creation (requires user gesture on mobile).
  * Registered in Phaser registry for cross-scene access.
+ *
+ * Enhanced in Plan 10-04: 4 honk variants with doppler pitch shift,
+ * improved coal roller with engine roar, traffic light clunk.
  */
+
+import { AUDIO_CONFIG } from '../config/audioConfig';
 
 export class AudioSystem {
   private ctx: AudioContext | null = null;
@@ -78,7 +83,7 @@ export class AudioSystem {
 
     switch (reactionId) {
       case 'honk':
-        this.playHonk();
+        this.playRandomHonk();
         break;
       case 'wave':
         this.playChime(800, 0.1);
@@ -139,29 +144,182 @@ export class AudioSystem {
     this.playShieldClang();
   }
 
+  /**
+   * Play traffic light phase change sound — mechanical relay clunk.
+   * Called from IntersectionScene when traffic light phase changes.
+   */
+  playTrafficLightChange(): void {
+    if (!this.ctx || !this.masterGain || this.muted) return;
+    this.ensureResumed();
+    this.playTrafficLightClunk();
+  }
+
   // ============================================================
-  // SOUND GENERATORS
+  // HONK VARIANTS (4 distinct car horns with doppler pitch shift)
   // ============================================================
 
-  private playHonk(): void {
+  /**
+   * Randomly select one of 4 honk variants.
+   */
+  private playRandomHonk(): void {
+    const variant = Math.floor(Math.random() * AUDIO_CONFIG.sfx.honkVariants);
+    switch (variant) {
+      case 0:
+        this.playHonkShort();
+        break;
+      case 1:
+        this.playHonkLong();
+        break;
+      case 2:
+        this.playHonkDeep();
+        break;
+      case 3:
+        this.playHonkCheerful();
+        break;
+    }
+  }
+
+  /**
+   * Quick toot — compact car. Square wave, 400Hz, 0.08s.
+   */
+  private playHonkShort(): void {
     const ctx = this.ctx!;
     const now = ctx.currentTime;
+    const cfg = AUDIO_CONFIG.sfx;
+    const duration = 0.08;
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'square';
-    osc.frequency.setValueAtTime(400, now);
-    osc.frequency.setValueAtTime(450, now + 0.05);
+    const baseFreq = 400;
+    // Doppler: start high, ramp down
+    osc.frequency.setValueAtTime(baseFreq * cfg.dopplerMaxRate, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * cfg.dopplerMinRate, now + duration);
 
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
 
     osc.connect(gain);
     gain.connect(this.masterGain!);
 
     osc.start(now);
-    osc.stop(now + 0.15);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * Sustained horn — sedan. Square wave, 350Hz, 0.25s with slight frequency drift.
+   */
+  private playHonkLong(): void {
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
+    const cfg = AUDIO_CONFIG.sfx;
+    const duration = 0.25;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'square';
+    const baseFreq = 350;
+    // Doppler: start high, ramp down over full duration
+    osc.frequency.setValueAtTime(baseFreq * cfg.dopplerMaxRate, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * cfg.dopplerMinRate, now + duration);
+
+    gain.gain.setValueAtTime(0.20, now);
+    gain.gain.setValueAtTime(0.22, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain!);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * Low truck horn — pickup truck. Square wave, 200Hz + 220Hz detuned, 0.3s.
+   */
+  private playHonkDeep(): void {
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
+    const cfg = AUDIO_CONFIG.sfx;
+    const duration = 0.3;
+
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = 'square';
+    osc2.type = 'square';
+
+    const baseFreq1 = 200;
+    const baseFreq2 = 220;
+    // Doppler on both oscillators
+    osc1.frequency.setValueAtTime(baseFreq1 * cfg.dopplerMaxRate, now);
+    osc1.frequency.exponentialRampToValueAtTime(baseFreq1 * cfg.dopplerMinRate, now + duration);
+    osc2.frequency.setValueAtTime(baseFreq2 * cfg.dopplerMaxRate, now);
+    osc2.frequency.exponentialRampToValueAtTime(baseFreq2 * cfg.dopplerMinRate, now + duration);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.masterGain!);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + duration);
+    osc2.stop(now + duration);
+  }
+
+  /**
+   * Two-tone cheerful honk — friendly double-tap. 500Hz then 600Hz.
+   */
+  private playHonkCheerful(): void {
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
+    const cfg = AUDIO_CONFIG.sfx;
+    const tapDuration = 0.08;
+    const gap = 0.06;
+
+    // First tap
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'square';
+    const baseFreq1 = 500;
+    osc1.frequency.setValueAtTime(baseFreq1 * cfg.dopplerMaxRate, now);
+    osc1.frequency.exponentialRampToValueAtTime(baseFreq1 * cfg.dopplerMinRate, now + tapDuration);
+    gain1.gain.setValueAtTime(0.20, now);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + tapDuration);
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain!);
+    osc1.start(now);
+    osc1.stop(now + tapDuration);
+
+    // Second tap (slightly higher pitch)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'square';
+    const baseFreq2 = 600;
+    const t2 = now + tapDuration + gap;
+    osc2.frequency.setValueAtTime(baseFreq2 * cfg.dopplerMaxRate, t2);
+    osc2.frequency.exponentialRampToValueAtTime(baseFreq2 * cfg.dopplerMinRate, t2 + tapDuration);
+    gain2.gain.setValueAtTime(0.20, t2);
+    gain2.gain.exponentialRampToValueAtTime(0.01, t2 + tapDuration);
+    osc2.connect(gain2);
+    gain2.connect(this.masterGain!);
+    osc2.start(t2);
+    osc2.stop(t2 + tapDuration);
+  }
+
+  // ============================================================
+  // SOUND GENERATORS
+  // ============================================================
+
+  /** @deprecated Use playRandomHonk() — kept for backward compat */
+  private playHonk(): void {
+    this.playRandomHonk();
   }
 
   private playChime(freq: number, duration: number): void {
@@ -324,12 +482,42 @@ export class AudioSystem {
     osc.stop(now + 0.2);
   }
 
+  /**
+   * Enhanced diesel rumble — longer duration (0.8s), engine roar filter sweep,
+   * stronger sub-bass, initial cloud puff noise burst.
+   */
   private playDieselRumble(): void {
     const ctx = this.ctx!;
     const now = ctx.currentTime;
+    const duration = 0.8;
 
-    // Low noise for diesel rumble
-    const bufferSize = ctx.sampleRate * 0.5;
+    // --- Initial cloud puff: short burst of higher-frequency noise ---
+    const puffSize = ctx.sampleRate * 0.1;
+    const puffBuffer = ctx.createBuffer(1, puffSize, ctx.sampleRate);
+    const puffData = puffBuffer.getChannelData(0);
+    for (let i = 0; i < puffSize; i++) {
+      puffData[i] = (Math.random() * 2 - 1) * 0.3;
+    }
+    const puffNoise = ctx.createBufferSource();
+    puffNoise.buffer = puffBuffer;
+
+    const puffFilter = ctx.createBiquadFilter();
+    puffFilter.type = 'bandpass';
+    puffFilter.frequency.value = 1500;
+    puffFilter.Q.value = 0.8;
+
+    const puffGain = ctx.createGain();
+    puffGain.gain.setValueAtTime(0.15, now);
+    puffGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+    puffNoise.connect(puffFilter);
+    puffFilter.connect(puffGain);
+    puffGain.connect(this.masterGain!);
+    puffNoise.start(now);
+    puffNoise.stop(now + 0.1);
+
+    // --- Main diesel rumble: low noise with extended duration ---
+    const bufferSize = ctx.sampleRate * duration;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -339,35 +527,83 @@ export class AudioSystem {
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
 
+    // Primary lowpass filter
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.value = 200;
     filter.Q.value = 2;
 
+    // Second filter: engine roar character — frequency sweeps from 300 down to 100
+    const roarFilter = ctx.createBiquadFilter();
+    roarFilter.type = 'lowpass';
+    roarFilter.frequency.setValueAtTime(300, now);
+    roarFilter.frequency.exponentialRampToValueAtTime(100, now + duration);
+    roarFilter.Q.value = 3;
+
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.setValueAtTime(0.25, now + 0.15);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.setValueAtTime(0.28, now + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
 
     noise.connect(filter);
-    filter.connect(gain);
+    filter.connect(roarFilter);
+    roarFilter.connect(gain);
     gain.connect(this.masterGain!);
 
     noise.start(now);
-    noise.stop(now + 0.5);
+    noise.stop(now + duration);
 
-    // Sub-bass oscillator
+    // --- Enhanced sub-bass oscillator (more prominent, longer) ---
     const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(80, now);
-    oscGain.gain.setValueAtTime(0.15, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    osc.frequency.linearRampToValueAtTime(60, now + duration * 0.8);
+    oscGain.gain.setValueAtTime(0.20, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, now + duration * 0.8);
 
     osc.connect(oscGain);
     oscGain.connect(this.masterGain!);
     osc.start(now);
-    osc.stop(now + 0.4);
+    osc.stop(now + duration * 0.8);
+  }
+
+  // ============================================================
+  // TRAFFIC LIGHT CLUNK
+  // ============================================================
+
+  /**
+   * Mechanical relay clunk — simulates the physical click of old traffic signals.
+   * High-frequency metallic hit (1500Hz, 0.04s) + lower thud (200Hz, 0.06s).
+   */
+  private playTrafficLightClunk(): void {
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
+
+    // Metallic hit — high-frequency sine with very fast decay
+    const metalOsc = ctx.createOscillator();
+    const metalGain = ctx.createGain();
+    metalOsc.type = 'sine';
+    metalOsc.frequency.setValueAtTime(1500, now);
+    metalOsc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
+    metalGain.gain.setValueAtTime(0.12, now);
+    metalGain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+    metalOsc.connect(metalGain);
+    metalGain.connect(this.masterGain!);
+    metalOsc.start(now);
+    metalOsc.stop(now + 0.04);
+
+    // Lower thud — 200Hz sine with slightly longer decay
+    const thudOsc = ctx.createOscillator();
+    const thudGain = ctx.createGain();
+    thudOsc.type = 'sine';
+    thudOsc.frequency.setValueAtTime(200, now);
+    thudGain.gain.setValueAtTime(0.10, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+    thudOsc.connect(thudGain);
+    thudGain.connect(this.masterGain!);
+    thudOsc.start(now);
+    thudOsc.stop(now + 0.06);
   }
 
   // ============================================================
