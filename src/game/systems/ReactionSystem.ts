@@ -27,6 +27,13 @@ export class ReactionSystem extends Phaser.Events.EventEmitter {
       difficulty.neutralReactionWeight,
       difficulty.negativeReactionWeight,
     );
+
+    if (import.meta.env.DEV) {
+      const totalWeight = this.weights.reduce((sum, w) => sum + w.weight, 0);
+      if (Math.abs(totalWeight - 1.0) > 0.01) {
+        console.warn(`[HFD] ReactionSystem: adjusted weights sum to ${totalWeight.toFixed(3)}, expected ~1.0`);
+      }
+    }
   }
 
   /**

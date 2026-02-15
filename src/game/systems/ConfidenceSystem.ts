@@ -22,6 +22,15 @@ export class ConfidenceSystem {
 
     // Listen for reactions and convert to confidence changes
     this.gameState.on('reaction', this.onReaction, this);
+
+    if (import.meta.env.DEV) {
+      if (this.config.startingConfidence < this.config.min || this.config.startingConfidence > this.config.max) {
+        console.warn(`[HFD] ConfidenceSystem: startingConfidence ${this.config.startingConfidence} outside min/max range (${this.config.min}-${this.config.max})`);
+      }
+      if (this.config.noReactionDrainRate < 0) {
+        console.warn('[HFD] ConfidenceSystem: noReactionDrainRate should not be negative');
+      }
+    }
   }
 
   /**

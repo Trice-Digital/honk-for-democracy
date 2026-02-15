@@ -82,6 +82,18 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     );
 
     console.log(`[HFD] EventSystem initialized. First event window: ${this.nextEventMinTime}s`);
+
+    if (import.meta.env.DEV) {
+      if (this.config.minEventSpacing <= 0) {
+        console.warn('[HFD] EventSystem: minEventSpacing should be positive');
+      }
+      if (this.config.maxEventsPerSession < 1) {
+        console.warn('[HFD] EventSystem: maxEventsPerSession should be >= 1');
+      }
+      if (this.difficulty.eventFrequencyMultiplier < 0.1 || this.difficulty.eventFrequencyMultiplier > 5.0) {
+        console.warn(`[HFD] EventSystem: eventFrequencyMultiplier ${this.difficulty.eventFrequencyMultiplier} outside sane range (0.1-5.0)`);
+      }
+    }
   }
 
   /**

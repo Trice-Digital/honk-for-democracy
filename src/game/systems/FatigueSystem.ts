@@ -39,6 +39,18 @@ export class FatigueSystem {
     this.config = { ...FATIGUE_DEFAULTS, ...config };
     this.materialWeight = material.fatigueMultiplier;
     this.difficultyMultiplier = difficulty.fatigueDrainMultiplier;
+
+    if (import.meta.env.DEV) {
+      if (this.config.baseDrainRate <= 0) {
+        console.warn('[HFD] FatigueSystem: baseDrainRate should be positive');
+      }
+      if (this.difficultyMultiplier < 0.1 || this.difficultyMultiplier > 5.0) {
+        console.warn(`[HFD] FatigueSystem: fatigueDrainMultiplier ${this.difficultyMultiplier} outside sane range (0.1-5.0)`);
+      }
+      if (this.config.maxFatigue <= 0) {
+        console.warn('[HFD] FatigueSystem: maxFatigue should be positive');
+      }
+    }
   }
 
   /**
