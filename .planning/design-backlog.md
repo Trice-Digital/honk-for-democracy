@@ -146,6 +146,18 @@
 
 ---
 
+## Remotion Animated Cutscenes (Future Enhancement)
+
+### Intro + Outro Video Clips
+- **Intro:** Paper cutout stop-motion style — park car, grab sign off backseat, walk to corner. 5-10 seconds.
+- **Outro:** Pack up, drive home, "Democracy doesn't take a day off" title card.
+- **Tech:** Remotion (React → video). Same stack as Cursed Seinfeld. Paper cutout aesthetic = perfect fit for Remotion (flat shapes moving around, no complex animation).
+- **Personalized:** Remotion takes props — YOUR sign in the intro, YOUR score in the outro. Generate per-player. Way more shareable than a static screenshot.
+- **Social media angle:** Short personalized video clips > score card images for social sharing. "Your protest" as a 15-second video.
+- **Phase 14+ territory.** Don't touch until core game + social share + civic wrapper are done.
+
+---
+
 ## Misc Notes
 - Landing page should use Scott's OG HONK FOR DEMOCRACY sign photo (captured in Phase 9 spec)
 - Marker bleed rain effect (captured in Phase 9 spec)
