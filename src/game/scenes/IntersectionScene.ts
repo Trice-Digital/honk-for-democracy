@@ -58,6 +58,7 @@ export class IntersectionScene extends Phaser.Scene {
   private player!: Player;
   private cone!: VisibilityCone;
   private cars: Car[] = [];
+  private carPool: Car[] = [];
 
   // UI elements (fixed to camera)
   private scoreText!: Phaser.GameObjects.Text;
@@ -99,12 +100,13 @@ export class IntersectionScene extends Phaser.Scene {
   // Debug overlay (dev only)
   private debugOverlay: DebugOverlay | null = null;
 
-  // Tree canopy graphics for idle wobble animation
-  private treeCanopies: Phaser.GameObjects.Graphics[] = [];
+  // Tree canopy sprites for idle wobble animation (baked from Graphics)
+  private treeCanopies: (Phaser.GameObjects.Graphics | Phaser.GameObjects.Image)[] = [];
 
   // Paper cutout analog clock
   private clockContainer!: Phaser.GameObjects.Container;
-  private clockHandGraphics!: Phaser.GameObjects.Graphics;
+  private clockHourHand!: Phaser.GameObjects.Image;
+  private clockMinuteHand!: Phaser.GameObjects.Image;
 
   // Menu / Pause
   private isPaused: boolean = false;
@@ -222,9 +224,15 @@ export class IntersectionScene extends Phaser.Scene {
     this.drawIntersection();
 
     // --- Global paper grain overlay (fixed to camera) ---
-    const grainOverlay = applyPaperGrain(this, 0, 0, viewW, viewH, 0.035);
-    grainOverlay.setScrollFactor(0);
-    grainOverlay.setDepth(200);
+    // Bake to texture immediately — the Graphics has thousands of path ops
+    // that would get earcut-triangulated every frame otherwise.
+    const grainG = applyPaperGrain(this, 0, 0, viewW, viewH, 0.035);
+    grainG.generateTexture('grainOverlay', viewW, viewH);
+    grainG.destroy();
+    const grainImg = this.add.image(0, 0, 'grainOverlay');
+    grainImg.setOrigin(0, 0);
+    grainImg.setScrollFactor(0);
+    grainImg.setDepth(200);
 
     // --- Traffic lights visual ---
     this.lightGraphics = this.add.graphics();
@@ -258,7 +266,7 @@ export class IntersectionScene extends Phaser.Scene {
 
     // --- Input: drag to rotate cone ---
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.gameState.isActive()) return;
+      if (!this.gameState.isActive() || this.isPaused) return;
 
       // Convert screen pointer to world coordinates
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
@@ -269,18 +277,8 @@ export class IntersectionScene extends Phaser.Scene {
     });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // Init audio on first touch gesture (mobile requirement)
-      if (!this.audioSystem['initialized']) {
-        this.audioSystem.init();
-        // Start Tone.js context from same user gesture
-        this.mixerSystem.init();
-        // Start ambient street noise and stadium organ music
-        this.ambientSystem.start();
-        this.musicSystem.start();
-        this.audioSystem.playSessionStart();
-      }
-
-      if (!this.gameState.isActive()) return;
+      // Audio disabled for Phase 12 tuning — re-enable after listening test
+      if (!this.gameState.isActive() || this.isPaused) return;
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       const dx = worldPoint.x - this.config.playerX;
       const dy = worldPoint.y - this.config.playerY;
@@ -324,8 +322,8 @@ export class IntersectionScene extends Phaser.Scene {
       // Traffic light clunk sound
       this.audioSystem.playTrafficLightChange();
 
-      // Camera flash on phase change (very subtle white flash)
-      this.cameras.main.flash(150, 255, 255, 200, false, undefined, undefined, 0.1);
+      // Redraw traffic lights with new phase colors
+      this.drawTrafficLights();
 
       // Scale-bounce the active light circles
       for (const lightCircle of this.trafficLightActiveCircles) {
@@ -356,6 +354,9 @@ export class IntersectionScene extends Phaser.Scene {
         cone: this.cone,
       });
     }
+
+    // Initial traffic light draw (subsequent updates are event-driven via phaseChanged)
+    this.drawTrafficLights();
 
     console.log('[HFD] IntersectionScene created. Phase 5 event system active.');
   }
@@ -389,8 +390,7 @@ export class IntersectionScene extends Phaser.Scene {
     // Update cone width based on fatigue
     this.updateConeFromFatigue();
 
-    // Update visuals
-    this.drawTrafficLights();
+    // Update visuals (traffic lights are event-driven, not per-frame)
     this.updateUI();
 
     // Player idle wobble and fatigue visuals
@@ -439,19 +439,20 @@ export class IntersectionScene extends Phaser.Scene {
     // Reset tree canopies array
     this.treeCanopies = [];
 
+    // All static scenery drawn to one Graphics, then baked to texture.
+    // Eliminates per-frame earcut triangulation (~45% of CPU per Firefox profile).
+    const g = this.add.graphics();
+
     // =========================================================
     // Layer 0: Sky / background (muted blue construction paper)
     // =========================================================
-    const skyG = this.add.graphics();
-    skyG.fillStyle(PALETTE.skyBlue, 1);
-    skyG.fillRect(0, 0, ww, wh);
-    skyG.setDepth(0);
+    g.fillStyle(PALETTE.skyBlue, 1);
+    g.fillRect(0, 0, ww, wh);
 
     // =========================================================
     // Layer 1: Grass / ground corners (construction paper green)
     // Four quadrants outside the road cross, each slightly varied
     // =========================================================
-    const grassG = this.add.graphics();
     const grassShades = [
       PALETTE.grassGreen,
       PALETTE.grassGreen + 0x060806,
@@ -460,73 +461,67 @@ export class IntersectionScene extends Phaser.Scene {
     ];
 
     // Top-left grass
-    drawScissorCutRect(grassG, 0, 0, cx - hw - swW, cy - hw - swW, grassShades[0]);
+    drawScissorCutRect(g, 0, 0, cx - hw - swW, cy - hw - swW, grassShades[0]);
     // Top-right grass
-    drawScissorCutRect(grassG, cx + hw + swW, 0, ww - cx - hw - swW, cy - hw - swW, grassShades[1]);
+    drawScissorCutRect(g, cx + hw + swW, 0, ww - cx - hw - swW, cy - hw - swW, grassShades[1]);
     // Bottom-left grass
-    drawScissorCutRect(grassG, 0, cy + hw + swW, cx - hw - swW, wh - cy - hw - swW, grassShades[2]);
+    drawScissorCutRect(g, 0, cy + hw + swW, cx - hw - swW, wh - cy - hw - swW, grassShades[2]);
     // Bottom-right grass
-    drawScissorCutRect(grassG, cx + hw + swW, cy + hw + swW, ww - cx - hw - swW, wh - cy - hw - swW, grassShades[3]);
-    grassG.setDepth(1);
+    drawScissorCutRect(g, cx + hw + swW, cy + hw + swW, ww - cx - hw - swW, wh - cy - hw - swW, grassShades[3]);
 
     // =========================================================
     // Layer 2: Sidewalks (construction paper tan borders)
     // =========================================================
-    const swG = this.add.graphics();
 
     // Horizontal sidewalks (above and below horizontal road)
-    drawScissorCutRect(swG, 0, cy - hw - swW, cx - hw, swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(swG, cx + hw, cy - hw - swW, ww - cx - hw, swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(swG, 0, cy + hw, cx - hw, swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(swG, cx + hw, cy + hw, ww - cx - hw, swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(g, 0, cy - hw - swW, cx - hw, swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(g, cx + hw, cy - hw - swW, ww - cx - hw, swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(g, 0, cy + hw, cx - hw, swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(g, cx + hw, cy + hw, ww - cx - hw, swW, PALETTE.sidewalkTan);
 
     // Vertical sidewalks (left and right of vertical road)
-    drawScissorCutRect(swG, cx - hw - swW, 0, swW, cy - hw - swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(swG, cx + hw, 0, swW, cy - hw - swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(swG, cx - hw - swW, cy + hw + swW, swW, wh - cy - hw - swW, PALETTE.sidewalkTan);
-    drawScissorCutRect(swG, cx + hw, cy + hw + swW, swW, wh - cy - hw - swW, PALETTE.sidewalkTan);
-    swG.setDepth(2);
+    drawScissorCutRect(g, cx - hw - swW, 0, swW, cy - hw - swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(g, cx + hw, 0, swW, cy - hw - swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(g, cx - hw - swW, cy + hw + swW, swW, wh - cy - hw - swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(g, cx + hw, cy + hw + swW, swW, wh - cy - hw - swW, PALETTE.sidewalkTan);
 
     // =========================================================
     // Layer 3: Roads (dark asphalt construction paper)
     // =========================================================
-    const roadG = this.add.graphics();
 
     // Vertical road
-    drawScissorCutRect(roadG, cx - hw, 0, rw, wh, PALETTE.asphalt);
+    drawScissorCutRect(g, cx - hw, 0, rw, wh, PALETTE.asphalt);
     // Horizontal road
-    drawScissorCutRect(roadG, 0, cy - hw, ww, rw, PALETTE.asphalt);
+    drawScissorCutRect(g, 0, cy - hw, ww, rw, PALETTE.asphalt);
 
     // Center intersection box (slightly lighter asphalt)
     const centerAsphalt = PALETTE.asphalt + 0x0a0a0a;
-    roadG.fillStyle(centerAsphalt, 1);
-    roadG.fillRect(cx - hw, cy - hw, rw, rw);
-    roadG.setDepth(3);
+    g.fillStyle(centerAsphalt, 1);
+    g.fillRect(cx - hw, cy - hw, rw, rw);
 
     // =========================================================
     // Layer 4: Lane markings (masking tape strips)
     // =========================================================
-    const laneG = this.add.graphics();
 
     // Vertical center dashes (top approach — heading toward intersection)
     for (let y = 15; y < cy - hw - 10; y += 55) {
       const dashLen = 38 + Math.random() * 10;
-      drawMaskingTapeStrip(laneG, cx, y, cx, y + dashLen, 6);
+      drawMaskingTapeStrip(g, cx, y, cx, y + dashLen, 6);
     }
     // Vertical center dashes (bottom approach)
     for (let y = cy + hw + 15; y < wh - 10; y += 55) {
       const dashLen = 38 + Math.random() * 10;
-      drawMaskingTapeStrip(laneG, cx, y, cx, y + dashLen, 6);
+      drawMaskingTapeStrip(g, cx, y, cx, y + dashLen, 6);
     }
     // Horizontal center dashes (left approach)
     for (let x = 15; x < cx - hw - 10; x += 55) {
       const dashLen = 38 + Math.random() * 10;
-      drawMaskingTapeStrip(laneG, x, cy, x + dashLen, cy, 6);
+      drawMaskingTapeStrip(g, x, cy, x + dashLen, cy, 6);
     }
     // Horizontal center dashes (right approach)
     for (let x = cx + hw + 15; x < ww - 10; x += 55) {
       const dashLen = 38 + Math.random() * 10;
-      drawMaskingTapeStrip(laneG, x, cy, x + dashLen, cy, 6);
+      drawMaskingTapeStrip(g, x, cy, x + dashLen, cy, 6);
     }
 
     // =========================================================
@@ -538,38 +533,32 @@ export class IntersectionScene extends Phaser.Scene {
     // Top crosswalk (horizontal stripes across vertical road)
     for (let i = 0; i < 4; i++) {
       const stripeY = cy - hw - swW + 2 + i * (cwStripeW + cwGap);
-      drawMaskingTapeStrip(laneG, cx - hw + 6, stripeY, cx + hw - 6, stripeY, cwStripeW);
+      drawMaskingTapeStrip(g, cx - hw + 6, stripeY, cx + hw - 6, stripeY, cwStripeW);
     }
     // Bottom crosswalk
     for (let i = 0; i < 4; i++) {
       const stripeY = cy + hw + 2 + i * (cwStripeW + cwGap);
-      drawMaskingTapeStrip(laneG, cx - hw + 6, stripeY, cx + hw - 6, stripeY, cwStripeW);
+      drawMaskingTapeStrip(g, cx - hw + 6, stripeY, cx + hw - 6, stripeY, cwStripeW);
     }
     // Left crosswalk (vertical stripes across horizontal road)
     for (let i = 0; i < 4; i++) {
       const stripeX = cx - hw - swW + 2 + i * (cwStripeW + cwGap);
-      drawMaskingTapeStrip(laneG, stripeX, cy - hw + 6, stripeX, cy + hw - 6, cwStripeW);
+      drawMaskingTapeStrip(g, stripeX, cy - hw + 6, stripeX, cy + hw - 6, cwStripeW);
     }
     // Right crosswalk
     for (let i = 0; i < 4; i++) {
       const stripeX = cx + hw + 2 + i * (cwStripeW + cwGap);
-      drawMaskingTapeStrip(laneG, stripeX, cy - hw + 6, stripeX, cy + hw - 6, cwStripeW);
+      drawMaskingTapeStrip(g, stripeX, cy - hw + 6, stripeX, cy + hw - 6, cwStripeW);
     }
 
     // =========================================================
     // Layer 4c: Stop lines (wider masking tape)
     // =========================================================
     const stopOff = hw + 3;
-    // North stop line (top of intersection)
-    drawMaskingTapeStrip(laneG, cx - hw + 4, cy - stopOff, cx + hw - 4, cy - stopOff, 8);
-    // South stop line
-    drawMaskingTapeStrip(laneG, cx - hw + 4, cy + stopOff, cx + hw - 4, cy + stopOff, 8);
-    // West stop line
-    drawMaskingTapeStrip(laneG, cx - stopOff, cy - hw + 4, cx - stopOff, cy + hw - 4, 8);
-    // East stop line
-    drawMaskingTapeStrip(laneG, cx + stopOff, cy - hw + 4, cx + stopOff, cy + hw - 4, 8);
-
-    laneG.setDepth(4);
+    drawMaskingTapeStrip(g, cx - hw + 4, cy - stopOff, cx + hw - 4, cy - stopOff, 8);
+    drawMaskingTapeStrip(g, cx - hw + 4, cy + stopOff, cx + hw - 4, cy + stopOff, 8);
+    drawMaskingTapeStrip(g, cx - stopOff, cy - hw + 4, cx - stopOff, cy + hw - 4, 8);
+    drawMaskingTapeStrip(g, cx + stopOff, cy - hw + 4, cx + stopOff, cy + hw - 4, 8);
 
     // =========================================================
     // Layer 5: Corner environmental dressing
@@ -583,13 +572,10 @@ export class IntersectionScene extends Phaser.Scene {
       PALETTE.cardboard - 0x101008,
     ];
 
-    const buildG = this.add.graphics();
-
     // Helper: draw a paper cutout building with shadow and window cutouts
     const drawBuilding = (bx: number, by: number, bw: number, bh: number, color: number) => {
-      drawPaperShadow(buildG, bx, by, bw, bh);
-      drawScissorCutRect(buildG, bx, by, bw, bh, color);
-      // Window cutouts (darker interior showing through)
+      drawPaperShadow(g, bx, by, bw, bh);
+      drawScissorCutRect(g, bx, by, bw, bh, color);
       const winRows = Math.max(1, Math.floor(bh / 30));
       const winCols = Math.max(1, Math.floor(bw / 35));
       const winW = 12;
@@ -598,29 +584,20 @@ export class IntersectionScene extends Phaser.Scene {
         for (let c = 0; c < winCols; c++) {
           const wx = bx + 10 + c * (bw - 20) / Math.max(1, winCols);
           const wy = by + 10 + r * (bh - 20) / Math.max(1, winRows);
-          buildG.fillStyle(PALETTE.asphalt, 0.6);
-          buildG.fillRect(wx, wy, winW, winH);
+          g.fillStyle(PALETTE.asphalt, 0.6);
+          g.fillRect(wx, wy, winW, winH);
         }
       }
     };
 
-    // Top-left quadrant buildings
     drawBuilding(cx - hw - swW - 180, cy - hw - swW - 160, 130, 90, buildingColors[0]);
     drawBuilding(cx - hw - swW - 100, cy - hw - swW - 60, 70, 50, buildingColors[1]);
-
-    // Top-right quadrant buildings
     drawBuilding(cx + hw + swW + 40, cy - hw - swW - 170, 120, 80, buildingColors[2]);
     drawBuilding(cx + hw + swW + 170, cy - hw - swW - 130, 100, 70, buildingColors[3]);
-
-    // Bottom-left quadrant building
     drawBuilding(cx - hw - swW - 170, cy + hw + swW + 40, 110, 80, buildingColors[1]);
-
-    // Bottom-right quadrant building
     drawBuilding(cx + hw + swW + 60, cy + hw + swW + 50, 130, 90, buildingColors[0]);
 
-    buildG.setDepth(5);
-
-    // --- Trees (popsicle stick trunk + green construction paper circle canopy) ---
+    // --- Trees ---
     const treePositions = [
       { tx: cx - hw - swW - 60, ty: cy - hw - swW - 30, r: 18 },
       { tx: cx - hw - swW - 280, ty: cy - hw - swW - 100, r: 15 },
@@ -630,22 +607,40 @@ export class IntersectionScene extends Phaser.Scene {
     ];
 
     for (const tree of treePositions) {
-      // Trunk (popsicle stick)
-      const trunkG = this.add.graphics();
-      drawPopsicleStick(trunkG, tree.tx - 3, tree.ty - 5, 6, 20);
-      trunkG.setDepth(5);
+      // Trunk drawn onto main graphics (gets baked)
+      drawPopsicleStick(g, tree.tx - 3, tree.ty - 5, 6, 20);
 
-      // Canopy (green circle with shadow) — separate Graphics for wobble animation
+      // Canopy — bake to texture for wobble animation
       const canopyG = this.add.graphics();
-      drawPaperShadowCircle(canopyG, tree.tx, tree.ty, tree.r);
+      const pad = 8;
+      const dim = (tree.r + pad) * 2;
+      const cx2 = tree.r + pad;
+      const cy2 = tree.r + pad;
+      drawPaperShadowCircle(canopyG, cx2, cy2, tree.r);
       canopyG.fillStyle(PALETTE.grassGreen + (Math.random() > 0.5 ? 0x0a0a06 : -0x060604), 0.92);
-      canopyG.fillCircle(tree.tx, tree.ty, tree.r);
+      canopyG.fillCircle(cx2, cy2, tree.r);
       canopyG.lineStyle(2, PALETTE.markerBlack, 0.7);
-      canopyG.strokeCircle(tree.tx, tree.ty, tree.r);
-      canopyG.setDepth(5);
+      canopyG.strokeCircle(cx2, cy2, tree.r);
 
-      this.treeCanopies.push(canopyG);
+      const texKey = `treeCanopy_${tree.tx}_${tree.ty}`;
+      canopyG.generateTexture(texKey, dim, dim);
+      canopyG.destroy();
+
+      const canopyImg = this.add.image(tree.tx, tree.ty, texKey);
+      canopyImg.setDepth(5);
+      this.treeCanopies.push(canopyImg as any);
     }
+
+    // =========================================================
+    // BAKE: Convert single Graphics → texture → Image.
+    // Eliminates per-frame earcut polygon triangulation.
+    // =========================================================
+    g.generateTexture('staticScenery', ww, wh);
+    g.destroy();
+
+    const sceneryImg = this.add.image(0, 0, 'staticScenery');
+    sceneryImg.setOrigin(0, 0);
+    sceneryImg.setDepth(0);
   }
 
   // ============================================================
@@ -838,9 +833,18 @@ export class IntersectionScene extends Phaser.Scene {
     if (tooClose) return;
 
     const speed = this.getRandomCarSpeed();
-    const car = new Car(this, lane, speed);
-    car.setDepth(8);
-    this.cars.push(car);
+
+    // Reuse pooled car if available, otherwise create new
+    const pooled = this.carPool.pop();
+    if (pooled) {
+      pooled.resetCar(lane, speed);
+      pooled.setDepth(8);
+      this.cars.push(pooled);
+    } else {
+      const car = new Car(this, lane, speed);
+      car.setDepth(8);
+      this.cars.push(car);
+    }
   }
 
   // ============================================================
@@ -878,8 +882,8 @@ export class IntersectionScene extends Phaser.Scene {
         }
         car.setActive(false);
         car.setVisible(false);
-        car.destroy();
         this.cars.splice(i, 1);
+        this.carPool.push(car);
       }
     }
   }
@@ -1163,16 +1167,8 @@ export class IntersectionScene extends Phaser.Scene {
    * Slides in from top, slides out when lights go green.
    */
   private updateStoppedTrafficBanner(): void {
-    const greenDirs = this.trafficLights.getGreenDirections();
-    const isAllRedPhase = greenDirs.length === 0;
-
-    if (isAllRedPhase && !this.isShowingStoppedBanner) {
-      this.isShowingStoppedBanner = true;
-      this.showStoppedBanner();
-    } else if (!isAllRedPhase && this.isShowingStoppedBanner) {
-      this.isShowingStoppedBanner = false;
-      this.hideStoppedBanner();
-    }
+    // Disabled — banner is distracting and adds no gameplay value
+    return;
   }
 
   private showStoppedBanner(): void {
@@ -1680,8 +1676,8 @@ export class IntersectionScene extends Phaser.Scene {
   }
 
   /**
-   * Paper cutout analog clock — marker-drawn face, popsicle stick mount,
-   * hour/minute hands animating from 10:00 AM to 12:00 PM over session duration.
+   * Paper cutout analog clock — baked face texture + rotated hand Images.
+   * Hour/minute hands animate from 10:00 AM to 12:00 PM over session duration.
    */
   private createClockUI(viewW: number): void {
     const clockX = viewW / 2;
@@ -1692,56 +1688,62 @@ export class IntersectionScene extends Phaser.Scene {
     this.clockContainer.setScrollFactor(0);
     this.clockContainer.setDepth(100);
 
+    // Bake entire clock face (stick, shadow, face, ticks) to one texture
+    const clockFaceG = this.add.graphics();
+
     // Popsicle stick mount below the clock
-    const stickG = this.add.graphics();
-    drawPopsicleStick(stickG, -4, radius + 2, 8, 22);
-    this.clockContainer.add(stickG);
+    drawPopsicleStick(clockFaceG, -4 + radius + 8, radius + 2 + radius + 8, 8, 22);
 
     // Clock face shadow (hard offset)
-    const shadowG = this.add.graphics();
-    drawPaperShadowCircle(shadowG, 0, 0, radius);
-    this.clockContainer.add(shadowG);
+    drawPaperShadowCircle(clockFaceG, radius + 8, radius + 8, radius);
 
     // Clock face circle (paper white with scissor-cut wobble)
-    const faceG = this.add.graphics();
-    // Draw wobbled circle (approximate with polygon)
     const numSegments = 24;
     const facePoints: { x: number; y: number }[] = [];
     for (let i = 0; i < numSegments; i++) {
       const angle = (i / numSegments) * Math.PI * 2;
       const wobble = (Math.random() - 0.5) * 2.5;
       facePoints.push({
-        x: Math.cos(angle) * (radius + wobble),
-        y: Math.sin(angle) * (radius + wobble),
+        x: Math.cos(angle) * (radius + wobble) + radius + 8,
+        y: Math.sin(angle) * (radius + wobble) + radius + 8,
       });
     }
-    faceG.fillStyle(PALETTE.paperWhite, 1);
-    faceG.lineStyle(2, PALETTE.markerBlack, 0.9);
-    faceG.beginPath();
-    faceG.moveTo(facePoints[0].x, facePoints[0].y);
+    clockFaceG.fillStyle(PALETTE.paperWhite, 1);
+    clockFaceG.lineStyle(2, PALETTE.markerBlack, 0.9);
+    clockFaceG.beginPath();
+    clockFaceG.moveTo(facePoints[0].x, facePoints[0].y);
     for (let i = 1; i < facePoints.length; i++) {
-      faceG.lineTo(facePoints[i].x, facePoints[i].y);
+      clockFaceG.lineTo(facePoints[i].x, facePoints[i].y);
     }
-    faceG.closePath();
-    faceG.fillPath();
-    faceG.strokePath();
-    this.clockContainer.add(faceG);
+    clockFaceG.closePath();
+    clockFaceG.fillPath();
+    clockFaceG.strokePath();
 
-    // 12 tick marks at hour positions
-    const tickG = this.add.graphics();
+    // 12 tick marks
     for (let h = 0; h < 12; h++) {
-      const angle = (h / 12) * Math.PI * 2 - Math.PI / 2; // 12 at top
+      const angle = (h / 12) * Math.PI * 2 - Math.PI / 2;
       const innerR = radius - 8;
       const outerR = radius - 3;
-      tickG.lineStyle(h % 3 === 0 ? 2.5 : 1.5, PALETTE.markerBlack, 0.85);
-      tickG.beginPath();
-      tickG.moveTo(Math.cos(angle) * innerR, Math.sin(angle) * innerR);
-      tickG.lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR);
-      tickG.strokePath();
+      clockFaceG.lineStyle(h % 3 === 0 ? 2.5 : 1.5, PALETTE.markerBlack, 0.85);
+      clockFaceG.beginPath();
+      clockFaceG.moveTo(Math.cos(angle) * innerR + radius + 8, Math.sin(angle) * innerR + radius + 8);
+      clockFaceG.lineTo(Math.cos(angle) * outerR + radius + 8, Math.sin(angle) * outerR + radius + 8);
+      clockFaceG.strokePath();
     }
-    this.clockContainer.add(tickG);
 
-    // Hour numbers: 12, 3, 6, 9
+    // Center dot
+    clockFaceG.fillStyle(PALETTE.markerBlack, 1);
+    clockFaceG.fillCircle(radius + 8, radius + 8, 3);
+
+    // Bake to texture
+    const faceDim = (radius + 8) * 2;
+    clockFaceG.generateTexture('clockFace', faceDim, faceDim + 30); // extra height for stick
+    clockFaceG.destroy();
+    const clockFaceImg = this.add.image(0, 4, 'clockFace');
+    clockFaceImg.setOrigin(0.5, (radius + 8) / (faceDim + 30));
+    this.clockContainer.add(clockFaceImg);
+
+    // Hour numbers: 12, 3, 6, 9 (Text objects are cheap, no earcut)
     const numberPositions = [
       { text: '12', angle: -Math.PI / 2, dist: radius - 15 },
       { text: '3', angle: 0, dist: radius - 13 },
@@ -1760,15 +1762,32 @@ export class IntersectionScene extends Phaser.Scene {
       this.clockContainer.add(numText);
     }
 
-    // Clock hands (drawn each frame)
-    this.clockHandGraphics = this.add.graphics();
-    this.clockContainer.add(this.clockHandGraphics);
+    // Clock hands — bake as tiny line textures, rotate via angle property (no per-frame earcut)
+    // Hour hand texture (short thick line)
+    const hourG = this.add.graphics();
+    hourG.lineStyle(3, PALETTE.markerBlack, 1);
+    hourG.beginPath();
+    hourG.moveTo(2, 18);  // pivot point near bottom
+    hourG.lineTo(2, 2);   // line extends up
+    hourG.strokePath();
+    hourG.generateTexture('clockHourHand', 4, 20);
+    hourG.destroy();
+    this.clockHourHand = this.add.image(0, 0, 'clockHourHand');
+    this.clockHourHand.setOrigin(0.5, 1); // pivot at bottom center
+    this.clockContainer.add(this.clockHourHand);
 
-    // Center dot
-    const centerDot = this.add.graphics();
-    centerDot.fillStyle(PALETTE.markerBlack, 1);
-    centerDot.fillCircle(0, 0, 3);
-    this.clockContainer.add(centerDot);
+    // Minute hand texture (longer thinner line)
+    const minG = this.add.graphics();
+    minG.lineStyle(2, PALETTE.markerBlack, 0.9);
+    minG.beginPath();
+    minG.moveTo(2, 28);
+    minG.lineTo(2, 2);
+    minG.strokePath();
+    minG.generateTexture('clockMinuteHand', 4, 30);
+    minG.destroy();
+    this.clockMinuteHand = this.add.image(0, 0, 'clockMinuteHand');
+    this.clockMinuteHand.setOrigin(0.5, 1); // pivot at bottom center
+    this.clockContainer.add(this.clockMinuteHand);
   }
 
   /**
@@ -1948,49 +1967,22 @@ export class IntersectionScene extends Phaser.Scene {
    * Maps session time to 10:00 AM -> 12:00 PM (2 hours).
    */
   private updateClock(): void {
-    if (!this.clockHandGraphics) return;
+    if (!this.clockHourHand) return;
 
     const state = this.gameState.getState();
     const sessionDuration = this.config.sessionDuration;
     const gameProgress = 1 - (state.timeRemaining / sessionDuration); // 0.0 -> 1.0
 
-    // Map to clock positions:
-    // 10:00 AM = hour hand at 10 o'clock, minute hand at 12
-    // 12:00 PM = hour hand at 12 o'clock, minute hand at 12
-    // Hour hand: 10 o'clock = 300 degrees, 12 o'clock = 360 degrees (60 degree sweep)
-    // Minute hand: 2 full rotations (0 -> 720 degrees)
+    // 10 o'clock → 12 o'clock (60 degree sweep) mapped to Phaser rotation degrees
+    // 10 o'clock = 300 degrees from 12, 12 o'clock = 360/0 degrees
+    const hourStartDeg = 300;
+    const hourEndDeg = 360;
+    const hourDeg = hourStartDeg + (hourEndDeg - hourStartDeg) * gameProgress;
+    this.clockHourHand.setAngle(hourDeg);
 
-    // Convert clock positions to radians (0 = 12 o'clock position, clockwise)
-    // 10 o'clock in radians from 12 = (10/12) * 2PI = 5PI/3
-    const hourStartRad = (10 / 12) * Math.PI * 2; // 10 o'clock
-    const hourEndRad = Math.PI * 2; // 12 o'clock (full circle)
-    const hourAngle = hourStartRad + (hourEndRad - hourStartRad) * gameProgress;
-
-    // Minute hand: 2 full rotations
-    const minuteAngle = gameProgress * Math.PI * 2 * 2;
-
-    this.clockHandGraphics.clear();
-
-    // Hour hand (short, thick)
-    const hourLen = 16;
-    // Offset by -PI/2 so 0 radians points up (12 o'clock)
-    const hx = Math.cos(hourAngle - Math.PI / 2) * hourLen;
-    const hy = Math.sin(hourAngle - Math.PI / 2) * hourLen;
-    this.clockHandGraphics.lineStyle(3, PALETTE.markerBlack, 1);
-    this.clockHandGraphics.beginPath();
-    this.clockHandGraphics.moveTo(0, 0);
-    this.clockHandGraphics.lineTo(hx, hy);
-    this.clockHandGraphics.strokePath();
-
-    // Minute hand (longer, thinner)
-    const minLen = 26;
-    const mx = Math.cos(minuteAngle - Math.PI / 2) * minLen;
-    const my = Math.sin(minuteAngle - Math.PI / 2) * minLen;
-    this.clockHandGraphics.lineStyle(2, PALETTE.markerBlack, 0.9);
-    this.clockHandGraphics.beginPath();
-    this.clockHandGraphics.moveTo(0, 0);
-    this.clockHandGraphics.lineTo(mx, my);
-    this.clockHandGraphics.strokePath();
+    // Minute hand: 2 full rotations (0 → 720 degrees)
+    const minuteDeg = gameProgress * 720;
+    this.clockMinuteHand.setAngle(minuteDeg);
   }
 
   private repositionUI(viewW: number, viewH: number): void {

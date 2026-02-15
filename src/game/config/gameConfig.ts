@@ -29,11 +29,5 @@ export function createGameConfig(parent: string): Phaser.Types.Core.GameConfig {
       pixelArt: false,
       antialias: true,
     },
-    physics: {
-      default: 'arcade',
-      arcade: {
-        debug: false,
-      },
-    },
   };
 }

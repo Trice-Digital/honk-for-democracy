@@ -3,18 +3,18 @@ import Phaser from 'phaser';
 /**
  * VisibilityCone — The core game mechanic.
  *
- * A semi-transparent arc that the player rotates by dragging.
- * Cars passing through this cone are "reached" and generate reactions.
- * One implementation, works everywhere.
+ * Baked-texture approach: draws the cone arc once to a texture, then rotates
+ * the Image on pointer move. Eliminates per-frame earcut triangulation.
+ * Rebakes only when coneWidth changes (fatigue).
  */
 
-export class VisibilityCone extends Phaser.GameObjects.Graphics {
+export class VisibilityCone extends Phaser.GameObjects.Container {
   /** Center point (player position) */
   public originX: number;
   public originY: number;
 
   /** Current angle the cone is pointing (radians) */
-  public angle: number = -Math.PI / 2; // Start pointing up
+  public coneAngle: number = -Math.PI / 2; // Start pointing up
 
   /** Cone width in radians (~60 degrees) */
   public coneWidth: number = Phaser.Math.DegToRad(60);
@@ -28,67 +28,98 @@ export class VisibilityCone extends Phaser.GameObjects.Graphics {
   private strokeColor: number = 0xfbbf24;
   private strokeAlpha: number = 0.5;
 
+  /** Baked cone image */
+  private coneImage: Phaser.GameObjects.Image | null = null;
+  private static coneTexCounter = 0;
+  private coneTexKey: string | null = null;
+
   constructor(scene: Phaser.Scene, originX: number, originY: number) {
-    super(scene);
+    super(scene, originX, originY);
     this.originX = originX;
     this.originY = originY;
     this.setDepth(5);
     scene.add.existing(this);
-    this.draw();
+    this.bake();
   }
 
-  /** Update the cone's pointing direction */
+  /** Update the cone's pointing direction — just rotates the Image, no redraw */
   setDirection(radians: number): void {
-    this.angle = radians;
-    this.draw();
+    if (Math.abs(radians - this.coneAngle) < 0.001) return;
+    this.coneAngle = radians;
+    if (this.coneImage) {
+      // Convert radians to degrees for Phaser's setAngle
+      this.coneImage.setAngle(Phaser.Math.RadToDeg(radians));
+    }
   }
 
-  /** Redraw the cone graphic */
-  draw(): void {
-    this.clear();
+  /** Bake the cone shape to a texture. Only called on init and coneWidth change. */
+  private bake(): void {
+    // Clean up previous
+    if (this.coneImage) {
+      this.remove(this.coneImage);
+      this.coneImage.destroy();
+    }
+    if (this.coneTexKey && this.scene.textures.exists(this.coneTexKey)) {
+      this.scene.textures.remove(this.coneTexKey);
+    }
 
-    const startAngle = this.angle - this.coneWidth / 2;
-    const endAngle = this.angle + this.coneWidth / 2;
+    const r = this.coneRadius;
+    const texSize = r * 2 + 4; // +4 for stroke padding
+    const cx = texSize / 2;
+    const cy = texSize / 2;
+
+    // Draw cone pointing RIGHT (angle=0) centered in texture
+    const halfWidth = this.coneWidth / 2;
+    const startAngle = -halfWidth;
+    const endAngle = halfWidth;
+
+    const g = this.scene.add.graphics();
 
     // Filled arc
-    this.fillStyle(this.fillColor, this.fillAlpha);
-    this.beginPath();
-    this.moveTo(this.originX, this.originY);
-    this.arc(this.originX, this.originY, this.coneRadius, startAngle, endAngle, false);
-    this.lineTo(this.originX, this.originY);
-    this.closePath();
-    this.fillPath();
+    g.fillStyle(this.fillColor, this.fillAlpha);
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.arc(cx, cy, r, startAngle, endAngle, false);
+    g.lineTo(cx, cy);
+    g.closePath();
+    g.fillPath();
 
     // Stroke outline
-    this.lineStyle(2, this.strokeColor, this.strokeAlpha);
-    this.beginPath();
-    this.moveTo(this.originX, this.originY);
-    this.arc(this.originX, this.originY, this.coneRadius, startAngle, endAngle, false);
-    this.lineTo(this.originX, this.originY);
-    this.closePath();
-    this.strokePath();
+    g.lineStyle(2, this.strokeColor, this.strokeAlpha);
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.arc(cx, cy, r, startAngle, endAngle, false);
+    g.lineTo(cx, cy);
+    g.closePath();
+    g.strokePath();
 
-    // Edge lines for clarity
-    this.lineStyle(1, this.strokeColor, this.strokeAlpha * 0.7);
-    this.beginPath();
-    this.moveTo(this.originX, this.originY);
-    this.lineTo(
-      this.originX + Math.cos(startAngle) * this.coneRadius,
-      this.originY + Math.sin(startAngle) * this.coneRadius,
-    );
-    this.strokePath();
+    // Edge lines
+    g.lineStyle(1, this.strokeColor, this.strokeAlpha * 0.7);
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.lineTo(cx + Math.cos(startAngle) * r, cy + Math.sin(startAngle) * r);
+    g.strokePath();
 
-    this.beginPath();
-    this.moveTo(this.originX, this.originY);
-    this.lineTo(
-      this.originX + Math.cos(endAngle) * this.coneRadius,
-      this.originY + Math.sin(endAngle) * this.coneRadius,
-    );
-    this.strokePath();
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.lineTo(cx + Math.cos(endAngle) * r, cy + Math.sin(endAngle) * r);
+    g.strokePath();
+
+    // Bake
+    this.coneTexKey = `cone_${VisibilityCone.coneTexCounter++}`;
+    g.generateTexture(this.coneTexKey, texSize, texSize);
+    g.destroy();
+
+    // Create Image centered at origin, rotated to current angle
+    this.coneImage = this.scene.add.image(0, 0, this.coneTexKey);
+    this.coneImage.setOrigin(0.5, 0.5);
+    this.coneImage.setAngle(Phaser.Math.RadToDeg(this.coneAngle));
+    this.add(this.coneImage);
   }
 
   /**
    * Check if a point (car position) is inside the visibility cone.
+   * Pure math — no rendering involved.
    */
   containsPoint(px: number, py: number): boolean {
     // Distance check
@@ -102,8 +133,8 @@ export class VisibilityCone extends Phaser.GameObjects.Graphics {
     let pointAngle = Math.atan2(dy, dx);
 
     // Normalize angles for comparison
-    let startAngle = this.angle - this.coneWidth / 2;
-    let endAngle = this.angle + this.coneWidth / 2;
+    let startAngle = this.coneAngle - this.coneWidth / 2;
+    let endAngle = this.coneAngle + this.coneWidth / 2;
 
     // Handle wrap-around
     const normalizeAngle = (a: number): number => {
@@ -125,9 +156,11 @@ export class VisibilityCone extends Phaser.GameObjects.Graphics {
     }
   }
 
-  /** Shrink cone (for fatigue in Phase 4) */
+  /** Shrink cone (for fatigue in Phase 4) — rebakes the texture */
   setConeWidth(degrees: number): void {
-    this.coneWidth = Phaser.Math.DegToRad(degrees);
-    this.draw();
+    const newWidth = Phaser.Math.DegToRad(degrees);
+    if (Math.abs(newWidth - this.coneWidth) < 0.001) return;
+    this.coneWidth = newWidth;
+    this.bake();
   }
 }
