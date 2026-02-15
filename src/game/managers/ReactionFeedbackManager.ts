@@ -3,38 +3,46 @@ import { PALETTE } from '../config/paletteConfig';
 import { drawScissorCutRect } from '../utils/paperArt';
 import type { Car } from '../entities/Car';
 
-// Magic numbers extracted as constants
 const FEEDBACK_ROTATION_RANGE = 8; // -4 to +4 degrees
 const FEEDBACK_DRIFT_RANGE = 40; // horizontal drift for paper flutter
+
+/** System emoji font stack — renders emoji reliably in Canvas 2D */
+const EMOJI_FONT = "'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif";
+const BANGERS_FONT = "'Bangers', cursive";
+
+// Bubble sizing
+const BASE_FONT_PX = 18;
+const BOOSTED_FONT_PX = 22;
+const EMOJI_FONT_PX = 26;
+const BOOSTED_EMOJI_FONT_PX = 30;
+const BUBBLE_PAD_X = 20;
+const BUBBLE_PAD_Y = 14;
+const BUBBLE_MIN_W = 48;
+const TAIL_SIZE = 10;
 
 /**
  * ReactionFeedbackManager — Shows visual feedback for reactions.
  *
  * Renders Paper Mario style speech bubbles and score floaters:
  * - Paper cutout speech bubbles with scissor-cut edges
- * - Marker outline and triangle tail
- * - Paper flutter animation (wobble + drift)
+ * - Marker outline and triangle tail pointing at car
+ * - Emoji rendered with system emoji font (separate from Bangers text)
+ * - Paper flutter animation (wobble + drift up + fade)
  * - Score floaters with Bangers font and scale-bounce
- * - Sets reaction faces on cars
  */
 export class ReactionFeedbackManager {
   constructor(private scene: Phaser.Scene) {}
 
-  /**
-   * Show paper cutout speech bubble reaction feedback.
-   * Stopped cars get larger bubbles; moving cars get smaller/faster ones.
-   */
   showReactionFeedback(
     car: Car | null,
-    reaction: { emoji: string; scoreValue: number; color: number; label: string; sentiment?: string },
+    reaction: { emoji: string; scoreValue: number; color: number; label: string; bubbleLabel: string; bubbleEmoji: string; sentiment?: string },
     wasRaiseBoosted: boolean,
     wasDeflected: boolean,
     finalScoreValue: number,
   ): void {
-    const rotation = (Math.random() - 0.5) * FEEDBACK_ROTATION_RANGE; // -4 to +4 degrees
-    const xDrift = (Math.random() - 0.5) * FEEDBACK_DRIFT_RANGE; // paper flutter drift
+    const rotation = (Math.random() - 0.5) * FEEDBACK_ROTATION_RANGE;
+    const xDrift = (Math.random() - 0.5) * FEEDBACK_DRIFT_RANGE;
 
-    // Get position and state from car (or use 0,0 as fallback)
     const worldX = car?.x ?? 0;
     const worldY = car?.y ?? 0;
     const carIsStopped = car?.isStopped ?? false;
@@ -45,97 +53,133 @@ export class ReactionFeedbackManager {
       car.setReactionFace(sentiment as 'positive' | 'negative' | 'neutral');
     }
 
-    // Size scaling: stopped cars = bigger bubbles, moving cars = smaller
-    const sizeScale = carIsStopped ? 1.2 : 0.9;
+    const sizeScale = carIsStopped ? 1.2 : 1.0;
     const animDuration = carIsStopped ? 1600 : 1100;
+    const isBoosted = wasRaiseBoosted || wasDeflected;
 
-    // Speech bubble (paper cutout with scissor-cut edges)
-    let bubbleLabel: string;
+    // Determine bubble content (text + emoji parts, rendered separately)
+    let textPart: string;
+    let emojiPart: string;
     if (wasDeflected) {
-      bubbleLabel = '\u{1F6E1}\uFE0F DEFLECT!';
+      textPart = 'DEFLECT!'; emojiPart = '';
     } else if (wasRaiseBoosted) {
-      const content = reaction.emoji || reaction.label || '';
-      bubbleLabel = `${content} YEAH!`;
-    } else if (reaction.label === 'Honk!') {
-      bubbleLabel = 'HONK! \u{1F3BA}';
+      textPart = 'YEAH!'; emojiPart = '✊';
     } else {
-      // Show emoji + label together for richer bubbles, or just label if no emoji
-      const parts: string[] = [];
-      if (reaction.emoji) parts.push(reaction.emoji);
-      if (reaction.label && reaction.label !== 'Nothing') parts.push(reaction.label);
-      bubbleLabel = parts.join(' ') || '';
+      textPart = reaction.bubbleLabel;
+      emojiPart = reaction.bubbleEmoji;
     }
 
-    if (bubbleLabel) {
-      const baseFontSize = (wasRaiseBoosted || wasDeflected) ? 14 : 12;
-      const fontSize = Math.round(baseFontSize * sizeScale);
-      const bubbleW = Math.max(55, bubbleLabel.length * (10 * sizeScale) + 24);
-      const bubbleH = Math.round(28 * sizeScale);
+    if (!textPart && !emojiPart) return; // nothing reaction — no bubble
 
-      const isNegative = finalScoreValue < 0;
-      const bubbleFill = isNegative ? 0xf5d0d0 : PALETTE.paperWhite;
+    const isNegative = finalScoreValue < 0;
+    const bubbleFill = isNegative ? 0xf5d0d0 : PALETTE.paperWhite;
+    const textColor = isNegative ? '#ef4444' : '#1a1a1a';
 
-      // Create container at car position (above car)
-      const bubbleY = 0; // top of bubble relative to container
-      const container = this.scene.add.container(worldX, worldY - 44);
-      container.setDepth(20);
-      container.setAngle(rotation);
+    // Measure content to size the bubble
+    const textFontPx = Math.round((isBoosted ? BOOSTED_FONT_PX : BASE_FONT_PX) * sizeScale);
+    const emojiFontPx = Math.round((isBoosted ? BOOSTED_EMOJI_FONT_PX : EMOJI_FONT_PX) * sizeScale);
 
-      const bg = this.scene.add.graphics();
+    // Create text objects first to measure, then position inside bubble
+    const textObjs: Phaser.GameObjects.Text[] = [];
+    let contentW = 0;
+    const gap = (textPart && emojiPart) ? 4 : 0;
 
-      // Shadow
-      bg.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-      bg.fillRoundedRect(-bubbleW / 2 + PALETTE.shadowOffsetX, bubbleY + PALETTE.shadowOffsetY, bubbleW, bubbleH, 4);
-
-      // Scissor-cut body
-      drawScissorCutRect(bg, -bubbleW / 2, bubbleY, bubbleW, bubbleH, bubbleFill);
-
-      // Triangle tail
-      bg.fillStyle(bubbleFill, 1);
-      bg.fillTriangle(-6, bubbleH, 6, bubbleH, 0, bubbleH + 8);
-      bg.lineStyle(2, PALETTE.markerBlack, 0.9);
-      bg.beginPath();
-      bg.moveTo(-6, bubbleH);
-      bg.lineTo(0, bubbleH + 8);
-      bg.lineTo(6, bubbleH);
-      bg.strokePath();
-
-      const textObj = this.scene.add.text(0, bubbleH / 2, bubbleLabel, {
-        fontFamily: "'Bangers', cursive",
-        fontSize: `${fontSize}px`,
-        color: isNegative ? '#ef4444' : '#1a1a1a',
+    let labelObj: Phaser.GameObjects.Text | null = null;
+    if (textPart) {
+      labelObj = this.scene.add.text(0, 0, textPart, {
+        fontFamily: BANGERS_FONT,
+        fontSize: `${textFontPx}px`,
+        color: textColor,
         letterSpacing: 1,
       });
-      textObj.setOrigin(0.5);
-
-      container.add([bg, textObj]);
-
-      // Paper flutter: float up + wobble + drift + fade
-      this.scene.tweens.add({
-        targets: container,
-        y: container.y - (60 + Math.random() * 20),
-        x: container.x + xDrift,
-        alpha: 0,
-        angle: rotation + (Math.random() - 0.5) * 12,
-        duration: animDuration,
-        delay: 350,
-        ease: 'Quad.easeOut',
-        onComplete: () => container.destroy(),
-      });
+      contentW += labelObj.width;
+      textObjs.push(labelObj);
     }
+
+    let emojiObj: Phaser.GameObjects.Text | null = null;
+    if (emojiPart) {
+      emojiObj = this.scene.add.text(0, 0, emojiPart, {
+        fontFamily: EMOJI_FONT,
+        fontSize: `${emojiFontPx}px`,
+        color: textColor,
+      });
+      contentW += emojiObj.width;
+      textObjs.push(emojiObj);
+    }
+
+    contentW += gap;
+    const bubbleW = Math.max(BUBBLE_MIN_W, contentW + BUBBLE_PAD_X * 2);
+    const contentH = Math.max(...textObjs.map(t => t.height));
+    const bubbleH = contentH + BUBBLE_PAD_Y * 2;
+
+    // Container at car position, above car
+    const container = this.scene.add.container(worldX, worldY - 50);
+    container.setDepth(20);
+    container.setAngle(rotation);
+
+    // Draw bubble background
+    const bg = this.scene.add.graphics();
+
+    // Hard offset shadow
+    bg.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+    bg.fillRoundedRect(-bubbleW / 2 + PALETTE.shadowOffsetX, PALETTE.shadowOffsetY, bubbleW, bubbleH, 4);
+
+    // Scissor-cut body
+    drawScissorCutRect(bg, -bubbleW / 2, 0, bubbleW, bubbleH, bubbleFill);
+
+    // Triangle tail pointing down at car
+    const tailHalf = TAIL_SIZE * 0.6;
+    bg.fillStyle(bubbleFill, 1);
+    bg.fillTriangle(-tailHalf, bubbleH, tailHalf, bubbleH, 0, bubbleH + TAIL_SIZE);
+    bg.lineStyle(2, PALETTE.markerBlack, 0.9);
+    bg.beginPath();
+    bg.moveTo(-tailHalf, bubbleH);
+    bg.lineTo(0, bubbleH + TAIL_SIZE);
+    bg.lineTo(tailHalf, bubbleH);
+    bg.strokePath();
+
+    container.add(bg);
+
+    // Position text+emoji centered in bubble
+    let curX = -contentW / 2;
+    const centerY = bubbleH / 2;
+
+    if (labelObj) {
+      labelObj.setOrigin(0, 0.5);
+      labelObj.setPosition(curX, centerY);
+      container.add(labelObj);
+      curX += labelObj.width + gap;
+    }
+    if (emojiObj) {
+      emojiObj.setOrigin(0, 0.5);
+      emojiObj.setPosition(curX, centerY);
+      container.add(emojiObj);
+    }
+
+    // Paper flutter: float up + wobble + drift + fade
+    this.scene.tweens.add({
+      targets: container,
+      y: container.y - (70 + Math.random() * 25),
+      x: container.x + xDrift,
+      alpha: 0,
+      angle: rotation + (Math.random() - 0.5) * 12,
+      duration: animDuration,
+      delay: 350,
+      ease: 'Quad.easeOut',
+      onComplete: () => container.destroy(),
+    });
 
     // Score floater (Bangers font with scale-bounce)
     if (finalScoreValue !== 0) {
       const sign = finalScoreValue > 0 ? '+' : '';
-      const label = `${sign}${finalScoreValue}`;
+      const scoreLabel = `${sign}${finalScoreValue}`;
       const isPositive = finalScoreValue > 0;
       const color = isPositive ? '#22c55e' : '#ef4444';
-      const baseFontPx = (wasRaiseBoosted || wasDeflected) ? 28 : 22;
-      const fontPx = Math.round(baseFontPx * sizeScale);
+      const scoreFontPx = Math.round((isBoosted ? 30 : 24) * sizeScale);
 
-      const floater = this.scene.add.text(worldX + 25, worldY - 15, label, {
-        fontFamily: "'Bangers', cursive",
-        fontSize: `${fontPx}px`,
+      const floater = this.scene.add.text(worldX + 25, worldY - 15, scoreLabel, {
+        fontFamily: BANGERS_FONT,
+        fontSize: `${scoreFontPx}px`,
         color,
         stroke: '#1a1a1a',
         strokeThickness: 3,
@@ -145,7 +189,7 @@ export class ReactionFeedbackManager {
       floater.setDepth(22);
       floater.setScale(0.5);
 
-      // Scale-bounce on appear: 0.5 -> 1.1 -> 1.0
+      // Scale-bounce: 0.5 -> 1.1 -> 1.0
       this.scene.tweens.add({
         targets: floater,
         scale: 1.1,
@@ -164,7 +208,7 @@ export class ReactionFeedbackManager {
       // Float up and fade
       this.scene.tweens.add({
         targets: floater,
-        y: worldY - 75,
+        y: worldY - 85,
         alpha: 0,
         duration: 1000,
         delay: 200,

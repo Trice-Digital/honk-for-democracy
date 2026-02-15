@@ -117,6 +117,33 @@ export class DevControls {
     this.lastTriggeredEvent = type;
   }
 
+  /** Public API for DebugOverlay buttons */
+  togglePause(): void {
+    const newPaused = !this.getPaused();
+    this.setPaused(newPaused);
+    console.log(`[HFD-DEV] ${newPaused ? 'Paused' : 'Resumed'}`);
+  }
+
+  doStepFrame(): void {
+    if (this.getPaused()) {
+      this.stepFrame();
+      console.log('[HFD-DEV] Step frame');
+    }
+  }
+
+  doRestartScene(): void {
+    console.log('[HFD-DEV] Restarting scene');
+    this.restartScene();
+  }
+
+  doCycleSpeed(direction: -1 | 1): void {
+    this.cycleSpeed(direction);
+  }
+
+  doForceTriggerEvent(type: string): void {
+    this.forceTriggerEvent(type as EventType);
+  }
+
   destroy(): void {
     this.scene.input.keyboard?.removeAllListeners('keydown');
   }

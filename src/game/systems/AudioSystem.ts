@@ -87,13 +87,13 @@ export class AudioSystem {
       case 'honk':
         this.playRandomHonk();
         break;
-      case 'wave':
+      case 'thumbsup':
         this.playChime(800, 0.1);
         break;
-      case 'bananas':
+      case 'yeah':
         this.playCrowdCheer();
         break;
-      case 'peace':
+      case 'rockon':
         this.playChime(1000, 0.08);
         break;
       case 'thumbsdown':

@@ -331,6 +331,11 @@ export class IntersectionScene extends Phaser.Scene {
           lastTriggeredEvent: this.devControls.lastTriggeredEvent,
           getSpeedMultiplier: () => this.devSpeedMultiplier,
           getPaused: () => this.devPaused,
+          cycleSpeed: (dir: -1 | 1) => this.devControls!.doCycleSpeed(dir),
+          togglePause: () => this.devControls!.togglePause(),
+          stepFrame: () => this.devControls!.doStepFrame(),
+          forceTriggerEvent: (type: string) => this.devControls!.doForceTriggerEvent(type),
+          restartScene: () => this.devControls!.doRestartScene(),
         },
       });
     }

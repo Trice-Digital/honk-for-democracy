@@ -8,6 +8,10 @@ export interface ReactionType {
   id: string;
   label: string;
   emoji: string;
+  /** Text portion of speech bubble (Bangers font). Matches mockup Section 5. */
+  bubbleLabel: string;
+  /** Emoji portion of speech bubble (system emoji font). Rendered separately to avoid boxes. */
+  bubbleEmoji: string;
   scoreValue: number;
   /** Base weight (before difficulty adjustment). Must sum to 1.0 across all types. */
   baseWeight: number;
@@ -18,21 +22,21 @@ export interface ReactionType {
 }
 
 export const REACTION_TYPES: ReactionType[] = [
-  // Positive (~60% base)
-  { id: 'wave',       label: 'Wave',         emoji: '👋', scoreValue: 5,   baseWeight: 0.25, sentiment: 'positive', color: 0x22c55e },
-  { id: 'honk',       label: 'Honk!',        emoji: '📯', scoreValue: 10,  baseWeight: 0.20, sentiment: 'positive', color: 0x22c55e },
-  { id: 'bananas',    label: 'Go Bananas!',   emoji: '🤩', scoreValue: 25,  baseWeight: 0.05, sentiment: 'positive', color: 0xfbbf24 },
-  { id: 'peace',      label: 'Peace Sign',    emoji: '😊', scoreValue: 8,   baseWeight: 0.10, sentiment: 'positive', color: 0x22c55e },
+  // Positive (~60% base) — bubble content matches mockup Section 5
+  { id: 'thumbsup',   label: 'Thumbs Up',     emoji: '👍', bubbleLabel: '',       bubbleEmoji: '👍', scoreValue: 5,   baseWeight: 0.25, sentiment: 'positive', color: 0x22c55e },
+  { id: 'honk',       label: 'Honk!',         emoji: '🎺', bubbleLabel: 'HONK!',  bubbleEmoji: '🎺', scoreValue: 10,  baseWeight: 0.20, sentiment: 'positive', color: 0x22c55e },
+  { id: 'yeah',       label: 'Yeah!',         emoji: '✊', bubbleLabel: 'YEAH!',  bubbleEmoji: '✊', scoreValue: 25,  baseWeight: 0.05, sentiment: 'positive', color: 0xfbbf24 },
+  { id: 'rockon',     label: 'Rock On',       emoji: '🤘', bubbleLabel: '',       bubbleEmoji: '🤘', scoreValue: 8,   baseWeight: 0.10, sentiment: 'positive', color: 0x22c55e },
 
   // Neutral (~25% base)
-  { id: 'nothing',    label: 'Nothing',       emoji: '',   scoreValue: 0,   baseWeight: 0.15, sentiment: 'neutral',  color: 0x6b7280 },
-  { id: 'stare',      label: 'Stare',         emoji: '👀', scoreValue: 0,   baseWeight: 0.10, sentiment: 'neutral',  color: 0x6b7280 },
+  { id: 'nothing',    label: 'Nothing',       emoji: '',   bubbleLabel: '',       bubbleEmoji: '',   scoreValue: 0,   baseWeight: 0.15, sentiment: 'neutral',  color: 0x6b7280 },
+  { id: 'stare',      label: 'Stare',         emoji: '',   bubbleLabel: '. . .',  bubbleEmoji: '',   scoreValue: 0,   baseWeight: 0.10, sentiment: 'neutral',  color: 0x6b7280 },
 
   // Negative (~15% base)
-  { id: 'thumbsdown', label: 'Thumbs Down',   emoji: '👎', scoreValue: -5,  baseWeight: 0.05, sentiment: 'negative', color: 0xef4444 },
-  { id: 'finger',     label: 'Middle Finger',  emoji: '🖕', scoreValue: -10, baseWeight: 0.05, sentiment: 'negative', color: 0xef4444 },
-  { id: 'yell',       label: 'Yelled At',     emoji: '🤬', scoreValue: -15, baseWeight: 0.03, sentiment: 'negative', color: 0xef4444 },
-  { id: 'coalroller', label: 'Coal Roller',    emoji: '💨', scoreValue: -20, baseWeight: 0.02, sentiment: 'negative', color: 0x7f1d1d },
+  { id: 'thumbsdown', label: 'Thumbs Down',   emoji: '👎', bubbleLabel: '',       bubbleEmoji: '👎', scoreValue: -5,  baseWeight: 0.05, sentiment: 'negative', color: 0xef4444 },
+  { id: 'finger',     label: 'Middle Finger', emoji: '🖕', bubbleLabel: '',       bubbleEmoji: '🖕', scoreValue: -10, baseWeight: 0.05, sentiment: 'negative', color: 0xef4444 },
+  { id: 'yell',       label: 'Yelled At',     emoji: '🤬', bubbleLabel: '&*#%!', bubbleEmoji: '',   scoreValue: -15, baseWeight: 0.03, sentiment: 'negative', color: 0xef4444 },
+  { id: 'coalroller', label: 'Coal Roller',   emoji: '💨', bubbleLabel: '',       bubbleEmoji: '💨', scoreValue: -20, baseWeight: 0.02, sentiment: 'negative', color: 0x7f1d1d },
 ];
 
 /**

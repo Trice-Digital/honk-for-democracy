@@ -42,6 +42,11 @@ interface DebugSystems {
     lastTriggeredEvent: string;
     getSpeedMultiplier: () => number;
     getPaused: () => boolean;
+    cycleSpeed: (dir: -1 | 1) => void;
+    togglePause: () => void;
+    stepFrame: () => void;
+    forceTriggerEvent: (type: string) => void;
+    restartScene: () => void;
   };
 }
 
@@ -62,6 +67,9 @@ export class DebugOverlay {
 
   // DOM elements
   private container: HTMLDivElement | null = null;
+  private buttonsDiv: HTMLDivElement | null = null;
+  private speedLabel: HTMLSpanElement | null = null;
+  private pauseBtn: HTMLButtonElement | null = null;
   private valuesDiv: HTMLDivElement | null = null;
   private slidersDiv: HTMLDivElement | null = null;
 
@@ -173,6 +181,12 @@ export class DebugOverlay {
     header.textContent = 'DEBUG OVERLAY [` or D to toggle]';
     this.container.appendChild(header);
 
+    // Dev controls buttons section
+    this.buttonsDiv = document.createElement('div');
+    this.buttonsDiv.style.cssText = 'margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 8px;';
+    this.createDevButtons();
+    this.container.appendChild(this.buttonsDiv);
+
     // Values section
     this.valuesDiv = document.createElement('div');
     this.valuesDiv.style.cssText = 'margin-bottom: 12px;';
@@ -227,6 +241,70 @@ export class DebugOverlay {
 
     // Append to document body
     document.body.appendChild(this.container);
+  }
+
+  private createDevButtons(): void {
+    if (!this.buttonsDiv) return;
+
+    const btnStyle = `
+      padding: 4px 8px; margin: 2px; border: 1px solid #555; border-radius: 3px;
+      background: #1e293b; color: #e5e7eb; font-family: inherit; font-size: 11px;
+      cursor: pointer; user-select: none;
+    `;
+    const btnHover = (btn: HTMLButtonElement) => {
+      btn.addEventListener('mouseenter', () => { btn.style.background = '#334155'; });
+      btn.addEventListener('mouseleave', () => { btn.style.background = '#1e293b'; });
+    };
+    const makeBtn = (text: string, onClick: () => void): HTMLButtonElement => {
+      const btn = document.createElement('button');
+      btn.style.cssText = btnStyle;
+      btn.textContent = text;
+      btn.addEventListener('click', onClick);
+      btnHover(btn);
+      return btn;
+    };
+
+    // Section label
+    const label = document.createElement('div');
+    label.style.cssText = 'color:#3b82f6;font-weight:bold;margin-bottom:6px;font-size:10px;letter-spacing:0.1em;';
+    label.textContent = 'DEV CONTROLS';
+    this.buttonsDiv.appendChild(label);
+
+    // Speed row
+    const speedRow = document.createElement('div');
+    speedRow.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:4px;';
+    const slowBtn = makeBtn('[ Slower', () => this.systems.devControls?.cycleSpeed(-1));
+    const fastBtn = makeBtn('Faster ]', () => this.systems.devControls?.cycleSpeed(1));
+    this.speedLabel = document.createElement('span');
+    this.speedLabel.style.cssText = 'color:#fbbf24;font-weight:bold;min-width:36px;text-align:center;';
+    this.speedLabel.textContent = '1x';
+    speedRow.appendChild(slowBtn);
+    speedRow.appendChild(this.speedLabel);
+    speedRow.appendChild(fastBtn);
+    this.buttonsDiv.appendChild(speedRow);
+
+    // Pause / Step / Restart row
+    const ctrlRow = document.createElement('div');
+    ctrlRow.style.cssText = 'display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap;';
+    this.pauseBtn = makeBtn('Pause [P]', () => this.systems.devControls?.togglePause());
+    ctrlRow.appendChild(this.pauseBtn);
+    ctrlRow.appendChild(makeBtn('Step [N]', () => this.systems.devControls?.stepFrame()));
+    ctrlRow.appendChild(makeBtn('Restart [R]', () => this.systems.devControls?.restartScene()));
+    this.buttonsDiv.appendChild(ctrlRow);
+
+    // Event triggers row
+    const evtLabel = document.createElement('div');
+    evtLabel.style.cssText = 'color:#9ca3af;font-size:10px;margin-bottom:2px;';
+    evtLabel.textContent = 'Force Events:';
+    this.buttonsDiv.appendChild(evtLabel);
+
+    const evtRow = document.createElement('div');
+    evtRow.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;';
+    const events: [string, string][] = [['1: Cop', 'copCheck'], ['2: Weather', 'weather'], ['3: Karma', 'karma']];
+    for (const [label, type] of events) {
+      evtRow.appendChild(makeBtn(label, () => this.systems.devControls?.forceTriggerEvent(type)));
+    }
+    this.buttonsDiv.appendChild(evtRow);
   }
 
   private setupKeyboardToggle(): void {
@@ -292,13 +370,11 @@ export class DebugOverlay {
     // Build values display
     const lines: string[] = [];
 
-    // Dev controls section (only if devControls is provided)
+    // Update dev control buttons
     if (this.systems.devControls) {
-      const devControls = this.systems.devControls;
-      lines.push(this.section('DEV CONTROLS'));
-      lines.push(this.row('Speed', `${devControls.getSpeedMultiplier()}x`));
-      lines.push(this.row('Paused', devControls.getPaused() ? 'yes' : 'no'));
-      lines.push(this.row('Last Event Trigger', devControls.lastTriggeredEvent || 'none'));
+      const dc = this.systems.devControls;
+      if (this.speedLabel) this.speedLabel.textContent = `${dc.getSpeedMultiplier()}x`;
+      if (this.pauseBtn) this.pauseBtn.textContent = dc.getPaused() ? 'Resume [P]' : 'Pause [P]';
     }
 
     // Performance
@@ -383,6 +459,9 @@ export class DebugOverlay {
       this.container.parentNode.removeChild(this.container);
     }
     this.container = null;
+    this.buttonsDiv = null;
+    this.speedLabel = null;
+    this.pauseBtn = null;
     this.valuesDiv = null;
     this.slidersDiv = null;
   }
