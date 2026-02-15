@@ -79,6 +79,21 @@ const VEHICLE_DEFS: Record<CarType, VehicleDef> = {
 // Scale factor applied at draw time (generateTexture ignores Graphics.setScale)
 const SCALE_FACTOR = 1.0;
 
+/** Probability (0-1) of a non-motorcycle/bicycle car having a passenger. */
+const PASSENGER_CHANCE = 0.3;
+
+/** Probability (0-1) of a passenger being a dog (given passenger exists). */
+const DOG_PASSENGER_CHANCE = 0.1;
+
+/** Milliseconds between coal roller smoke puff emissions. */
+const SMOKE_PUFF_INTERVAL_MS = 500;
+
+/** Pixels beyond world bounds before a car is considered off-screen and recyclable. */
+const OFFSCREEN_MARGIN = 200;
+
+/** Pixel tolerance for stop line detection. Cars within this distance of the stop line will stop on red. */
+const STOP_DETECTION_THRESHOLD = 10;
+
 // Emoji face sets
 const DRIVER_FACES = ['😐', '😊', '😤', '😠', '🙂', '😑'];
 const POSITIVE_FACES = ['😊', '🤟', '😄', '👍'];
@@ -202,10 +217,9 @@ export class Car extends Phaser.GameObjects.Container {
       return;
     }
 
-    // 30% chance of passenger
-    if (Math.random() < 0.3) {
+    if (Math.random() < PASSENGER_CHANCE) {
       const def = VEHICLE_DEFS[this.carType];
-      const isDog = Math.random() < 0.1;
+      const isDog = Math.random() < DOG_PASSENGER_CHANCE;
       const passengerEmoji = isDog
         ? DOG_EMOJIS[Math.floor(Math.random() * DOG_EMOJIS.length)]
         : PASSENGER_EMOJIS[Math.floor(Math.random() * PASSENGER_EMOJIS.length)];
@@ -772,7 +786,7 @@ export class Car extends Phaser.GameObjects.Container {
     // Smoke puffs for coal rollers
     if (this.carType === 'coalRoller' && !this.isStopped) {
       this.smokeTimer += delta;
-      if (this.smokeTimer > 500) {
+      if (this.smokeTimer > SMOKE_PUFF_INTERVAL_MS) {
         this.smokeTimer = 0;
         this.emitSmokePuff();
       }
@@ -784,12 +798,11 @@ export class Car extends Phaser.GameObjects.Container {
   // ---------------------------------------------------------------------------
 
   isOffScreen(worldWidth: number, worldHeight: number): boolean {
-    const margin = 200;
     return (
-      this.x < -margin ||
-      this.x > worldWidth + margin ||
-      this.y < -margin ||
-      this.y > worldHeight + margin
+      this.x < -OFFSCREEN_MARGIN ||
+      this.x > worldWidth + OFFSCREEN_MARGIN ||
+      this.y < -OFFSCREEN_MARGIN ||
+      this.y > worldHeight + OFFSCREEN_MARGIN
     );
   }
 
@@ -798,29 +811,27 @@ export class Car extends Phaser.GameObjects.Container {
       this.isStopped = false;
       return false;
     }
-
-    const threshold = 10;
     switch (this.direction) {
       case 'north':
-        if (this.y > this.lane.stopY - threshold && this.y < this.lane.stopY + this.carLength) {
+        if (this.y > this.lane.stopY - STOP_DETECTION_THRESHOLD && this.y < this.lane.stopY + this.carLength) {
           this.isStopped = true;
           return true;
         }
         break;
       case 'south':
-        if (this.y < this.lane.stopY + threshold && this.y > this.lane.stopY - this.carLength) {
+        if (this.y < this.lane.stopY + STOP_DETECTION_THRESHOLD && this.y > this.lane.stopY - this.carLength) {
           this.isStopped = true;
           return true;
         }
         break;
       case 'east':
-        if (this.x < this.lane.stopX + threshold && this.x > this.lane.stopX - this.carLength) {
+        if (this.x < this.lane.stopX + STOP_DETECTION_THRESHOLD && this.x > this.lane.stopX - this.carLength) {
           this.isStopped = true;
           return true;
         }
         break;
       case 'west':
-        if (this.x > this.lane.stopX - threshold && this.x < this.lane.stopX + this.carLength) {
+        if (this.x > this.lane.stopX - STOP_DETECTION_THRESHOLD && this.x < this.lane.stopX + this.carLength) {
           this.isStopped = true;
           return true;
         }

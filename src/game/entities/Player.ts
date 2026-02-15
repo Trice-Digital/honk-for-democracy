@@ -20,7 +20,12 @@ import {
  * Idle wobble: 0.5 degree sine wobble on container.
  */
 
-// Body proportions (at game scale ~65px tall including sign)
+// ==========================================================================
+// Body proportions — intentional design constants for paper cutout character.
+// At game scale ~65px tall including sign. Sized to read clearly at 1x zoom.
+// Proportions reference a simplified paper doll: head ~16px dia, torso 18x22,
+// sign 40x22 held overhead via popsicle stick.
+// ==========================================================================
 const BODY_W = 18;
 const BODY_H = 22;
 const HEAD_R = 8;
@@ -31,7 +36,7 @@ const LEG_H = 10;
 const SIGN_W = 40;
 const SIGN_H = 22;
 
-// Colors
+// Character colors — construction paper palette. Intentional design choices, not config-driven.
 const SKIN_COLOR = 0xf5c692; // warm paper skin
 const SHIRT_COLOR = 0x3b82f6; // muted blue construction paper
 const PANTS_COLOR = 0x2c3e50; // dark construction paper
