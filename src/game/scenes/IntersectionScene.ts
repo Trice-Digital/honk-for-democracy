@@ -2169,32 +2169,50 @@ export class IntersectionScene extends Phaser.Scene {
   // ============================================================
 
   /**
-   * Show event banner — Paper cutout card with Bangers font.
+   * Show event banner — Paper cutout card with Bangers font, scissor-cut edges.
    */
   private showEventBannerText(text: string, color: string): void {
     const viewW = this.scale.width;
 
-    const banner = this.add.text(viewW / 2, 120, text, {
+    const bannerW = Math.min(viewW - 40, 400);
+    const bannerH = 44;
+    const bannerX = viewW / 2;
+    const bannerY = 120;
+    const bannerLeft = bannerX - bannerW / 2;
+    const bannerTop = bannerY - bannerH / 2;
+
+    const bannerContainer = this.add.container(0, 0);
+    bannerContainer.setScrollFactor(0);
+    bannerContainer.setDepth(160);
+
+    // Paper shadow
+    const shadowGfx = this.add.graphics();
+    drawPaperShadow(shadowGfx, bannerLeft, bannerTop, bannerW, bannerH, 2, 2);
+    bannerContainer.add(shadowGfx);
+
+    // Scissor-cut cardboard banner
+    const bannerGfx = this.add.graphics();
+    drawScissorCutRect(bannerGfx, bannerLeft, bannerTop, bannerW, bannerH, PALETTE.cardboard, PALETTE.markerBlack);
+    bannerContainer.add(bannerGfx);
+
+    const bannerText = this.add.text(bannerX, bannerY, text, {
       fontFamily: "'Bangers', cursive",
       fontSize: '18px',
       color,
       stroke: '#1a1a1a',
       strokeThickness: 2,
-      backgroundColor: '#f5f0e8ee',
-      padding: { x: 16, y: 8 },
     });
-    banner.setOrigin(0.5);
-    banner.setScrollFactor(0);
-    banner.setDepth(160);
+    bannerText.setOrigin(0.5);
+    bannerContainer.add(bannerText);
 
     this.tweens.add({
-      targets: banner,
+      targets: bannerContainer,
       alpha: 0,
-      y: 100,
+      y: -20,
       duration: 1000,
       delay: 2500,
       ease: 'Quad.easeOut',
-      onComplete: () => banner.destroy(),
+      onComplete: () => bannerContainer.destroy(),
     });
   }
 }

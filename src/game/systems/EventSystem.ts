@@ -12,6 +12,11 @@ import {
   COP_CHECK_SCENARIOS,
   KARMA_DEFAULTS,
 } from '../config/eventConfig';
+import { PALETTE } from '../config/paletteConfig';
+import {
+  drawPaperShadow,
+  drawScissorCutRect,
+} from '../utils/paperArt';
 
 /**
  * EventSystem — Schedules and executes mid-game events.
@@ -304,93 +309,145 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     const backdrop = this.scene.add.rectangle(viewW / 2, viewH / 2, viewW, viewH, 0x000000, 0.6);
     this.copCheckUI.add(backdrop);
 
-    // Event card background
+    // --- Paper cutout dialogue panel ---
     const cardW = Math.min(viewW - 40, 500);
     const cardH = Math.min(viewH - 80, 480);
     const cardX = viewW / 2;
     const cardY = viewH / 2;
+    const cardLeft = cardX - cardW / 2;
+    const cardTop = cardY - cardH / 2;
 
-    const card = this.scene.add.rectangle(cardX, cardY, cardW, cardH, 0x1a1a2e, 0.95);
-    card.setStrokeStyle(3, 0x3b82f6, 0.8);
-    this.copCheckUI.add(card);
+    // Hard offset drop shadow (paper lifted off table)
+    const panelShadow = this.scene.add.graphics();
+    drawPaperShadow(panelShadow, cardLeft, cardTop, cardW, cardH);
+    this.copCheckUI.add(panelShadow);
 
-    // Police badge / icon label
-    const badge = this.scene.add.text(cardX, cardY - cardH / 2 + 30, 'POLICE', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#3b82f6',
-      backgroundColor: '#1a1a2e',
-      padding: { x: 12, y: 4 },
+    // Cardboard panel with scissor-cut edges
+    const panelGraphics = this.scene.add.graphics();
+    drawScissorCutRect(panelGraphics, cardLeft, cardTop, cardW, cardH, PALETTE.cardboard, PALETTE.markerBlack);
+    this.copCheckUI.add(panelGraphics);
+
+    // Inner paper area (slightly inset, lighter)
+    const innerPadding = 8;
+    const innerGraphics = this.scene.add.graphics();
+    innerGraphics.fillStyle(PALETTE.paperWhite, 0.9);
+    innerGraphics.fillRoundedRect(
+      cardLeft + innerPadding, cardTop + innerPadding,
+      cardW - innerPadding * 2, cardH - innerPadding * 2, 2,
+    );
+    this.copCheckUI.add(innerGraphics);
+
+    // Speaker badge — paper cutout, dark background, white text
+    const badgeW = 110;
+    const badgeH = 28;
+    const badgeX = cardLeft + 20;
+    const badgeY = cardTop - 6;
+
+    const badgeShadow = this.scene.add.graphics();
+    drawPaperShadow(badgeShadow, badgeX, badgeY, badgeW, badgeH, 2, 2);
+    this.copCheckUI.add(badgeShadow);
+
+    const badgeGraphics = this.scene.add.graphics();
+    drawScissorCutRect(badgeGraphics, badgeX, badgeY, badgeW, badgeH, PALETTE.actionBlue, PALETTE.markerBlack);
+    this.copCheckUI.add(badgeGraphics);
+
+    const badgeText = this.scene.add.text(badgeX + badgeW / 2, badgeY + badgeH / 2, 'POLICE', {
+      fontFamily: "'Bangers', cursive",
+      fontSize: '16px',
+      color: '#ffffff',
+      letterSpacing: 3,
     });
-    badge.setOrigin(0.5);
-    this.copCheckUI.add(badge);
+    badgeText.setOrigin(0.5);
+    this.copCheckUI.add(badgeText);
 
     // Description
-    const desc = this.scene.add.text(cardX, cardY - cardH / 2 + 60, scenario.description, {
-      fontFamily: 'system-ui, sans-serif',
+    const desc = this.scene.add.text(cardX, cardTop + 40, scenario.description, {
+      fontFamily: "'Bangers', cursive",
       fontSize: '14px',
-      color: '#9ca3af',
+      color: '#6b7280',
     });
     desc.setOrigin(0.5);
     this.copCheckUI.add(desc);
 
-    // Cop's opening line
-    const copLine = this.scene.add.text(cardX, cardY - cardH / 2 + 95, scenario.openingLine, {
-      fontFamily: 'system-ui, sans-serif',
+    // Cop's opening line — marker-style on paper
+    const copLine = this.scene.add.text(cardX, cardTop + 80, scenario.openingLine, {
+      fontFamily: "'Bangers', cursive",
       fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      wordWrap: { width: cardW - 40 },
+      color: '#1a1a1a',
+      wordWrap: { width: cardW - 50 },
       align: 'center',
     });
     copLine.setOrigin(0.5);
     this.copCheckUI.add(copLine);
 
-    // Response buttons
-    const btnStartY = cardY - cardH / 2 + 160;
-    const btnWidth = cardW - 50;
+    // --- Neobrutalist choice buttons ---
+    const btnStartY = cardTop + 140;
+    const btnWidth = cardW - 60;
     const btnHeight = 56;
-    const btnGap = 10;
+    const btnGap = 12;
 
     scenario.options.forEach((option, index) => {
       const btnY = btnStartY + index * (btnHeight + btnGap);
+      const btnLeft = cardX - btnWidth / 2;
 
-      const btnBg = this.scene.add.rectangle(cardX, btnY, btnWidth, btnHeight, 0x2a2a4e);
-      btnBg.setStrokeStyle(2, 0x4a4a6e, 0.6);
-      btnBg.setInteractive({ useHandCursor: true });
-      this.copCheckUI!.add(btnBg);
+      // Button shadow (hard offset, neobrutalist)
+      const btnShadowGfx = this.scene.add.graphics();
+      btnShadowGfx.fillStyle(PALETTE.shadowDark, 0.5);
+      btnShadowGfx.fillRoundedRect(btnLeft + 3, btnY + 3, btnWidth, btnHeight, 4);
+      this.copCheckUI!.add(btnShadowGfx);
 
-      const btnText = this.scene.add.text(cardX, btnY, option.text, {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '13px',
-        color: '#e5e7eb',
-        wordWrap: { width: btnWidth - 20 },
+      // Button background using Graphics for explicit hit area
+      const btnGfx = this.scene.add.graphics();
+      btnGfx.fillStyle(PALETTE.paperWhite);
+      btnGfx.fillRoundedRect(btnLeft, btnY, btnWidth, btnHeight, 4);
+      btnGfx.lineStyle(3, PALETTE.markerBlack, 1);
+      btnGfx.strokeRoundedRect(btnLeft, btnY, btnWidth, btnHeight, 4);
+
+      // CRITICAL: Explicit hit area matching visual bounds exactly
+      btnGfx.setInteractive(
+        new Phaser.Geom.Rectangle(btnLeft, btnY, btnWidth, btnHeight),
+        Phaser.Geom.Rectangle.Contains,
+      );
+      (btnGfx as Phaser.GameObjects.Graphics & { input: { cursor: string } }).input.cursor = 'pointer';
+      this.copCheckUI!.add(btnGfx);
+
+      const btnText = this.scene.add.text(cardX, btnY + btnHeight / 2, option.text, {
+        fontFamily: "'Bangers', cursive",
+        fontSize: '14px',
+        color: '#1a1a1a',
+        wordWrap: { width: btnWidth - 24 },
         align: 'center',
       });
       btnText.setOrigin(0.5);
       this.copCheckUI!.add(btnText);
 
-      btnBg.on('pointerover', () => {
-        btnBg.setFillStyle(0x3a3a6e);
-        btnBg.setStrokeStyle(2, 0x6366f1);
+      // Hover: highlight with safety yellow
+      btnGfx.on('pointerover', () => {
+        btnGfx.clear();
+        btnGfx.fillStyle(PALETTE.safetyYellow);
+        btnGfx.fillRoundedRect(btnLeft, btnY, btnWidth, btnHeight, 4);
+        btnGfx.lineStyle(3, PALETTE.markerBlack, 1);
+        btnGfx.strokeRoundedRect(btnLeft, btnY, btnWidth, btnHeight, 4);
       });
-      btnBg.on('pointerout', () => {
-        btnBg.setFillStyle(0x2a2a4e);
-        btnBg.setStrokeStyle(2, 0x4a4a6e, 0.6);
+      btnGfx.on('pointerout', () => {
+        btnGfx.clear();
+        btnGfx.fillStyle(PALETTE.paperWhite);
+        btnGfx.fillRoundedRect(btnLeft, btnY, btnWidth, btnHeight, 4);
+        btnGfx.lineStyle(3, PALETTE.markerBlack, 1);
+        btnGfx.strokeRoundedRect(btnLeft, btnY, btnWidth, btnHeight, 4);
       });
-      btnBg.on('pointerdown', () => {
+      btnGfx.on('pointerdown', () => {
         this.resolveCopCheck(option);
       });
     });
 
     // Timer indicator
     const timerText = this.scene.add.text(
-      cardX, cardY + cardH / 2 - 25,
+      cardX, cardTop + cardH - 25,
       `Respond within ${scenario.autoResolveTime}s...`,
       {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '12px',
+        fontFamily: "'Bangers', cursive",
+        fontSize: '13px',
         color: '#6b7280',
       },
     );
@@ -429,35 +486,63 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     const backdrop = this.scene.add.rectangle(viewW / 2, viewH / 2, viewW, viewH, 0x000000, 0.5);
     this.copCheckUI.add(backdrop);
 
+    // --- Paper cutout result card ---
     const cardW = Math.min(viewW - 40, 460);
+    const cardH = 220;
     const cardX = viewW / 2;
     const cardY = viewH / 2 - 30;
+    const cardLeft = cardX - cardW / 2;
+    const cardTop = cardY - cardH / 2;
 
-    const card = this.scene.add.rectangle(cardX, cardY, cardW, 200, 0x1a1a2e, 0.95);
-    card.setStrokeStyle(3, option.isCorrect ? 0x22c55e : 0xef4444, 0.8);
-    this.copCheckUI.add(card);
+    const borderColor = option.isCorrect ? PALETTE.stoplightGreen : PALETTE.stoplightRed;
+
+    // Hard offset drop shadow
+    const panelShadow = this.scene.add.graphics();
+    drawPaperShadow(panelShadow, cardLeft, cardTop, cardW, cardH);
+    this.copCheckUI.add(panelShadow);
+
+    // Cardboard panel with scissor-cut edges
+    const panelGraphics = this.scene.add.graphics();
+    drawScissorCutRect(panelGraphics, cardLeft, cardTop, cardW, cardH, PALETTE.cardboard, PALETTE.markerBlack);
+    this.copCheckUI.add(panelGraphics);
+
+    // Inner paper with colored border (green=correct, red=wrong)
+    const innerPad = 8;
+    const innerGfx = this.scene.add.graphics();
+    innerGfx.fillStyle(PALETTE.paperWhite, 0.95);
+    innerGfx.fillRoundedRect(
+      cardLeft + innerPad, cardTop + innerPad,
+      cardW - innerPad * 2, cardH - innerPad * 2, 2,
+    );
+    innerGfx.lineStyle(3, borderColor, 1);
+    innerGfx.strokeRoundedRect(
+      cardLeft + innerPad, cardTop + innerPad,
+      cardW - innerPad * 2, cardH - innerPad * 2, 2,
+    );
+    this.copCheckUI.add(innerGfx);
 
     // Result label
     const resultLabel = option.isCorrect
       ? 'FIRST AMENDMENT PROTECTED!'
       : 'That wasn\'t your best move...';
-    const resultColor = option.isCorrect ? '#22c55e' : '#ef4444';
+    const resultColorHex = option.isCorrect ? '#22c55e' : '#ef4444';
 
-    const result = this.scene.add.text(cardX, cardY - 60, resultLabel, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: resultColor,
+    const result = this.scene.add.text(cardX, cardTop + 35, resultLabel, {
+      fontFamily: "'Bangers', cursive",
+      fontSize: '20px',
+      color: resultColorHex,
+      stroke: '#1a1a1a',
+      strokeThickness: 1,
     });
     result.setOrigin(0.5);
     this.copCheckUI.add(result);
 
-    // Cop reply
-    const reply = this.scene.add.text(cardX, cardY - 15, option.copReply, {
-      fontFamily: 'system-ui, sans-serif',
+    // Cop reply — marker style on paper
+    const reply = this.scene.add.text(cardX, cardTop + 80, option.copReply, {
+      fontFamily: "'Bangers', cursive",
       fontSize: '16px',
-      color: '#ffffff',
-      wordWrap: { width: cardW - 40 },
+      color: '#1a1a1a',
+      wordWrap: { width: cardW - 50 },
       align: 'center',
     });
     reply.setOrigin(0.5);
@@ -471,11 +556,12 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     if (option.scoreChange < 0) changeLines.push(`Score ${option.scoreChange}`);
 
     if (changeLines.length > 0) {
-      const changes = this.scene.add.text(cardX, cardY + 25, changeLines.join('  |  '), {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '14px',
-        fontStyle: 'bold',
-        color: option.isCorrect ? '#22c55e' : '#ef4444',
+      const changes = this.scene.add.text(cardX, cardTop + 120, changeLines.join('  |  '), {
+        fontFamily: "'Bangers', cursive",
+        fontSize: '15px',
+        color: resultColorHex,
+        stroke: '#1a1a1a',
+        strokeThickness: 1,
       });
       changes.setOrigin(0.5);
       this.copCheckUI.add(changes);
@@ -484,14 +570,13 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     // Educational note for correct answer
     if (option.isCorrect) {
       const note = this.scene.add.text(
-        cardX, cardY + 55,
+        cardX, cardTop + 155,
         'The First Amendment protects peaceful protest in public spaces.',
         {
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '12px',
-          color: '#9ca3af',
-          fontStyle: 'italic',
-          wordWrap: { width: cardW - 40 },
+          fontFamily: "'Bangers', cursive",
+          fontSize: '13px',
+          color: '#6b7280',
+          wordWrap: { width: cardW - 50 },
           align: 'center',
         },
       );
@@ -606,34 +691,38 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     this.karmaUI.setScrollFactor(0);
     this.karmaUI.setDepth(170);
 
-    // Banner across top-center
+    // Banner across top-center — paper cutout style
     const bannerW = Math.min(viewW - 20, 600);
-    const bannerH = 60;
+    const bannerH = 64;
     const bannerY = viewH * 0.2;
+    const bannerLeft = (viewW - bannerW) / 2;
+    const bannerTop = bannerY - bannerH / 2;
 
-    // Determine color based on confidence change
-    let bgColor = 0x1a1a2e;
-    let borderColor = 0xfbbf24;
+    // Determine fill color based on confidence change
+    let fillColor = PALETTE.cardboard;
     if (phase.confidenceChange > 15) {
-      bgColor = 0x1a2e1a;
-      borderColor = 0x22c55e;
+      fillColor = PALETTE.stoplightGreen;
     } else if (phase.confidenceChange < -5) {
-      bgColor = 0x2e1a1a;
-      borderColor = 0xef4444;
+      fillColor = PALETTE.stoplightRed;
     }
 
-    const bg = this.scene.add.rectangle(viewW / 2, bannerY, bannerW, bannerH, bgColor, 0.92);
-    bg.setStrokeStyle(2, borderColor, 0.8);
-    this.karmaUI.add(bg);
+    // Hard offset shadow
+    const shadowGfx = this.scene.add.graphics();
+    drawPaperShadow(shadowGfx, bannerLeft, bannerTop, bannerW, bannerH);
+    this.karmaUI.add(shadowGfx);
+
+    // Scissor-cut paper banner
+    const bannerGfx = this.scene.add.graphics();
+    drawScissorCutRect(bannerGfx, bannerLeft, bannerTop, bannerW, bannerH, fillColor, PALETTE.markerBlack);
+    this.karmaUI.add(bannerGfx);
 
     const text = this.scene.add.text(viewW / 2, bannerY, phase.bannerText, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '15px',
-      fontStyle: 'bold',
+      fontFamily: "'Bangers', cursive",
+      fontSize: '16px',
       color: '#ffffff',
       wordWrap: { width: bannerW - 30 },
       align: 'center',
-      stroke: '#000000',
+      stroke: '#1a1a1a',
       strokeThickness: 2,
     });
     text.setOrigin(0.5);
@@ -643,14 +732,13 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     if (phase.scoreChange !== 0) {
       const sign = phase.scoreChange > 0 ? '+' : '';
       const scoreText = this.scene.add.text(
-        viewW / 2, bannerY + bannerH / 2 + 15,
+        viewW / 2, bannerY + bannerH / 2 + 18,
         `${sign}${phase.scoreChange}`,
         {
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '22px',
-          fontStyle: 'bold',
+          fontFamily: "'Bangers', cursive",
+          fontSize: '24px',
           color: phase.scoreChange > 0 ? '#22c55e' : '#ef4444',
-          stroke: '#000000',
+          stroke: '#1a1a1a',
           strokeThickness: 3,
         },
       );
@@ -659,7 +747,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
 
       this.scene.tweens.add({
         targets: scoreText,
-        y: bannerY + bannerH / 2 + 5,
+        y: bannerY + bannerH / 2 + 8,
         alpha: 0,
         duration: 1500,
         delay: 500,
@@ -705,28 +793,46 @@ export class EventSystem extends Phaser.Events.EventEmitter {
   private showEventBanner(text: string, color: string, duration: number): void {
     const viewW = this.scene.scale.width;
 
-    const banner = this.scene.add.text(viewW / 2, 120, text, {
-      fontFamily: 'system-ui, sans-serif',
+    // Paper cutout notification banner
+    const bannerW = Math.min(viewW - 40, 400);
+    const bannerH = 44;
+    const bannerX = viewW / 2;
+    const bannerY = 120;
+    const bannerLeft = bannerX - bannerW / 2;
+    const bannerTop = bannerY - bannerH / 2;
+
+    const bannerContainer = this.scene.add.container(0, 0);
+    bannerContainer.setScrollFactor(0);
+    bannerContainer.setDepth(160);
+
+    // Shadow
+    const shadowGfx = this.scene.add.graphics();
+    drawPaperShadow(shadowGfx, bannerLeft, bannerTop, bannerW, bannerH, 2, 2);
+    bannerContainer.add(shadowGfx);
+
+    // Scissor-cut cardboard banner
+    const bannerGfx = this.scene.add.graphics();
+    drawScissorCutRect(bannerGfx, bannerLeft, bannerTop, bannerW, bannerH, PALETTE.cardboard, PALETTE.markerBlack);
+    bannerContainer.add(bannerGfx);
+
+    const bannerText = this.scene.add.text(bannerX, bannerY, text, {
+      fontFamily: "'Bangers', cursive",
       fontSize: '18px',
-      fontStyle: 'bold',
       color,
-      stroke: '#000000',
-      strokeThickness: 3,
-      backgroundColor: '#1a1a2eee',
-      padding: { x: 16, y: 8 },
+      stroke: '#1a1a1a',
+      strokeThickness: 2,
     });
-    banner.setOrigin(0.5);
-    banner.setScrollFactor(0);
-    banner.setDepth(160);
+    bannerText.setOrigin(0.5);
+    bannerContainer.add(bannerText);
 
     this.scene.tweens.add({
-      targets: banner,
+      targets: bannerContainer,
       alpha: 0,
-      y: 100,
+      y: -20,
       duration: 1000,
       delay: duration * 1000,
       ease: 'Quad.easeOut',
-      onComplete: () => banner.destroy(),
+      onComplete: () => bannerContainer.destroy(),
     });
   }
 
