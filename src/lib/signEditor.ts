@@ -28,6 +28,10 @@ export const SIGN_FONTS = [
   'Impact',            // Classic bold block letters
   'Courier New',       // Stencil-like monospace
   'Comic Sans MS',     // Casual/fun handwritten
+  'Bangers',           // Comic book / pop art bold (Google Fonts)
+  'Rubik Mono One',    // Chunky rounded monospace (Google Fonts)
+  'Bungee',            // Urban signage / display (Google Fonts)
+  'Georgia',           // Elegant serif — "serious protester" energy
 ];
 
 export const SIGN_COLORS = [
@@ -62,8 +66,11 @@ export class SignEditor {
 
     this.onChange = onChange;
 
-    // Preload Permanent Marker font from Google Fonts
-    this.preloadGoogleFont('Permanent Marker');
+    // Preload Google Fonts (skip system/web-safe fonts like Impact, Courier New, Comic Sans MS, Georgia)
+    const googleFonts = ['Permanent Marker', 'Bangers', 'Rubik Mono One', 'Bungee'];
+    for (const font of googleFonts) {
+      this.preloadGoogleFont(font);
+    }
 
     // Create canvas element
     this.canvasElement = document.createElement('canvas');

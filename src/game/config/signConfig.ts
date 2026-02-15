@@ -84,6 +84,10 @@ export const SIGN_FONTS = [
   'Impact',            // Classic bold block letters
   'Courier New',       // Stencil-like monospace
   'Comic Sans MS',     // Casual/fun handwritten
+  'Bangers',           // Comic book / pop art bold (Google Fonts)
+  'Rubik Mono One',    // Chunky rounded monospace (Google Fonts)
+  'Bungee',            // Urban signage / display (Google Fonts)
+  'Georgia',           // Elegant serif — "serious protester" energy
 ];
 
 export const SIGN_COLORS = [
