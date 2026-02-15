@@ -16,11 +16,12 @@ Milestone 2 delivers "The Sign & The Polish" — transforming the sign creator i
 
 ## M2 Phases
 
-- [ ] **Phase 8: Sign Creator** - First-class creative tool with fonts, colors, materials, decorations
-- [ ] **Phase 9: Visual & UI Polish** - Replace placeholders, clarify timer/end, tune controls, feedback loops
-- [ ] **Phase 10: Audio Polish** - Tune procedural audio, add ambient/music layers, balance everything
-- [ ] **Phase 11: Social Share** - Client-side shareable image generation, download/share, activism integration
-- [ ] **Phase 12: Debug & Tuning** - Use hot-tune sliders to perfect confidence/fatigue/reactions/events balance
+- [x] **Phase 8: Sign Creator** - First-class creative tool with fonts, colors, materials, decorations
+- [x] **Phase 9: Visual & UI Polish** - Paper Mario reskin — 8 plans, ~229 tool calls
+- [x] **Phase 10: Audio Polish** - Tone.js procedural audio — 4 plans, ~126 tool calls
+- [x] **Phase 11: Social Share** - Polaroid share card, download/Web Share API, OG meta — 3 plans, ~47 tool calls
+- [ ] **Phase 12: Debug & Tuning** - Partial (6 quick tasks: refactor, car fix, readability, emoji, dev tools)
+- [ ] **Phase 13: Sign Craft UX Redesign** - Responsive layout, tabbed controls, randomize, expanded options
 
 ## Phase Details
 
@@ -95,12 +96,28 @@ Plans:
   4. At least one event triggers per session and creates a memorable moment
   5. A first-time player can complete a full session without confusion about what to do
 
+### Phase 13: Sign Craft UX Redesign
+**Goal**: Rebuild the Sign Craft scene with responsive layout, tabbed controls, randomize feature, expanded materials/fonts/colors, and Paper Mario neobrutalist styling. The mockup at `mockups/sign-craft-redesign.html` is the design source of truth.
+**Depends on**: Phase 8 (uses existing Fabric.js/export pipeline)
+**Context doc**: `.planning/phases/sign-craft-redesign-context.md`
+**Requirements**: Responsive two-column layout, hybrid tabbed controls (Material/Message/Decorate), randomize button, 13 material swatches, 8 fonts, 9 colors, tape removed, sticky sign preview, START PROTESTING + RANDOMIZE side by side
+**Success Criteria** (what must be TRUE):
+  1. Sign preview is always visible while editing (sticky on mobile, side-by-side on desktop)
+  2. Randomize produces a complete, contrast-correct sign with one tap
+  3. All 13 material swatches, 8 fonts, and 9 colors are selectable and render correctly
+  4. Tape is gone, stickers work with per-sticker removal
+  5. START PROTESTING and RANDOMIZE buttons are visible without scrolling
+  6. Layout matches the mockup on both mobile (375px) and desktop (1200px+)
+  7. Existing PNG export pipeline still works — crafted signs appear in-game and on score screen
+**Plans:** 0 plans (run /gsd:plan-phase 13)
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 8. Sign Creator | 0/3 | Planned | -- |
-| 9. Visual & UI Polish | 0/? | Pending | -- |
-| 10. Audio Polish | 0/4 | Planned | -- |
-| 11. Social Share | 0/3 | Planned | -- |
-| 12. Debug & Tuning | 0/? | Pending | -- |
+| 8. Sign Creator | 2/3 | Complete | 2026-02-14 |
+| 9. Visual & UI Polish | 8/8 | Complete | 2026-02-15 |
+| 10. Audio Polish | 4/4 | Complete | 2026-02-15 |
+| 11. Social Share | 3/3 | Complete | 2026-02-15 |
+| 12. Debug & Tuning | 6 quick | Partial | 2026-02-15 |
+| 13. Sign Craft UX Redesign | 0/? | Pending | -- |

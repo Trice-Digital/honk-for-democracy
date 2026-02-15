@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Craft — UX Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Bungee&family=Caveat:wght@700&family=Fredoka:wght@600&family=Patrick+Hand&family=Permanent+Marker&family=Protest+Guerrilla&family=Rubik+Mono+One&family=Shrikhand&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --black: #1a1a1a;
+    --yellow: #fbbf24;
+    --kraft: #c5a059;
+    --kraft-light: #d4b06a;
+    --kraft-dark: #a3824f;
+    --kraft-darker: #8b6e3f;
+    --text: #1a1a1a;
+    --text-muted: #3a3a3a;
+    --paper: rgba(245, 240, 232, 0.75);
+  }
+
+  body {
+    font-family: 'Patrick Hand', cursive;
+    color: var(--text);
+    min-height: 100dvh;
+    min-height: 100vh;
+    background: var(--kraft);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
+      linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
+    background-size: 300px 300px, 100% 100%;
+    overflow-x: hidden;
+  }
+
+  /* ======= NEOBRUTALIST PRIMITIVES ======= */
+  .paper-cut {
+    border: 3px solid var(--black);
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+  }
+
+  .paper-cut-sm {
+    border: 2px solid var(--black);
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+  }
+
+  .tape-strip {
+    background: var(--paper);
+    border: 1px solid rgba(26, 26, 26, 0.15);
+    box-shadow: 1px 1px 0 rgba(26, 26, 26, 0.15);
+    padding: 0.3rem 1rem;
+  }
+
+  /* ======= VIEWPORT LABEL ======= */
+  .viewport-label {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    font-family: 'Bangers', cursive;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    z-index: 50;
+  }
+  .viewport-label span {
+    display: inline-block;
+    padding: 0.2rem 0.8rem;
+  }
+
+  /* ======= MAIN LAYOUT ======= */
+  .craft-layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  /* Desktop: two columns, sign takes more space */
+  @media (min-width: 768px) {
+    .craft-layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+      align-items: start;
+      padding: 1.5rem 2rem;
+      padding-bottom: 2rem;
+    }
+  }
+
+  /* ======= SIGN PREVIEW AREA ======= */
+  .sign-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Mobile: sticky at top */
+  @media (max-width: 767px) {
+    .sign-area {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--kraft);
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
+        linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
+      background-size: 300px 300px, 100% 100%;
+      padding: 0.75rem 0 0.5rem;
+      margin: 0 -1rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      border-bottom: 3px solid var(--black);
+    }
+  }
+
+  /* Desktop: sticky sidebar */
+  @media (min-width: 768px) {
+    .sign-area {
+      position: sticky;
+      top: 1.5rem;
+    }
+  }
+
+  /* The sign canvas itself */
+  .sign-canvas {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 4px;
+    position: relative;
+    transform: rotate(-1.5deg);
+  }
+
+  /* Desktop: much bigger sign */
+  @media (min-width: 768px) {
+    .sign-canvas {
+      max-width: 520px;
+      padding: 2.5rem;
+    }
+  }
+
+  /* Sign materials */
+  .mat-kraft { background: #c4956a; }
+  .mat-kraft-red { background: #b85c4a; }
+  .mat-kraft-blue { background: #6a8fb8; }
+  .mat-kraft-green { background: #7a9a6a; }
+  .mat-poster-white { background: #f5f0e8; }
+  .mat-poster-yellow { background: #fbbf24; }
+  .mat-poster-pink { background: #f472b6; }
+  .mat-poster-sky { background: #7dd3fc; }
+  .mat-foam-white { background: #e8e8e8; }
+  .mat-foam-green { background: #86efac; }
+  .mat-foam-purple { background: #c4b5fd; }
+  .mat-wood-light { background: linear-gradient(180deg, #DEB887, #B8860B); }
+  .mat-wood-dark { background: linear-gradient(180deg, #8B7355, #5C4033); }
+
+  /* Ghost text on sign */
+  .sign-text {
+    font-size: clamp(1.6rem, 5vw, 2.8rem);
+    line-height: 1.15;
+    word-break: break-word;
+  }
+  .sign-text.ghost { opacity: 0.3; }
+
+  @media (min-width: 768px) {
+    .sign-text {
+      font-size: clamp(2rem, 3.5vw, 3.2rem);
+    }
+  }
+
+  /* Placed stickers */
+  .placed-stickers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .placed-stickers span {
+    position: absolute;
+    font-size: 1.8rem;
+  }
+  @media (min-width: 768px) {
+    .placed-stickers span { font-size: 2.4rem; }
+  }
+
+  /* ======= RANDOMIZE BUTTON ======= */
+  .randomize-btn {
+    font-family: 'Bangers', cursive;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.8rem;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    color: var(--black);
+    background: var(--yellow);
+    border: 3px solid var(--black);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 3px 3px 0 var(--black);
+  }
+  .randomize-btn:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--black);
+  }
+  .randomize-btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--black);
+  }
+
+  @keyframes dice-shake {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-12deg); }
+    75% { transform: rotate(12deg); }
+  }
+  .randomize-btn:hover .dice { animation: dice-shake 0.3s ease-in-out infinite; }
+
+  /* ======= CONTROLS AREA ======= */
+  .controls-area {
+    margin-top: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .controls-area {
+      margin-top: 0;
+      max-height: calc(100vh - 3rem);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--kraft-dark) transparent;
+    }
+    .controls-area::-webkit-scrollbar { width: 6px; }
+    .controls-area::-webkit-scrollbar-track { background: transparent; }
+    .controls-area::-webkit-scrollbar-thumb { background: var(--kraft-dark); border-radius: 3px; }
+  }
+
+  /* ======= TAB BAR ======= */
+  .tab-bar {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding: 0.5rem 0;
+  }
+
+  @media (max-width: 767px) {
+    .tab-bar {
+      position: relative; /* not sticky on mobile — sign area is sticky */
+    }
+  }
+
+  .tab-btn {
+    font-family: 'Bangers', cursive;
+    flex: 1;
+    padding: 0.6rem 0.5rem;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    background: var(--kraft-dark);
+    border: 2px solid var(--black);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+  .tab-btn:hover {
+    background: var(--kraft-light);
+  }
+
+  .tab-btn.active {
+    background: var(--yellow);
+    color: var(--black);
+    font-weight: 400;
+  }
+
+  .tab-num {
+    font-size: 0.7rem;
+    opacity: 0.5;
+    font-family: 'Patrick Hand', cursive;
+  }
+
+  /* ======= CONTROL PANELS ======= */
+  .panel {
+    background: rgba(163, 130, 79, 0.5);
+    border: 3px solid var(--black);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .panel-title {
+    font-family: 'Bangers', cursive;
+    font-size: 1.15rem;
+    letter-spacing: 0.12em;
+    color: var(--black);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .panel-title .tape-label {
+    display: inline-block;
+    transform: rotate(-1deg);
+  }
+
+  .section-label {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1rem;
+    color: var(--text-muted);
+    font-weight: bold;
+    margin-bottom: 0.4rem;
+    margin-top: 0.8rem;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* ======= MATERIAL SWATCHES ======= */
+  .swatch-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .swatch {
+    width: 52px;
+    height: 52px;
+    border: 2px solid var(--black);
+    border-radius: 4px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+    cursor: pointer;
+    transition: transform 0.1s;
+    position: relative;
+  }
+  .swatch:hover { transform: scale(1.08); }
+  .swatch.selected {
+    outline: 3px solid var(--yellow);
+    outline-offset: 2px;
+  }
+  .swatch.selected::after {
+    content: '✓';
+    position: absolute;
+    bottom: 1px;
+    right: 3px;
+    font-size: 0.7rem;
+    color: var(--black);
+    font-weight: bold;
+  }
+
+  /* ======= TEXT INPUT ======= */
+  .text-input {
+    font-family: 'Patrick Hand', cursive;
+    width: 100%;
+    padding: 0.7rem;
+    font-size: 1.1rem;
+    color: var(--text);
+    background: var(--paper);
+    border: 2px solid var(--black);
+    border-radius: 4px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+    resize: none;
+  }
+  .text-input:focus {
+    outline: 2px solid var(--yellow);
+    outline-offset: 1px;
+  }
+  .text-input::placeholder { color: #999; }
+
+  .char-count {
+    font-family: 'Patrick Hand', cursive;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+  }
+
+  /* ======= COLOR DOTS ======= */
+  .color-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .color-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--black);
+    cursor: pointer;
+    transition: transform 0.1s;
+    box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+  .color-dot:hover { transform: scale(1.15); }
+  .color-dot.selected {
+    outline: 3px solid var(--yellow);
+    outline-offset: 2px;
+  }
+
+  /* ======= FONT CARDS ======= */
+  .font-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .font-card {
+    padding: 0.6rem 0.5rem;
+    text-align: center;
+    background: var(--paper);
+    border: 2px solid var(--black);
+    border-radius: 4px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    line-height: 1.2;
+  }
+  .font-card:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 rgba(0,0,0,0.35);
+  }
+  .font-card.selected {
+    background: var(--yellow);
+  }
+
+  .font-card .font-name {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+  }
+
+  /* Font preview text */
+  .fp-bangers { font-family: 'Bangers', cursive; font-size: 1.3rem; }
+  .fp-marker { font-family: 'Permanent Marker', cursive; font-size: 1.1rem; }
+  .fp-bungee { font-family: 'Bungee', cursive; font-size: 0.95rem; }
+  .fp-caveat { font-family: 'Caveat', cursive; font-size: 1.3rem; font-weight: 700; }
+  .fp-fredoka { font-family: 'Fredoka', sans-serif; font-size: 1.1rem; font-weight: 600; }
+  .fp-protest { font-family: 'Protest Guerrilla', cursive; font-size: 1.1rem; }
+  .fp-rubik { font-family: 'Rubik Mono One', monospace; font-size: 0.75rem; }
+  .fp-shrikhand { font-family: 'Shrikhand', serif; font-size: 1.05rem; }
+
+  /* ======= STICKER SECTION ======= */
+  .pill-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+  }
+
+  .pill {
+    font-family: 'Bangers', cursive;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.8rem;
+    border: 2px solid var(--black);
+    border-radius: 999px;
+    cursor: pointer;
+    background: var(--kraft-dark);
+    color: var(--text-muted);
+    box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    transition: transform 0.1s;
+  }
+  .pill:hover { transform: scale(1.05); }
+  .pill.active {
+    background: var(--yellow);
+    color: var(--black);
+  }
+
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .sticker-item {
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: transform 0.1s;
+    user-select: none;
+    padding: 0.2rem;
+    border-radius: 4px;
+  }
+  .sticker-item:hover { background: rgba(251, 191, 36, 0.3); }
+  .sticker-item:active { transform: scale(1.3); }
+
+  .placed-list {
+    margin-top: 0.8rem;
+    padding-top: 0.6rem;
+    border-top: 2px dashed var(--kraft-dark);
+  }
+
+  .placed-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--paper);
+    border: 2px solid var(--black);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    margin: 0.2rem;
+    font-size: 0.9rem;
+    box-shadow: 1px 1px 0 rgba(0,0,0,0.25);
+  }
+
+  .placed-tag button {
+    background: none;
+    border: none;
+    color: #dc2626;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 0 0.15rem;
+    font-family: 'Patrick Hand', cursive;
+  }
+  .placed-tag button:hover { color: #b91c1c; }
+
+  .hint {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+
+  /* ======= ORIENTATION HINT ======= */
+  .orient-hint {
+    font-family: 'Patrick Hand', cursive;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .cta-btn {
+    font-family: 'Bangers', cursive;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.6rem;
+    letter-spacing: 0.08em;
+    color: var(--black);
+    background: var(--yellow);
+    border: 3px solid var(--black);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 4px 4px 0 var(--black);
+  }
+  .cta-btn:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--black);
+  }
+  .cta-btn:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 var(--black);
+  }
+
+  /* ======= HIDDEN TABS ======= */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Viewport label -->
+<div class="viewport-label">
+  <span class="tape-strip" style="transform: rotate(-2deg);">SIGN CRAFT MOCKUP</span>
+</div>
+
+<!-- ==================== MAIN LAYOUT ==================== -->
+<div class="craft-layout">
+
+  <!-- ==================== SIGN PREVIEW ==================== -->
+  <div class="sign-area">
+    <div class="sign-canvas mat-kraft paper-cut" id="sign-canvas">
+      <div class="sign-text ghost" id="sign-text" style="font-family: 'Permanent Marker', cursive; color: #1a1a1a;">
+        HONK FOR<br>DEMOCRACY
+      </div>
+      <div class="placed-stickers" id="placed-stickers">
+        <span style="top: 8%; left: 8%;">✊</span>
+        <span style="bottom: 12%; right: 10%;">📢</span>
+      </div>
+    </div>
+
+    <!-- Action buttons: side by side -->
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: center;">
+      <button class="randomize-btn" onclick="randomize()">
+        <span class="dice">🎲</span> RANDOMIZE!
+      </button>
+      <button class="cta-btn" style="width: auto; padding: 0.6rem 1.8rem; font-size: 1.1rem; box-shadow: 3px 3px 0 var(--black);">
+        🪧 START PROTESTING!
+      </button>
+    </div>
+
+    <!-- Orientation hint for new users -->
+    <div class="orient-hint">
+      <p>🎲 <strong>Randomize</strong> for instant inspiration — or customize below</p>
+      <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 0.2rem;">Pick your material, write your message, add stickers. Then hit the streets!</p>
+    </div>
+  </div>
+
+  <!-- ==================== CONTROLS ==================== -->
+  <div class="controls-area">
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('material', this)">
+        <span class="tab-num">1</span> MATERIAL
+      </button>
+      <button class="tab-btn" onclick="switchTab('message', this)">
+        <span class="tab-num">2</span> MESSAGE
+      </button>
+      <button class="tab-btn" onclick="switchTab('decorate', this)">
+        <span class="tab-num">3</span> DECORATE
+      </button>
+    </div>
+
+    <!-- ===== TAB 1: MATERIAL ===== -->
+    <div id="tab-material" class="tab-content active">
+      <div class="panel">
+        <div class="panel-title">
+          <span class="tape-strip tape-label">📦 PICK YOUR MATERIAL</span>
+        </div>
+
+        <div class="section-label">📦 Cardboard</div>
+        <div class="swatch-row">
+          <div class="swatch selected mat-kraft" title="Classic Kraft"></div>
+          <div class="swatch mat-kraft-red" title="Red Cardboard"></div>
+          <div class="swatch mat-kraft-blue" title="Blue Cardboard"></div>
+          <div class="swatch mat-kraft-green" title="Green Cardboard"></div>
+        </div>
+
+        <div class="section-label">🎨 Posterboard</div>
+        <div class="swatch-row">
+          <div class="swatch mat-poster-white" title="White"></div>
+          <div class="swatch mat-poster-yellow" title="Yellow"></div>
+          <div class="swatch mat-poster-pink" title="Pink"></div>
+          <div class="swatch mat-poster-sky" title="Sky Blue"></div>
+        </div>
+
+        <div class="section-label">🧊 Foam Board</div>
+        <div class="swatch-row">
+          <div class="swatch mat-foam-white" title="White Foam"></div>
+          <div class="swatch mat-foam-green" title="Green Foam"></div>
+          <div class="swatch mat-foam-purple" title="Purple Foam"></div>
+        </div>
+
+        <div class="section-label">🪵 Wood Plank</div>
+        <div class="swatch-row">
+          <div class="swatch mat-wood-light" title="Light Wood"></div>
+          <div class="swatch mat-wood-dark" title="Dark Wood"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: MESSAGE ===== -->
+    <div id="tab-message" class="tab-content">
+
+      <!-- Text Input -->
+      <div class="panel">
+        <div class="panel-title">
+          <span class="tape-strip tape-label">✏️ YOUR MESSAGE</span>
+        </div>
+        <textarea id="message-input" class="text-input" rows="2" maxlength="60" placeholder="HONK FOR DEMOCRACY">HONK FOR DEMOCRACY</textarea>
+        <div class="char-count">
+          <span>Tap to edit</span>
+          <span><span id="char-count">18</span>/60</span>
+        </div>
+      </div>
+
+      <!-- Text Color -->
+      <div class="panel">
+        <div class="panel-title">
+          <span class="tape-strip tape-label">🎨 TEXT COLOR</span>
+        </div>
+        <div class="color-row">
+          <div class="color-dot selected" style="background: #1a1a1a;" title="Black"></div>
+          <div class="color-dot" style="background: #FFFFFF;" title="White"></div>
+          <div class="color-dot" style="background: #DC143C;" title="Red"></div>
+          <div class="color-dot" style="background: #1E90FF;" title="Blue"></div>
+          <div class="color-dot" style="background: #228B22;" title="Green"></div>
+          <div class="color-dot" style="background: #fbbf24;" title="Yellow"></div>
+          <div class="color-dot" style="background: #FF8C00;" title="Orange"></div>
+          <div class="color-dot" style="background: #8B008B;" title="Purple"></div>
+          <div class="color-dot" style="background: #FF1493;" title="Hot Pink"></div>
+        </div>
+      </div>
+
+      <!-- Font Picker -->
+      <div class="panel">
+        <div class="panel-title">
+          <span class="tape-strip tape-label">🔤 FONT</span>
+        </div>
+        <div class="font-grid">
+          <div class="font-card" onclick="selectFont(this, 'Bangers')">
+            <div class="fp-bangers">HONK!</div>
+            <div class="font-name">Bangers</div>
+          </div>
+          <div class="font-card selected" onclick="selectFont(this, 'Permanent Marker')">
+            <div class="fp-marker">HONK!</div>
+            <div class="font-name">Marker</div>
+          </div>
+          <div class="font-card" onclick="selectFont(this, 'Bungee')">
+            <div class="fp-bungee">HONK!</div>
+            <div class="font-name">Bungee</div>
+          </div>
+          <div class="font-card" onclick="selectFont(this, 'Caveat')">
+            <div class="fp-caveat">HONK!</div>
+            <div class="font-name">Caveat</div>
+          </div>
+          <div class="font-card" onclick="selectFont(this, 'Fredoka')">
+            <div class="fp-fredoka">HONK!</div>
+            <div class="font-name">Fredoka</div>
+          </div>
+          <div class="font-card" onclick="selectFont(this, 'Protest Guerrilla')">
+            <div class="fp-protest">HONK!</div>
+            <div class="font-name">Protest</div>
+          </div>
+          <div class="font-card" onclick="selectFont(this, 'Rubik Mono One')">
+            <div class="fp-rubik">HONK!</div>
+            <div class="font-name">Rubik Mono</div>
+          </div>
+          <div class="font-card" onclick="selectFont(this, 'Shrikhand')">
+            <div class="fp-shrikhand">HONK!</div>
+            <div class="font-name">Shrikhand</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3: DECORATE ===== -->
+    <div id="tab-decorate" class="tab-content">
+      <div class="panel">
+        <div class="panel-title">
+          <span class="tape-strip tape-label">⭐ STICKERS</span>
+        </div>
+
+        <div class="pill-row">
+          <button class="pill active">Protest</button>
+          <button class="pill">Faces</button>
+          <button class="pill">Symbols</button>
+          <button class="pill">Animals</button>
+          <button class="pill">Things</button>
+        </div>
+
+        <div class="sticker-grid">
+          <div class="sticker-item">✊</div>
+          <div class="sticker-item">📢</div>
+          <div class="sticker-item">🪧</div>
+          <div class="sticker-item">✌️</div>
+          <div class="sticker-item">💪</div>
+          <div class="sticker-item">🗳️</div>
+          <div class="sticker-item">🔔</div>
+          <div class="sticker-item">⭐</div>
+          <div class="sticker-item">🏳️</div>
+          <div class="sticker-item">❤️</div>
+          <div class="sticker-item">🕊️</div>
+          <div class="sticker-item">🌈</div>
+        </div>
+
+        <p class="hint">Tap a sticker to place it on your sign</p>
+
+        <!-- Placed stickers list -->
+        <div class="placed-list">
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem; font-weight: bold;">On your sign:</div>
+          <div>
+            <span class="placed-tag">✊ <button>✕</button></span>
+            <span class="placed-tag">📢 <button>✕</button></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /controls-area -->
+</div><!-- /craft-layout -->
+
+<!-- ==================== INTERACTIVITY ==================== -->
+<script>
+// Tab switching
+function switchTab(tabName, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Font selection
+function selectFont(card, fontFamily) {
+  document.querySelectorAll('.font-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  document.getElementById('sign-text').style.fontFamily = "'" + fontFamily + "', cursive";
+}
+
+// Swatch selection
+document.querySelectorAll('.swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+    sw.classList.add('selected');
+    const canvas = document.getElementById('sign-canvas');
+    // Copy computed background
+    canvas.style.background = getComputedStyle(sw).background;
+  });
+});
+
+// Color dot selection
+document.querySelectorAll('.color-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+    dot.classList.add('selected');
+    document.getElementById('sign-text').style.color = dot.style.background || getComputedStyle(dot).backgroundColor;
+  });
+});
+
+// Pill selection
+document.querySelectorAll('.pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+  });
+});
+
+// Character count
+const input = document.getElementById('message-input');
+if (input) {
+  input.addEventListener('input', () => {
+    document.getElementById('char-count').textContent = input.value.length;
+    const signText = document.getElementById('sign-text');
+    signText.innerHTML = input.value.replace(/\n/g, '<br>') || 'HONK FOR<br>DEMOCRACY';
+    signText.classList.toggle('ghost', !input.value);
+  });
+}
+
+// Randomize
+const presetMessages = [
+  'HONK FOR\nDEMOCRACY', 'HONK IF\nYOU CARE', 'RESIST', 'PEOPLE OVER\nPROFIT',
+  'WE THE\nPEOPLE', 'NOT ON\nOUR WATCH', 'USE YOUR\nVOICE', 'STAND UP\nSPEAK OUT',
+  'ACCOUNTABILITY\nNOW', 'PROTECT\nOUR RIGHTS', 'NO KINGS', 'POWER TO\nTHE PEOPLE',
+  'ENOUGH IS\nENOUGH', 'HONK HONK\nHONK', 'DEMOCRACY\nIS NOT A\nSPECTATOR SPORT',
+];
+const fontFamilies = ['Bangers','Permanent Marker','Bungee','Caveat','Fredoka','Protest Guerrilla','Rubik Mono One','Shrikhand'];
+const textColors = ['#1a1a1a','#FFFFFF','#DC143C','#1E90FF','#228B22','#fbbf24','#FF8C00','#8B008B','#FF1493'];
+const matClasses = ['mat-kraft','mat-kraft-red','mat-kraft-blue','mat-kraft-green','mat-poster-white','mat-poster-yellow','mat-poster-pink','mat-poster-sky','mat-foam-white','mat-foam-green','mat-foam-purple'];
+const lightMats = ['mat-poster-white','mat-poster-yellow','mat-poster-pink','mat-poster-sky','mat-foam-white','mat-foam-green','mat-foam-purple'];
+const stickers = ['✊','📢','🪧','✌️','💪','🗳️','🔔','⭐','🏳️','❤️','🕊️','🌈','🦅','🐝','🔥','⚡','🌻','🎺'];
+
+function randomize() {
+  const canvas = document.getElementById('sign-canvas');
+  const signText = document.getElementById('sign-text');
+  const placed = document.getElementById('placed-stickers');
+
+  // Random material
+  const mat = matClasses[Math.floor(Math.random() * matClasses.length)];
+  canvas.className = 'sign-canvas paper-cut ' + mat;
+  canvas.style.background = '';
+
+  // Random font
+  const font = fontFamilies[Math.floor(Math.random() * fontFamilies.length)];
+  signText.style.fontFamily = "'" + font + "', cursive";
+
+  // Random color (contrast-aware)
+  let color;
+  if (lightMats.includes(mat)) {
+    const dark = ['#1a1a1a','#DC143C','#1E90FF','#228B22','#8B008B'];
+    color = dark[Math.floor(Math.random() * dark.length)];
+  } else {
+    const light = ['#FFFFFF','#fbbf24','#FF8C00','#FF1493','#7dd3fc'];
+    color = light[Math.floor(Math.random() * light.length)];
+  }
+  signText.style.color = color;
+
+  // Random message
+  const msg = presetMessages[Math.floor(Math.random() * presetMessages.length)];
+  signText.innerHTML = msg.replace(/\n/g, '<br>');
+  signText.classList.remove('ghost');
+
+  // Update textarea
+  if (input) {
+    input.value = msg.replace(/\n/g, '\n');
+    document.getElementById('char-count').textContent = msg.replace(/\n/g, '').length;
+  }
+
+  // Random stickers (0-3)
+  placed.innerHTML = '';
+  const numStickers = Math.floor(Math.random() * 4);
+  for (let i = 0; i < numStickers; i++) {
+    const s = document.createElement('span');
+    s.textContent = stickers[Math.floor(Math.random() * stickers.length)];
+    s.style.top = (5 + Math.random() * 70) + '%';
+    s.style.left = (5 + Math.random() * 70) + '%';
+    s.style.transform = 'rotate(' + (-20 + Math.random() * 40) + 'deg)';
+    placed.appendChild(s);
+  }
+
+  // Button feedback
+  const btn = document.querySelector('.randomize-btn');
+  btn.style.transform = 'translate(3px, 3px)';
+  btn.style.boxShadow = '0 0 0 var(--black)';
+  setTimeout(() => { btn.style.transform = ''; btn.style.boxShadow = ''; }, 150);
+}
+</script>
+
+</body>
+</html>
