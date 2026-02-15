@@ -274,6 +274,25 @@ export class EventSystem extends Phaser.Events.EventEmitter {
   // ============================================================
 
   /**
+   * Force-trigger a specific event (dev-only, bypasses scheduling).
+   *
+   * Called by DevControls to manually trigger events for testing.
+   * Ends any currently active event first, then triggers the specified event
+   * immediately, bypassing all canTriggerEvent checks.
+   */
+  forceTrigger(type: EventType): void {
+    console.log(`[HFD-DEV] Force-triggered event: ${type}`);
+
+    // End current event if one is active
+    if (this.isEventActive) {
+      this.endEvent();
+    }
+
+    // Trigger the event directly
+    this.triggerEvent(type);
+  }
+
+  /**
    * Trigger a specific event.
    */
   private triggerEvent(type: EventType): void {
