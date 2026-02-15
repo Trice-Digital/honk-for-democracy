@@ -21,8 +21,8 @@ export const REACTION_TYPES: ReactionType[] = [
   // Positive (~60% base)
   { id: 'wave',       label: 'Wave',         emoji: '👋', scoreValue: 5,   baseWeight: 0.25, sentiment: 'positive', color: 0x22c55e },
   { id: 'honk',       label: 'Honk!',        emoji: '📯', scoreValue: 10,  baseWeight: 0.20, sentiment: 'positive', color: 0x22c55e },
-  { id: 'bananas',    label: 'Go Bananas!',   emoji: '✊', scoreValue: 25,  baseWeight: 0.05, sentiment: 'positive', color: 0xfbbf24 },
-  { id: 'peace',      label: 'Peace Sign',    emoji: '✌️', scoreValue: 8,   baseWeight: 0.10, sentiment: 'positive', color: 0x22c55e },
+  { id: 'bananas',    label: 'Go Bananas!',   emoji: '🤩', scoreValue: 25,  baseWeight: 0.05, sentiment: 'positive', color: 0xfbbf24 },
+  { id: 'peace',      label: 'Peace Sign',    emoji: '😊', scoreValue: 8,   baseWeight: 0.10, sentiment: 'positive', color: 0x22c55e },
 
   // Neutral (~25% base)
   { id: 'nothing',    label: 'Nothing',       emoji: '',   scoreValue: 0,   baseWeight: 0.15, sentiment: 'neutral',  color: 0x6b7280 },

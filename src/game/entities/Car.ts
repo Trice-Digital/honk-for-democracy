@@ -96,8 +96,8 @@ const STOP_DETECTION_THRESHOLD = 10;
 
 // Emoji face sets
 const DRIVER_FACES = ['😐', '😊', '😤', '😠', '🙂', '😑'];
-const POSITIVE_FACES = ['😊', '🤟', '😄', '👍'];
-const NEGATIVE_FACES = ['😒', '😤', '🖕', '😡'];
+const POSITIVE_FACES = ['😊', '😄', '😁', '🥳'];
+const NEGATIVE_FACES = ['😒', '😤', '😠', '😡'];
 const NEUTRAL_FACES = ['😐', '😶', '🫤'];
 const CYCLIST_FACES = ['🚴', '😊', '🙂', '😐'];
 const PASSENGER_EMOJIS = ['👤', '👦', '👧', '👩', '👨', '🧒'];
