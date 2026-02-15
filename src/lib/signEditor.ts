@@ -272,9 +272,10 @@ export class SignEditor {
         this.canvas.setActiveObject(img);
 
         // Track decoration
-        if (img.data && img.data.decorationId) {
+        const imgData = (img as any).data;
+        if (imgData && imgData.decorationId) {
           const objId = (img as any).__uid || String(Date.now());
-          this.decorations.set(objId, img.data.decorationId);
+          this.decorations.set(objId, imgData.decorationId);
         }
 
         this.canvas.renderAll();
@@ -336,19 +337,20 @@ export class SignEditor {
     }
 
     // Protect text object from deletion
-    if (activeObj.data && (activeObj.data as any).isTextObject) {
+    const objData = (activeObj as any).data;
+    if (objData && objData.isTextObject) {
       console.log('[SignEditor] Cannot remove text object');
       return;
     }
 
     // Check if it's a decoration
-    if (activeObj.data && (activeObj.data as any).decorationId) {
+    if (objData && objData.decorationId) {
       const objId = (activeObj as any).__uid;
       this.decorations.delete(objId);
       this.canvas.remove(activeObj);
       this.canvas.renderAll();
       this.notifyChange();
-      console.log('[SignEditor] Removed decoration:', (activeObj.data as any).decorationId);
+      console.log('[SignEditor] Removed decoration:', objData.decorationId);
     } else {
       console.log('[SignEditor] Selected object is not a decoration');
     }
