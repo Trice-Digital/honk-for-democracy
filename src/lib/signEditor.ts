@@ -14,6 +14,7 @@
 
 import { Canvas, FabricText, FabricImage, FabricObject } from 'fabric';
 import { generateMaterialTexture } from './signMaterials';
+import { SIGN_FONTS, SIGN_COLORS } from '../game/config/signConfig';
 import type { DecorationDef, EmojiDef } from './signDecorations';
 
 export interface SignEditorOptions {
@@ -22,27 +23,6 @@ export interface SignEditorOptions {
   height: number;
   onChange?: () => void;
 }
-
-export const SIGN_FONTS = [
-  'Permanent Marker',  // Hand-drawn protest sign energy (Google Fonts)
-  'Impact',            // Classic bold block letters
-  'Courier New',       // Stencil-like monospace
-  'Comic Sans MS',     // Casual/fun handwritten
-  'Bangers',           // Comic book / pop art bold (Google Fonts)
-  'Rubik Mono One',    // Chunky rounded monospace (Google Fonts)
-  'Bungee',            // Urban signage / display (Google Fonts)
-  'Georgia',           // Elegant serif — "serious protester" energy
-];
-
-export const SIGN_COLORS = [
-  '#1a1a1a',  // Black (Sharpie)
-  '#dc2626',  // Red
-  '#2563eb',  // Blue
-  '#ffffff',  // White
-  '#16a34a',  // Green
-  '#7c3aed',  // Purple
-  '#ca8a04',  // Gold
-];
 
 /**
  * SignEditor — Fabric.js canvas sign editor.
