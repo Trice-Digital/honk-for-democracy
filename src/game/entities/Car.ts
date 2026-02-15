@@ -21,6 +21,9 @@ import { drawPaperShadow, drawScissorCutPolygon } from '../utils/paperArt';
 // Car type system
 // ---------------------------------------------------------------------------
 
+// Scale factor to make cars ~2x larger and fill ~70-85% of 80px lane width
+const SCALE_FACTOR = 2.0;
+
 export type CarType = 'sedan' | 'suv' | 'compact' | 'pickup' | 'truck' | 'coalRoller' | 'motorcycle' | 'bicycle';
 
 const CAR_TYPE_WEIGHTS: { type: CarType; weight: number }[] = [
@@ -107,6 +110,9 @@ export class Car extends Phaser.GameObjects.Container {
   private carColor: number = 0;
   private static carTexCounter = 0;
 
+  // Base rotation for direction (wobble oscillates around this)
+  private baseRotation: number = 0;
+
   // Wobble animation state
   private wobblePhase: number = Math.random() * Math.PI * 2;
 
@@ -132,8 +138,8 @@ export class Car extends Phaser.GameObjects.Container {
 
     const def = VEHICLE_DEFS[this.carType];
     const isVertical = this.direction === 'north' || this.direction === 'south';
-    this.carWidth = isVertical ? def.width : def.height;
-    this.carLength = isVertical ? def.height : def.width;
+    this.carWidth = (isVertical ? def.width : def.height) * SCALE_FACTOR;
+    this.carLength = (isVertical ? def.height : def.width) * SCALE_FACTOR;
 
     this.carColor = this.pickColor();
 
@@ -143,11 +149,15 @@ export class Car extends Phaser.GameObjects.Container {
     const face = this.carType === 'bicycle'
       ? CYCLIST_FACES[Math.floor(Math.random() * CYCLIST_FACES.length)]
       : DRIVER_FACES[Math.floor(Math.random() * DRIVER_FACES.length)];
-    this.emojiText = scene.add.text(0, def.faceY, face, {
-      fontSize: `${def.faceSize}px`,
+    this.emojiText = scene.add.text(0, def.faceY * SCALE_FACTOR, face, {
+      fontSize: `${Math.round(def.faceSize * 1.5)}px`,
     });
     this.emojiText.setOrigin(0.5);
     this.add(this.emojiText);
+
+    // Set base rotation based on direction
+    this.baseRotation = this.getBaseRotation();
+    this.setAngle(this.baseRotation);
 
     scene.add.existing(this);
   }
@@ -165,6 +175,15 @@ export class Car extends Phaser.GameObjects.Container {
         return [0x2980b9, 0x27ae60, 0xc0392b, 0x8e44ad][Math.floor(Math.random() * 4)];
       default:
         return CAR_PAPER_COLORS[Math.floor(Math.random() * CAR_PAPER_COLORS.length)];
+    }
+  }
+
+  private getBaseRotation(): number {
+    switch (this.direction) {
+      case 'north': return 0;
+      case 'south': return 180;
+      case 'east': return 90;
+      case 'west': return -90;
     }
   }
 
@@ -196,6 +215,7 @@ export class Car extends Phaser.GameObjects.Container {
     this.carTexKey = texKey;
 
     this.carBodyImage = this.scene.add.image(0, 0, texKey);
+    this.carBodyImage.setScale(SCALE_FACTOR);
     this.add(this.carBodyImage);
   }
 
@@ -605,7 +625,7 @@ export class Car extends Phaser.GameObjects.Container {
     this.hasWindCaught = true;
     this.scene.tweens.add({
       targets: this,
-      angle: this.carType === 'bicycle' || this.carType === 'motorcycle' ? 8 : 5,
+      angle: this.baseRotation + (this.carType === 'bicycle' || this.carType === 'motorcycle' ? 8 : 5),
       duration: 150,
       yoyo: true,
       ease: 'Sine.easeInOut',
@@ -663,7 +683,7 @@ export class Car extends Phaser.GameObjects.Container {
       const offsetX = (Math.random() - 0.5) * 10;
 
       const def = VEHICLE_DEFS[this.carType];
-      const hh = def.height / 2;
+      const hh = (def.height / 2) * SCALE_FACTOR;
       let spawnX = this.x + offsetX;
       let spawnY = this.y;
       let driftX = 0;
@@ -713,7 +733,7 @@ export class Car extends Phaser.GameObjects.Container {
     this.wobblePhase += delta * 0.003;
     const wobbleAmp = this.carType === 'bicycle' ? 1.0 : this.carType === 'motorcycle' ? 0.6 : 0.4;
     const wobble = Math.sin(this.wobblePhase) * wobbleAmp;
-    this.setAngle(wobble);
+    this.setAngle(this.baseRotation + wobble);
 
     // Smoke puffs for coal rollers (every ~500ms)
     if (this.carType === 'coalRoller' && !this.isStopped) {
@@ -800,8 +820,8 @@ export class Car extends Phaser.GameObjects.Container {
     this.carType = pickWeightedCarType();
     const def = VEHICLE_DEFS[this.carType];
     const isVertical = this.direction === 'north' || this.direction === 'south';
-    this.carWidth = isVertical ? def.width : def.height;
-    this.carLength = isVertical ? def.height : def.width;
+    this.carWidth = (isVertical ? def.width : def.height) * SCALE_FACTOR;
+    this.carLength = (isVertical ? def.height : def.width) * SCALE_FACTOR;
 
     this.carColor = this.pickColor();
 
@@ -811,12 +831,13 @@ export class Car extends Phaser.GameObjects.Container {
     const face = this.carType === 'bicycle'
       ? CYCLIST_FACES[Math.floor(Math.random() * CYCLIST_FACES.length)]
       : DRIVER_FACES[Math.floor(Math.random() * DRIVER_FACES.length)];
-    this.emojiText.setPosition(0, def.faceY);
+    this.emojiText.setPosition(0, def.faceY * SCALE_FACTOR);
     this.emojiText.setText(face);
-    this.emojiText.setFontSize(def.faceSize);
+    this.emojiText.setFontSize(Math.round(def.faceSize * 1.5));
 
     this.wobblePhase = Math.random() * Math.PI * 2;
-    this.setAngle(0);
+    this.baseRotation = this.getBaseRotation();
+    this.setAngle(this.baseRotation);
 
     this.setActive(true);
     this.setVisible(true);
@@ -825,8 +846,8 @@ export class Car extends Phaser.GameObjects.Container {
   getBounds(): Phaser.Geom.Rectangle {
     const def = VEHICLE_DEFS[this.carType];
     const isVertical = this.direction === 'north' || this.direction === 'south';
-    const w = isVertical ? def.width : def.height;
-    const h = isVertical ? def.height : def.width;
+    const w = (isVertical ? def.width : def.height) * SCALE_FACTOR;
+    const h = (isVertical ? def.height : def.width) * SCALE_FACTOR;
     return new Phaser.Geom.Rectangle(this.x - w / 2, this.y - h / 2, w, h);
   }
 }
