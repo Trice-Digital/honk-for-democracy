@@ -22,52 +22,170 @@ export interface SignMaterial {
   durability: number;
   /** Visual style label shown in picker */
   styleLabel: string;
+  /** Base color (hex string) for CSS background in UI swatches */
+  baseColor: string;
 }
 
 export const SIGN_MATERIALS: SignMaterial[] = [
+  // Cardboard variants (4)
   {
     id: 'cardboard',
-    label: 'Cardboard',
+    label: 'Cardboard (Kraft)',
     description: 'Light but fragile. Classic protest energy.',
-    boardColor: 0xd4a574,
+    boardColor: 0xc4956a,
     strokeColor: 0x78350f,
     textColor: '#1a1a1a',
     fatigueMultiplier: 0.8,
     durability: 0.6,
     styleLabel: 'Light / Fragile',
+    baseColor: '#c4956a',
   },
   {
+    id: 'cardboard-red',
+    label: 'Cardboard (Red)',
+    description: 'Light but fragile. Bold color.',
+    boardColor: 0xb85c4a,
+    strokeColor: 0x78350f,
+    textColor: '#1a1a1a',
+    fatigueMultiplier: 0.8,
+    durability: 0.6,
+    styleLabel: 'Light / Fragile',
+    baseColor: '#b85c4a',
+  },
+  {
+    id: 'cardboard-blue',
+    label: 'Cardboard (Blue)',
+    description: 'Light but fragile. Cool tone.',
+    boardColor: 0x6a8fb8,
+    strokeColor: 0x78350f,
+    textColor: '#1a1a1a',
+    fatigueMultiplier: 0.8,
+    durability: 0.6,
+    styleLabel: 'Light / Fragile',
+    baseColor: '#6a8fb8',
+  },
+  {
+    id: 'cardboard-green',
+    label: 'Cardboard (Green)',
+    description: 'Light but fragile. Earthy vibes.',
+    boardColor: 0x7a9a6a,
+    strokeColor: 0x78350f,
+    textColor: '#1a1a1a',
+    fatigueMultiplier: 0.8,
+    durability: 0.6,
+    styleLabel: 'Light / Fragile',
+    baseColor: '#7a9a6a',
+  },
+  // Posterboard variants (4)
+  {
     id: 'posterboard',
-    label: 'Posterboard',
+    label: 'Posterboard (White)',
     description: 'Clean and balanced. The sensible choice.',
-    boardColor: 0xffffff,
+    boardColor: 0xf5f0e8,
     strokeColor: 0x9ca3af,
     textColor: '#1a1a1a',
     fatigueMultiplier: 1.0,
     durability: 1.0,
     styleLabel: 'Balanced',
+    baseColor: '#f5f0e8',
   },
   {
+    id: 'posterboard-yellow',
+    label: 'Posterboard (Yellow)',
+    description: 'Clean and balanced. Bright and visible.',
+    boardColor: 0xfbbf24,
+    strokeColor: 0x9ca3af,
+    textColor: '#1a1a1a',
+    fatigueMultiplier: 1.0,
+    durability: 1.0,
+    styleLabel: 'Balanced',
+    baseColor: '#fbbf24',
+  },
+  {
+    id: 'posterboard-pink',
+    label: 'Posterboard (Pink)',
+    description: 'Clean and balanced. Fun and friendly.',
+    boardColor: 0xf472b6,
+    strokeColor: 0x9ca3af,
+    textColor: '#1a1a1a',
+    fatigueMultiplier: 1.0,
+    durability: 1.0,
+    styleLabel: 'Balanced',
+    baseColor: '#f472b6',
+  },
+  {
+    id: 'posterboard-sky',
+    label: 'Posterboard (Sky)',
+    description: 'Clean and balanced. Sky blue.',
+    boardColor: 0x7dd3fc,
+    strokeColor: 0x9ca3af,
+    textColor: '#1a1a1a',
+    fatigueMultiplier: 1.0,
+    durability: 1.0,
+    styleLabel: 'Balanced',
+    baseColor: '#7dd3fc',
+  },
+  // Foam Board variants (3)
+  {
     id: 'foamboard',
-    label: 'Foam Board',
+    label: 'Foam Board (White)',
     description: 'Heavy but tough. Built to last.',
-    boardColor: 0xf0f0f0,
+    boardColor: 0xe8e8e8,
     strokeColor: 0x374151,
     textColor: '#111827',
     fatigueMultiplier: 1.4,
     durability: 1.6,
     styleLabel: 'Heavy / Durable',
+    baseColor: '#e8e8e8',
   },
   {
+    id: 'foamboard-green',
+    label: 'Foam Board (Green)',
+    description: 'Heavy but tough. Fresh green.',
+    boardColor: 0x86efac,
+    strokeColor: 0x374151,
+    textColor: '#111827',
+    fatigueMultiplier: 1.4,
+    durability: 1.6,
+    styleLabel: 'Heavy / Durable',
+    baseColor: '#86efac',
+  },
+  {
+    id: 'foamboard-purple',
+    label: 'Foam Board (Purple)',
+    description: 'Heavy but tough. Bold purple.',
+    boardColor: 0xc4b5fd,
+    strokeColor: 0x374151,
+    textColor: '#111827',
+    fatigueMultiplier: 1.4,
+    durability: 1.6,
+    styleLabel: 'Heavy / Durable',
+    baseColor: '#c4b5fd',
+  },
+  // Wood Plank variants (2)
+  {
     id: 'wood',
-    label: 'Wood Plank',
+    label: 'Wood Plank (Light)',
     description: 'Very heavy, very durable. Serious business.',
-    boardColor: 0x8B6914,
+    boardColor: 0xDEB887,
+    strokeColor: 0x5C4033,
+    textColor: '#1a1a1a',
+    fatigueMultiplier: 1.8,
+    durability: 2.0,
+    styleLabel: 'Heavy / Very Durable',
+    baseColor: 'linear-gradient(180deg, #DEB887 0%, #B8860B 100%)',
+  },
+  {
+    id: 'wood-dark',
+    label: 'Wood Plank (Dark)',
+    description: 'Very heavy, very durable. Dark stain.',
+    boardColor: 0x8B7355,
     strokeColor: 0x5C4033,
     textColor: '#ffffff',
     fatigueMultiplier: 1.8,
     durability: 2.0,
     styleLabel: 'Heavy / Very Durable',
+    baseColor: 'linear-gradient(180deg, #8B7355 0%, #5C4033 100%)',
   },
 ];
 
@@ -80,25 +198,64 @@ export function getSignMaterial(id: string): SignMaterial {
 // ============================================================
 
 export const SIGN_FONTS = [
-  'Permanent Marker',  // Hand-drawn protest sign energy (Google Fonts)
-  'Impact',            // Classic bold block letters
-  'Courier New',       // Stencil-like monospace
-  'Comic Sans MS',     // Casual/fun handwritten
-  'Bangers',           // Comic book / pop art bold (Google Fonts)
-  'Rubik Mono One',    // Chunky rounded monospace (Google Fonts)
-  'Bungee',            // Urban signage / display (Google Fonts)
-  'Georgia',           // Elegant serif — "serious protester" energy
+  'Bangers',
+  'Permanent Marker',
+  'Bungee',
+  'Caveat',
+  'Fredoka',
+  'Protest Guerrilla',
+  'Rubik Mono One',
+  'Shrikhand',
 ];
 
 export const SIGN_COLORS = [
-  '#1a1a1a',  // Black (Sharpie)
-  '#dc2626',  // Red
-  '#2563eb',  // Blue
-  '#ffffff',  // White
-  '#16a34a',  // Green
-  '#7c3aed',  // Purple
-  '#ca8a04',  // Gold
+  '#1a1a1a',  // Black
+  '#FFFFFF',  // White
+  '#DC143C',  // Red
+  '#1E90FF',  // Blue
+  '#228B22',  // Green
+  '#fbbf24',  // Yellow
+  '#FF8C00',  // Orange
+  '#8B008B',  // Purple
+  '#FF1493',  // Hot Pink
 ];
+
+// ============================================================
+// PRESET MESSAGES (for randomize feature)
+// ============================================================
+
+export const PRESET_MESSAGES = [
+  'HONK FOR DEMOCRACY',
+  'HONK IF YOU CARE',
+  'RESIST',
+  'PEOPLE OVER PROFIT',
+  'WE THE PEOPLE',
+  'NOT ON OUR WATCH',
+  'USE YOUR VOICE',
+  'STAND UP SPEAK OUT',
+  'ACCOUNTABILITY NOW',
+  'PROTECT OUR RIGHTS',
+  'NO KINGS',
+  'POWER TO THE PEOPLE',
+  'ENOUGH IS ENOUGH',
+  'HONK HONK HONK',
+  'DEMOCRACY IS NOT A SPECTATOR SPORT',
+];
+
+// ============================================================
+// MATERIAL GROUPS (for UI organization)
+// ============================================================
+
+export type MaterialGroup = { label: string; emoji: string; materials: SignMaterial[] };
+
+export function getMaterialGroups(): MaterialGroup[] {
+  return [
+    { label: 'Cardboard', emoji: '\uD83D\uDCE6', materials: SIGN_MATERIALS.filter(m => m.id.startsWith('cardboard')) },
+    { label: 'Posterboard', emoji: '\uD83C\uDFA8', materials: SIGN_MATERIALS.filter(m => m.id.startsWith('posterboard')) },
+    { label: 'Foam Board', emoji: '\uD83E\uDDCA', materials: SIGN_MATERIALS.filter(m => m.id.startsWith('foamboard')) },
+    { label: 'Wood Plank', emoji: '\uD83E\uDEB5', materials: SIGN_MATERIALS.filter(m => m.id.startsWith('wood')) },
+  ];
+}
 
 // ============================================================
 // MESSAGE QUALITY SCORING
