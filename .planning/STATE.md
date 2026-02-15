@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 Phase: 8 of 12 (Sign Creator) — in progress
 Plan: 2 of 3 completed
 Status: Phase 8 in progress (decorations system complete)
-Last activity: 2026-02-15 - Completed quick task 6: Add dev testing tools for gameplay tuning
+Last activity: 2026-02-15 - Fix emoji rendering in speech bubbles + debug overlay buttons
 
 ## Performance Metrics
 
@@ -94,6 +94,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Quick task 6 complete (Add dev-only testing tools for gameplay tuning)
+Stopped at: Quick tasks 5+6 complete, follow-up emoji/bubble/overlay fix applied
 Resume file: None
 Next action: Execute 08-03 or /gsd:verify-work
