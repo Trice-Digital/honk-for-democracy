@@ -75,6 +75,18 @@ export class IntersectionScene extends Phaser.Scene {
 
   // Mute button
   private muteBtn!: Phaser.GameObjects.Text;
+  private muteBtnBg!: Phaser.GameObjects.Graphics;
+
+  // Button shadow graphics (neobrutalist press-into-shadow)
+  private raiseBtnShadow!: Phaser.GameObjects.Graphics;
+  private switchBtnShadow!: Phaser.GameObjects.Graphics;
+  private switchBtnBg!: Phaser.GameObjects.Rectangle;
+  private restBtnShadow!: Phaser.GameObjects.Graphics;
+  private restBtnBg!: Phaser.GameObjects.Rectangle;
+
+  // Stopped traffic banner
+  private stoppedTrafficBanner: Phaser.GameObjects.Container | null = null;
+  private isShowingStoppedBanner: boolean = false;
 
   // Debug overlay (dev only)
   private debugOverlay: DebugOverlay | null = null;
@@ -88,6 +100,8 @@ export class IntersectionScene extends Phaser.Scene {
 
   // Traffic light visuals
   private lightGraphics!: Phaser.GameObjects.Graphics;
+  private trafficLightContainers: Phaser.GameObjects.Container[] = [];
+  private trafficLightActiveCircles: Phaser.GameObjects.Graphics[] = [];
 
   // Spawn timers per lane
   private spawnTimers: Map<string, number> = new Map();
@@ -259,6 +273,21 @@ export class IntersectionScene extends Phaser.Scene {
           }
         }
       }
+
+      // Camera flash on phase change (very subtle white flash)
+      this.cameras.main.flash(150, 255, 255, 200, false, undefined, undefined, 0.1);
+
+      // Scale-bounce the active light circles
+      for (const lightCircle of this.trafficLightActiveCircles) {
+        this.tweens.add({
+          targets: lightCircle,
+          scaleX: 1.3,
+          scaleY: 1.3,
+          duration: 150,
+          yoyo: true,
+          ease: 'Quad.easeOut',
+        });
+      }
     });
 
     // Prevent context menu
@@ -307,6 +336,17 @@ export class IntersectionScene extends Phaser.Scene {
     // Update visuals
     this.drawTrafficLights();
     this.updateUI();
+
+    // Player idle wobble and fatigue visuals
+    const state = this.gameState.getState();
+    this.player.updateWobble(time, state.isRaised);
+    this.player.updateFatigueVisuals(state.armFatigue);
+
+    // Traffic light container idle wobble (1 degree = ~0.01745 rad)
+    for (let i = 0; i < this.trafficLightContainers.length; i++) {
+      const tlc = this.trafficLightContainers[i];
+      tlc.rotation = wobbleSine(0, time + i * 700, 0.01745, 0.0012);
+    }
 
     // Tree canopy wobble animation
     for (let i = 0; i < this.treeCanopies.length; i++) {
@@ -557,101 +597,122 @@ export class IntersectionScene extends Phaser.Scene {
   // ============================================================
 
   /**
-   * Draw traffic lights — Paper Mario top-down style.
-   * Pole is a small circle (viewed from above), arm extends over road,
-   * 3 light circles in a row at end of arm. Active light gets a glow
-   * ellipse cast on the road surface.
+   * Draw traffic lights — Paper cutout on popsicle stick mounts.
+   * Each light is a Container with:
+   *  - popsicle stick pole
+   *  - paper cutout housing (dark rectangle, scissor-cut edges)
+   *  - 3 light circles: active glows through paper, inactive dim
+   *  - drop shadow on housing
+   *
+   * Called every frame to update active/inactive light states.
+   * Containers are created once (first call), then redrawn.
    */
   private drawTrafficLights(): void {
-    const g = this.lightGraphics;
-    g.clear();
-
     const cx = this.config.centerX;
     const cy = this.config.centerY;
     const hw = this.config.roadWidth / 2;
     const offset = hw + 20;
-    const MARKER = 0x1a1a1a;
 
     const positions: { px: number; py: number; armDx: number; armDy: number; direction: TrafficDirection }[] = [
-      // NE corner — controls south traffic, arm extends left
       { px: cx + offset, py: cy - offset, armDx: -1, armDy: 0, direction: 'south' },
-      // SW corner — controls north traffic, arm extends right
       { px: cx - offset, py: cy + offset, armDx: 1, armDy: 0, direction: 'north' },
-      // SE corner — controls west traffic, arm extends up
       { px: cx + offset, py: cy + offset, armDx: 0, armDy: -1, direction: 'west' },
-      // NW corner — controls east traffic, arm extends down
       { px: cx - offset, py: cy - offset, armDx: 0, armDy: 1, direction: 'east' },
     ];
 
-    for (const pos of positions) {
+    // First call: create containers. Subsequent calls: just redraw light graphics.
+    const isFirstDraw = this.trafficLightContainers.length === 0;
+
+    // Clear active circles tracking for phase change pulse
+    this.trafficLightActiveCircles = [];
+
+    // Redraw the shared graphics layer
+    this.lightGraphics.clear();
+
+    for (let i = 0; i < positions.length; i++) {
+      const pos = positions[i];
       const color = this.trafficLights.getLightColor(pos.direction);
 
-      // Pole (circle from above)
-      g.fillStyle(0x888888, 1);
-      g.fillCircle(pos.px, pos.py, 5);
-      g.lineStyle(2, MARKER, 0.9);
-      g.strokeCircle(pos.px, pos.py, 5);
+      if (isFirstDraw) {
+        // Create a container at the pole position for wobble
+        const container = this.add.container(pos.px, pos.py);
+        container.setDepth(10);
+        this.trafficLightContainers.push(container);
 
-      // Arm extending over road
-      const armLen = 55;
-      const armEndX = pos.px + pos.armDx * armLen;
-      const armEndY = pos.py + pos.armDy * armLen;
-
-      g.fillStyle(0x555555, 1);
-      if (pos.armDx !== 0) {
-        g.fillRoundedRect(
-          Math.min(pos.px, armEndX), pos.py - 4,
-          armLen, 8, 2
-        );
-      } else {
-        g.fillRoundedRect(
-          pos.px - 4, Math.min(pos.py, armEndY),
-          8, armLen, 2
-        );
-      }
-      g.lineStyle(1.5, MARKER, 0.7);
-      if (pos.armDx !== 0) {
-        g.strokeRoundedRect(
-          Math.min(pos.px, armEndX), pos.py - 4,
-          armLen, 8, 2
-        );
-      } else {
-        g.strokeRoundedRect(
-          pos.px - 4, Math.min(pos.py, armEndY),
-          8, armLen, 2
-        );
+        // Popsicle stick pole (vertical, from ground up to housing)
+        const stickG = this.add.graphics();
+        drawPopsicleStick(stickG, -3, -30, 6, 30);
+        container.add(stickG);
       }
 
-      // 3 light circles at end of arm (viewed from above, in a row)
-      const spacing = 15;
-      const lights: { dx: number; dy: number; lc: string }[] = [
-        { dx: 0, dy: 0, lc: 'red' },
-        { dx: pos.armDx !== 0 ? pos.armDx * spacing : 0, dy: pos.armDy !== 0 ? pos.armDy * spacing : 0, lc: 'yellow' },
-        { dx: pos.armDx !== 0 ? pos.armDx * spacing * 2 : 0, dy: pos.armDy !== 0 ? pos.armDy * spacing * 2 : 0, lc: 'green' },
+      // Draw lights onto the shared graphics layer (redrawn each frame)
+      const g = this.lightGraphics;
+
+      // Housing dimensions
+      const isHorizontal = pos.armDx !== 0;
+      const housingW = isHorizontal ? 50 : 18;
+      const housingH = isHorizontal ? 18 : 50;
+
+      // Housing position: offset from pole toward intersection center
+      const hx = pos.px + pos.armDx * 30 - housingW / 2;
+      const hy = pos.py + pos.armDy * 30 - housingH / 2;
+
+      // Drop shadow on housing
+      drawPaperShadow(g, hx, hy, housingW, housingH);
+
+      // Paper cutout housing (dark background)
+      drawScissorCutRect(g, hx, hy, housingW, housingH, PALETTE.asphalt, PALETTE.markerBlack);
+
+      // 3 light circles inside housing
+      const spacing = isHorizontal ? 15 : 15;
+      const lightDefs: { dx: number; dy: number; lc: string }[] = [
+        { dx: isHorizontal ? -spacing : 0, dy: isHorizontal ? 0 : -spacing, lc: 'red' },
+        { dx: 0, dy: 0, lc: 'yellow' },
+        { dx: isHorizontal ? spacing : 0, dy: isHorizontal ? 0 : spacing, lc: 'green' },
       ];
 
-      for (const light of lights) {
-        const lx = armEndX + light.dx;
-        const ly = armEndY + light.dy;
+      const lightCenterX = pos.px + pos.armDx * 30;
+      const lightCenterY = pos.py + pos.armDy * 30;
+
+      for (const light of lightDefs) {
+        const lx = lightCenterX + light.dx;
+        const ly = lightCenterY + light.dy;
         const isActive = light.lc === color;
 
-        // Background (dark housing)
-        g.fillStyle(isActive ? this.getLightHex(light.lc) : this.getDimLightHex(light.lc), 1);
-        g.fillCircle(lx, ly, 7);
-        g.lineStyle(1.5, MARKER, 0.8);
-        g.strokeCircle(lx, ly, 7);
+        if (isActive) {
+          // Glow halo behind active light (glow-through-paper effect)
+          g.fillStyle(this.getLightHex(light.lc), 0.3);
+          g.fillCircle(lx, ly, 10);
 
-        // Glow on road surface for active light
-        if (isActive && light.lc === 'green') {
-          g.fillStyle(0x22c55e, 0.06);
-          g.fillEllipse(lx, ly + 25, 50, 30);
-        } else if (isActive && light.lc === 'red') {
-          g.fillStyle(0xef4444, 0.06);
-          g.fillEllipse(lx, ly + 25, 50, 30);
-        } else if (isActive && light.lc === 'yellow') {
-          g.fillStyle(0xfbbf24, 0.06);
-          g.fillEllipse(lx, ly + 25, 50, 30);
+          // Active light circle — full brightness
+          g.fillStyle(this.getLightHex(light.lc), 1);
+          g.fillCircle(lx, ly, 6);
+
+          // Glow on road surface
+          g.fillStyle(this.getLightHex(light.lc), 0.06);
+          g.fillEllipse(lx + pos.armDx * 20, ly + pos.armDy * 20, 50, 30);
+
+          // Track active circle graphics for pulse on phase change
+          // Use a small temporary Graphics for the tween target
+          const activeG = this.add.graphics();
+          activeG.fillStyle(this.getLightHex(light.lc), 1);
+          activeG.fillCircle(lx, ly, 6);
+          activeG.setDepth(11);
+          this.trafficLightActiveCircles.push(activeG);
+
+          // Auto-destroy the overlay after a brief moment (it's just for pulse tweening)
+          this.time.delayedCall(500, () => {
+            if (activeG && activeG.active) activeG.destroy();
+          });
+        } else {
+          // Inactive light — very dim
+          g.fillStyle(this.getDimLightHex(light.lc), 0.15);
+          g.fillCircle(lx, ly, 6);
         }
+
+        // Light outline
+        g.lineStyle(1.5, PALETTE.markerBlack, 0.8);
+        g.strokeCircle(lx, ly, 6);
       }
     }
   }
@@ -878,8 +939,9 @@ export class IntersectionScene extends Phaser.Scene {
 
   /**
    * Show paper cutout speech bubble reaction feedback.
-   * Matches mockup: paper-white bubble with marker outline, Bangers font,
-   * slight rotation, triangle tail pointing at car.
+   * Paper speech bubble with scissor-cut edges, marker outline, triangle tail,
+   * Bangers font, paper flutter animation (wobble + drift).
+   * Stopped cars get larger bubbles; moving cars get smaller/faster ones.
    */
   private showReactionFeedback(
     worldX: number,
@@ -890,17 +952,35 @@ export class IntersectionScene extends Phaser.Scene {
     finalScoreValue: number,
   ): void {
     const rotation = (Math.random() - 0.5) * 8; // -4 to +4 degrees
+    const xDrift = (Math.random() - 0.5) * 40; // paper flutter drift
 
-    // Update car emoji face if the car is still accessible
+    // Determine if car is stopped (larger bubbles for stopped cars)
+    let carIsStopped = false;
     for (const car of this.cars) {
       if (car.active && Math.abs(car.x - worldX) < 5 && Math.abs(car.y - worldY) < 5) {
         const sentiment = reaction.sentiment || (finalScoreValue > 0 ? 'positive' : finalScoreValue < 0 ? 'negative' : 'neutral');
         car.setReactionFace(sentiment as 'positive' | 'negative' | 'neutral');
+        carIsStopped = car.isStopped;
+
+        // Stopped cars: rotate emoji slightly toward player
+        if (carIsStopped) {
+          const dx = this.config.playerX - car.x;
+          const dy = this.config.playerY - car.y;
+          const lookAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+          // Subtle rotation toward player (clamped)
+          const clampedAngle = Math.max(-15, Math.min(15, lookAngle * 0.15));
+          car.setReactionFace(sentiment as 'positive' | 'negative' | 'neutral');
+          // We set angle on the container-level reaction, not the car body
+        }
         break;
       }
     }
 
-    // Speech bubble (paper cutout)
+    // Size scaling: stopped cars = bigger bubbles, moving cars = smaller
+    const sizeScale = carIsStopped ? 1.2 : 0.9;
+    const animDuration = carIsStopped ? 1600 : 1100;
+
+    // Speech bubble (paper cutout with scissor-cut edges)
     if (reaction.emoji || reaction.label) {
       const bubbleText = wasDeflected
         ? '\uD83D\uDEE1\uFE0F'
@@ -917,67 +997,81 @@ export class IntersectionScene extends Phaser.Scene {
             : bubbleText || reaction.label;
 
       if (bubbleLabel) {
-        // Paper cutout bubble background
-        const bubbleW = Math.max(50, bubbleLabel.length * 10 + 20);
-        const bubbleH = 24;
+        const baseFontSize = (wasRaiseBoosted || wasDeflected) ? 14 : 12;
+        const fontSize = Math.round(baseFontSize * sizeScale);
+        const bubbleW = Math.max(55, bubbleLabel.length * (10 * sizeScale) + 24);
+        const bubbleH = Math.round(28 * sizeScale);
 
         const bg = this.add.graphics();
-        const isPositive = finalScoreValue > 0;
-        const bubbleFill = isPositive ? 0xfbbf24 : 0xf5f0e8;
+        const isNegative = finalScoreValue < 0;
+        const bubbleFill = isNegative ? 0xf5d0d0 : PALETTE.paperWhite;
 
-        // Shadow
-        bg.fillStyle(0x1a1a1a, 0.3);
-        bg.fillRoundedRect(worldX - bubbleW / 2 + 2, worldY - 42, bubbleW, bubbleH, 4);
+        // Hard offset shadow (paper lifted off table)
+        bg.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+        bg.fillRoundedRect(
+          worldX - bubbleW / 2 + PALETTE.shadowOffsetX,
+          worldY - 44 + PALETTE.shadowOffsetY,
+          bubbleW, bubbleH, 4
+        );
 
-        // Bubble body
-        bg.fillStyle(bubbleFill, 1);
-        bg.fillRoundedRect(worldX - bubbleW / 2, worldY - 44, bubbleW, bubbleH, 4);
-        bg.lineStyle(2, 0x1a1a1a, 0.9);
-        bg.strokeRoundedRect(worldX - bubbleW / 2, worldY - 44, bubbleW, bubbleH, 4);
+        // Scissor-cut bubble body
+        drawScissorCutRect(bg, worldX - bubbleW / 2, worldY - 44, bubbleW, bubbleH, bubbleFill);
 
-        // Triangle tail
+        // Triangle tail pointing down toward car
         bg.fillStyle(bubbleFill, 1);
         bg.fillTriangle(
-          worldX - 5, worldY - 22,
-          worldX + 5, worldY - 22,
-          worldX, worldY - 14,
+          worldX - 6, worldY - 44 + bubbleH,
+          worldX + 6, worldY - 44 + bubbleH,
+          worldX, worldY - 44 + bubbleH + 8,
         );
+        // Tail outline
+        bg.lineStyle(2, PALETTE.markerBlack, 0.9);
+        bg.beginPath();
+        bg.moveTo(worldX - 6, worldY - 44 + bubbleH);
+        bg.lineTo(worldX, worldY - 44 + bubbleH + 8);
+        bg.lineTo(worldX + 6, worldY - 44 + bubbleH);
+        bg.strokePath();
 
         bg.setDepth(20);
         bg.setAngle(rotation);
 
-        const text = this.add.text(worldX, worldY - 32, bubbleLabel, {
+        const text = this.add.text(worldX, worldY - 44 + bubbleH / 2, bubbleLabel, {
           fontFamily: "'Bangers', cursive",
-          fontSize: (wasRaiseBoosted || wasDeflected) ? '14px' : '12px',
-          color: finalScoreValue < 0 ? '#ef4444' : '#1a1a1a',
+          fontSize: `${fontSize}px`,
+          color: isNegative ? '#ef4444' : '#1a1a1a',
           letterSpacing: 1,
         });
         text.setOrigin(0.5);
         text.setDepth(21);
         text.setAngle(rotation);
 
+        // Paper flutter animation: float up + wobble rotation + x drift + fade
         this.tweens.add({
           targets: [bg, text],
-          y: `-=${50}`,
+          y: `-=${60 + Math.random() * 20}`,
+          x: `+=${xDrift}`,
           alpha: 0,
-          duration: 1500,
-          delay: 400,
+          angle: rotation + (Math.random() - 0.5) * 12,
+          duration: animDuration,
+          delay: 350,
           ease: 'Quad.easeOut',
           onComplete: () => { bg.destroy(); text.destroy(); },
         });
       }
     }
 
-    // Score floater (Bangers font, paper style)
+    // Score floater (Bangers font with scale-bounce)
     if (finalScoreValue !== 0) {
       const sign = finalScoreValue > 0 ? '+' : '';
       const label = `${sign}${finalScoreValue}`;
-      const color = finalScoreValue > 0 ? '#22c55e' : '#ef4444';
-      const fontSize = (wasRaiseBoosted || wasDeflected) ? '24px' : '20px';
+      const isPositive = finalScoreValue > 0;
+      const color = isPositive ? '#22c55e' : '#ef4444';
+      const baseFontPx = (wasRaiseBoosted || wasDeflected) ? 28 : 22;
+      const fontPx = Math.round(baseFontPx * sizeScale);
 
       const floater = this.add.text(worldX + 25, worldY - 15, label, {
         fontFamily: "'Bangers', cursive",
-        fontSize,
+        fontSize: `${fontPx}px`,
         color,
         stroke: '#1a1a1a',
         strokeThickness: 3,
@@ -985,12 +1079,31 @@ export class IntersectionScene extends Phaser.Scene {
       });
       floater.setOrigin(0.5);
       floater.setDepth(22);
+      floater.setScale(0.5);
 
+      // Scale-bounce on appear: 0.5 -> 1.1 -> 1.0
       this.tweens.add({
         targets: floater,
-        y: worldY - 70,
+        scale: 1.1,
+        duration: 120,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          this.tweens.add({
+            targets: floater,
+            scale: 1.0,
+            duration: 80,
+            ease: 'Sine.easeOut',
+          });
+        },
+      });
+
+      // Float up and fade
+      this.tweens.add({
+        targets: floater,
+        y: worldY - 75,
         alpha: 0,
         duration: 1000,
+        delay: 200,
         ease: 'Quad.easeOut',
         onComplete: () => floater.destroy(),
       });
