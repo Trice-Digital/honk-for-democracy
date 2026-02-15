@@ -4,6 +4,16 @@ import type { LaneDefinition, TrafficDirection } from '../config/intersectionCon
 import { DIFFICULTY_MEDIUM } from '../config/difficultyConfig';
 import { CONFIDENCE_DEFAULTS } from '../config/confidenceConfig';
 import { getSignData, type SignData } from '../config/signConfig';
+import { PALETTE } from '../config/paletteConfig';
+import {
+  drawPaperShadow,
+  drawPaperShadowCircle,
+  drawScissorCutRect,
+  drawMaskingTapeStrip,
+  applyPaperGrain,
+  drawPopsicleStick,
+  wobbleSine,
+} from '../utils/paperArt';
 import { GameStateManager } from '../systems/GameStateManager';
 import { TrafficLightSystem } from '../systems/TrafficLightSystem';
 import { ReactionSystem } from '../systems/ReactionSystem';
@@ -68,6 +78,9 @@ export class IntersectionScene extends Phaser.Scene {
 
   // Debug overlay (dev only)
   private debugOverlay: DebugOverlay | null = null;
+
+  // Tree canopy graphics for idle wobble animation
+  private treeCanopies: Phaser.GameObjects.Graphics[] = [];
 
   // Raise tap mechanic
   private raiseHoldActive: boolean = false;
@@ -154,6 +167,11 @@ export class IntersectionScene extends Phaser.Scene {
 
     // --- Draw intersection ---
     this.drawIntersection();
+
+    // --- Global paper grain overlay (fixed to camera) ---
+    const grainOverlay = applyPaperGrain(this, 0, 0, viewW, viewH, 0.035);
+    grainOverlay.setScrollFactor(0);
+    grainOverlay.setDepth(200);
 
     // --- Traffic lights visual ---
     this.lightGraphics = this.add.graphics();
@@ -290,6 +308,13 @@ export class IntersectionScene extends Phaser.Scene {
     this.drawTrafficLights();
     this.updateUI();
 
+    // Tree canopy wobble animation
+    for (let i = 0; i < this.treeCanopies.length; i++) {
+      const canopy = this.treeCanopies[i];
+      // Each tree gets a slightly different frequency offset so they don't all sway in sync
+      canopy.rotation = wobbleSine(0, time + i * 500, 0.026, 0.0015);
+    }
+
     // Debug overlay
     if (this.debugOverlay) {
       this.debugOverlay.update(delta);
@@ -300,87 +325,243 @@ export class IntersectionScene extends Phaser.Scene {
   // INTERSECTION RENDERING
   // ============================================================
 
+  /**
+   * Draw intersection — Paper Mario construction paper diorama.
+   * Layered construction paper aesthetic: sky -> grass -> sidewalks -> roads ->
+   * masking tape lane markings -> crosswalks -> stop lines -> corner dressing.
+   * All colors from PALETTE, all shapes via paperArt utilities.
+   */
   private drawIntersection(): void {
-    const g = this.add.graphics();
     const cx = this.config.centerX;
     const cy = this.config.centerY;
     const rw = this.config.roadWidth;
     const hw = rw / 2;
+    const ww = this.config.worldWidth;
+    const wh = this.config.worldHeight;
+    const swW = 18; // Sidewalk width
 
-    // Ground/grass
-    g.fillStyle(0x4a7c59, 1);
-    g.fillRect(0, 0, this.config.worldWidth, this.config.worldHeight);
+    // Reset tree canopies array
+    this.treeCanopies = [];
 
-    // Sidewalks
-    const sidewalkWidth = 30;
-    g.fillStyle(0xc2b280, 1);
-    g.fillRect(cx - hw - sidewalkWidth, 0, sidewalkWidth, this.config.worldHeight);
-    g.fillRect(cx + hw, 0, sidewalkWidth, this.config.worldHeight);
-    g.fillRect(0, cy - hw - sidewalkWidth, this.config.worldWidth, sidewalkWidth);
-    g.fillRect(0, cy + hw, this.config.worldWidth, sidewalkWidth);
-    g.fillRect(cx - hw - sidewalkWidth, cy - hw - sidewalkWidth, sidewalkWidth, sidewalkWidth);
-    g.fillRect(cx + hw, cy - hw - sidewalkWidth, sidewalkWidth, sidewalkWidth);
-    g.fillRect(cx - hw - sidewalkWidth, cy + hw, sidewalkWidth, sidewalkWidth);
-    g.fillRect(cx + hw, cy + hw, sidewalkWidth, sidewalkWidth);
+    // =========================================================
+    // Layer 0: Sky / background (muted blue construction paper)
+    // =========================================================
+    const skyG = this.add.graphics();
+    skyG.fillStyle(PALETTE.skyBlue, 1);
+    skyG.fillRect(0, 0, ww, wh);
+    skyG.setDepth(0);
 
-    // Roads
-    g.fillStyle(0x3d3d3d, 1);
-    g.fillRect(cx - hw, 0, rw, this.config.worldHeight);
-    g.fillRect(0, cy - hw, this.config.worldWidth, rw);
+    // =========================================================
+    // Layer 1: Grass / ground corners (construction paper green)
+    // Four quadrants outside the road cross, each slightly varied
+    // =========================================================
+    const grassG = this.add.graphics();
+    const grassShades = [
+      PALETTE.grassGreen,
+      PALETTE.grassGreen + 0x060806,
+      PALETTE.grassGreen - 0x080608,
+      PALETTE.grassGreen + 0x040404,
+    ];
 
-    // Center intersection
-    g.fillStyle(0x444444, 1);
-    g.fillRect(cx - hw, cy - hw, rw, rw);
+    // Top-left grass
+    drawScissorCutRect(grassG, 0, 0, cx - hw - swW, cy - hw - swW, grassShades[0]);
+    // Top-right grass
+    drawScissorCutRect(grassG, cx + hw + swW, 0, ww - cx - hw - swW, cy - hw - swW, grassShades[1]);
+    // Bottom-left grass
+    drawScissorCutRect(grassG, 0, cy + hw + swW, cx - hw - swW, wh - cy - hw - swW, grassShades[2]);
+    // Bottom-right grass
+    drawScissorCutRect(grassG, cx + hw + swW, cy + hw + swW, ww - cx - hw - swW, wh - cy - hw - swW, grassShades[3]);
+    grassG.setDepth(1);
 
-    // Lane markings
-    g.lineStyle(3, 0xfbbf24, 0.8);
-    for (let y = 0; y < cy - hw; y += 30) {
-      g.beginPath(); g.moveTo(cx, y); g.lineTo(cx, Math.min(y + 18, cy - hw)); g.strokePath();
+    // =========================================================
+    // Layer 2: Sidewalks (construction paper tan borders)
+    // =========================================================
+    const swG = this.add.graphics();
+
+    // Horizontal sidewalks (above and below horizontal road)
+    drawScissorCutRect(swG, 0, cy - hw - swW, cx - hw, swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(swG, cx + hw, cy - hw - swW, ww - cx - hw, swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(swG, 0, cy + hw, cx - hw, swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(swG, cx + hw, cy + hw, ww - cx - hw, swW, PALETTE.sidewalkTan);
+
+    // Vertical sidewalks (left and right of vertical road)
+    drawScissorCutRect(swG, cx - hw - swW, 0, swW, cy - hw - swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(swG, cx + hw, 0, swW, cy - hw - swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(swG, cx - hw - swW, cy + hw + swW, swW, wh - cy - hw - swW, PALETTE.sidewalkTan);
+    drawScissorCutRect(swG, cx + hw, cy + hw + swW, swW, wh - cy - hw - swW, PALETTE.sidewalkTan);
+    swG.setDepth(2);
+
+    // =========================================================
+    // Layer 3: Roads (dark asphalt construction paper)
+    // =========================================================
+    const roadG = this.add.graphics();
+
+    // Vertical road
+    drawScissorCutRect(roadG, cx - hw, 0, rw, wh, PALETTE.asphalt);
+    // Horizontal road
+    drawScissorCutRect(roadG, 0, cy - hw, ww, rw, PALETTE.asphalt);
+
+    // Center intersection box (slightly lighter asphalt)
+    const centerAsphalt = PALETTE.asphalt + 0x0a0a0a;
+    roadG.fillStyle(centerAsphalt, 1);
+    roadG.fillRect(cx - hw, cy - hw, rw, rw);
+    roadG.setDepth(3);
+
+    // =========================================================
+    // Layer 4: Lane markings (masking tape strips)
+    // =========================================================
+    const laneG = this.add.graphics();
+
+    // Vertical center dashes (top approach — heading toward intersection)
+    for (let y = 15; y < cy - hw - 10; y += 55) {
+      const dashLen = 38 + Math.random() * 10;
+      drawMaskingTapeStrip(laneG, cx, y, cx, y + dashLen, 6);
     }
-    for (let y = cy + hw + 12; y < this.config.worldHeight; y += 30) {
-      g.beginPath(); g.moveTo(cx, y); g.lineTo(cx, Math.min(y + 18, this.config.worldHeight)); g.strokePath();
+    // Vertical center dashes (bottom approach)
+    for (let y = cy + hw + 15; y < wh - 10; y += 55) {
+      const dashLen = 38 + Math.random() * 10;
+      drawMaskingTapeStrip(laneG, cx, y, cx, y + dashLen, 6);
     }
-    for (let x = 0; x < cx - hw; x += 30) {
-      g.beginPath(); g.moveTo(x, cy); g.lineTo(Math.min(x + 18, cx - hw), cy); g.strokePath();
+    // Horizontal center dashes (left approach)
+    for (let x = 15; x < cx - hw - 10; x += 55) {
+      const dashLen = 38 + Math.random() * 10;
+      drawMaskingTapeStrip(laneG, x, cy, x + dashLen, cy, 6);
     }
-    for (let x = cx + hw + 12; x < this.config.worldWidth; x += 30) {
-      g.beginPath(); g.moveTo(x, cy); g.lineTo(Math.min(x + 18, this.config.worldWidth), cy); g.strokePath();
-    }
-
-    // Crosswalks
-    g.fillStyle(0xffffff, 0.7);
-    const cwWidth = 8;
-    const cwGap = 12;
-    const cwOffset = hw + 5;
-
-    for (let x = cx - hw + 5; x < cx + hw - 5; x += cwWidth + cwGap) {
-      g.fillRect(x, cy - cwOffset - 20, cwWidth, 20);
-    }
-    for (let x = cx - hw + 5; x < cx + hw - 5; x += cwWidth + cwGap) {
-      g.fillRect(x, cy + cwOffset, cwWidth, 20);
-    }
-    for (let y = cy - hw + 5; y < cy + hw - 5; y += cwWidth + cwGap) {
-      g.fillRect(cx - cwOffset - 20, y, 20, cwWidth);
-    }
-    for (let y = cy - hw + 5; y < cy + hw - 5; y += cwWidth + cwGap) {
-      g.fillRect(cx + cwOffset, y, 20, cwWidth);
+    // Horizontal center dashes (right approach)
+    for (let x = cx + hw + 15; x < ww - 10; x += 55) {
+      const dashLen = 38 + Math.random() * 10;
+      drawMaskingTapeStrip(laneG, x, cy, x + dashLen, cy, 6);
     }
 
-    // Stop lines
-    g.fillStyle(0xffffff, 0.9);
-    const stopOffset = hw + 2;
-    g.fillRect(cx - hw, cy - stopOffset - 4, rw, 4);
-    g.fillRect(cx - hw, cy + stopOffset, rw, 4);
-    g.fillRect(cx - stopOffset - 4, cy - hw, 4, rw);
-    g.fillRect(cx + stopOffset, cy - hw, 4, rw);
+    // =========================================================
+    // Layer 4b: Crosswalks (wider masking tape strips)
+    // =========================================================
+    const cwStripeW = 7;
+    const cwGap = 5;
 
-    g.setDepth(0);
+    // Top crosswalk (horizontal stripes across vertical road)
+    for (let i = 0; i < 4; i++) {
+      const stripeY = cy - hw - swW + 2 + i * (cwStripeW + cwGap);
+      drawMaskingTapeStrip(laneG, cx - hw + 6, stripeY, cx + hw - 6, stripeY, cwStripeW);
+    }
+    // Bottom crosswalk
+    for (let i = 0; i < 4; i++) {
+      const stripeY = cy + hw + 2 + i * (cwStripeW + cwGap);
+      drawMaskingTapeStrip(laneG, cx - hw + 6, stripeY, cx + hw - 6, stripeY, cwStripeW);
+    }
+    // Left crosswalk (vertical stripes across horizontal road)
+    for (let i = 0; i < 4; i++) {
+      const stripeX = cx - hw - swW + 2 + i * (cwStripeW + cwGap);
+      drawMaskingTapeStrip(laneG, stripeX, cy - hw + 6, stripeX, cy + hw - 6, cwStripeW);
+    }
+    // Right crosswalk
+    for (let i = 0; i < 4; i++) {
+      const stripeX = cx + hw + 2 + i * (cwStripeW + cwGap);
+      drawMaskingTapeStrip(laneG, stripeX, cy - hw + 6, stripeX, cy + hw - 6, cwStripeW);
+    }
+
+    // =========================================================
+    // Layer 4c: Stop lines (wider masking tape)
+    // =========================================================
+    const stopOff = hw + 3;
+    // North stop line (top of intersection)
+    drawMaskingTapeStrip(laneG, cx - hw + 4, cy - stopOff, cx + hw - 4, cy - stopOff, 8);
+    // South stop line
+    drawMaskingTapeStrip(laneG, cx - hw + 4, cy + stopOff, cx + hw - 4, cy + stopOff, 8);
+    // West stop line
+    drawMaskingTapeStrip(laneG, cx - stopOff, cy - hw + 4, cx - stopOff, cy + hw - 4, 8);
+    // East stop line
+    drawMaskingTapeStrip(laneG, cx + stopOff, cy - hw + 4, cx + stopOff, cy + hw - 4, 8);
+
+    laneG.setDepth(4);
+
+    // =========================================================
+    // Layer 5: Corner environmental dressing
+    // =========================================================
+
+    // --- Buildings (paper cutout facades with scissor-cut edges) ---
+    const buildingColors = [
+      PALETTE.sidewalkTan - 0x101010,
+      PALETTE.cardboard,
+      PALETTE.sidewalkTan + 0x080808,
+      PALETTE.cardboard - 0x101008,
+    ];
+
+    const buildG = this.add.graphics();
+
+    // Helper: draw a paper cutout building with shadow and window cutouts
+    const drawBuilding = (bx: number, by: number, bw: number, bh: number, color: number) => {
+      drawPaperShadow(buildG, bx, by, bw, bh);
+      drawScissorCutRect(buildG, bx, by, bw, bh, color);
+      // Window cutouts (darker interior showing through)
+      const winRows = Math.max(1, Math.floor(bh / 30));
+      const winCols = Math.max(1, Math.floor(bw / 35));
+      const winW = 12;
+      const winH = 14;
+      for (let r = 0; r < winRows; r++) {
+        for (let c = 0; c < winCols; c++) {
+          const wx = bx + 10 + c * (bw - 20) / Math.max(1, winCols);
+          const wy = by + 10 + r * (bh - 20) / Math.max(1, winRows);
+          buildG.fillStyle(PALETTE.asphalt, 0.6);
+          buildG.fillRect(wx, wy, winW, winH);
+        }
+      }
+    };
+
+    // Top-left quadrant buildings
+    drawBuilding(cx - hw - swW - 180, cy - hw - swW - 160, 130, 90, buildingColors[0]);
+    drawBuilding(cx - hw - swW - 100, cy - hw - swW - 60, 70, 50, buildingColors[1]);
+
+    // Top-right quadrant buildings
+    drawBuilding(cx + hw + swW + 40, cy - hw - swW - 170, 120, 80, buildingColors[2]);
+    drawBuilding(cx + hw + swW + 170, cy - hw - swW - 130, 100, 70, buildingColors[3]);
+
+    // Bottom-left quadrant building
+    drawBuilding(cx - hw - swW - 170, cy + hw + swW + 40, 110, 80, buildingColors[1]);
+
+    // Bottom-right quadrant building
+    drawBuilding(cx + hw + swW + 60, cy + hw + swW + 50, 130, 90, buildingColors[0]);
+
+    buildG.setDepth(5);
+
+    // --- Trees (popsicle stick trunk + green construction paper circle canopy) ---
+    const treePositions = [
+      { tx: cx - hw - swW - 60, ty: cy - hw - swW - 30, r: 18 },
+      { tx: cx - hw - swW - 280, ty: cy - hw - swW - 100, r: 15 },
+      { tx: cx + hw + swW + 250, ty: cy + hw + swW + 90, r: 20 },
+      { tx: cx + hw + swW + 90, ty: cy - hw - swW - 80, r: 16 },
+      { tx: cx - hw - swW - 120, ty: cy + hw + swW + 160, r: 17 },
+    ];
+
+    for (const tree of treePositions) {
+      // Trunk (popsicle stick)
+      const trunkG = this.add.graphics();
+      drawPopsicleStick(trunkG, tree.tx - 3, tree.ty - 5, 6, 20);
+      trunkG.setDepth(5);
+
+      // Canopy (green circle with shadow) — separate Graphics for wobble animation
+      const canopyG = this.add.graphics();
+      drawPaperShadowCircle(canopyG, tree.tx, tree.ty, tree.r);
+      canopyG.fillStyle(PALETTE.grassGreen + (Math.random() > 0.5 ? 0x0a0a06 : -0x060604), 0.92);
+      canopyG.fillCircle(tree.tx, tree.ty, tree.r);
+      canopyG.lineStyle(2, PALETTE.markerBlack, 0.7);
+      canopyG.strokeCircle(tree.tx, tree.ty, tree.r);
+      canopyG.setDepth(5);
+
+      this.treeCanopies.push(canopyG);
+    }
   }
 
   // ============================================================
   // TRAFFIC LIGHTS
   // ============================================================
 
+  /**
+   * Draw traffic lights — Paper Mario top-down style.
+   * Pole is a small circle (viewed from above), arm extends over road,
+   * 3 light circles in a row at end of arm. Active light gets a glow
+   * ellipse cast on the road surface.
+   */
   private drawTrafficLights(): void {
     const g = this.lightGraphics;
     g.clear();
@@ -388,25 +569,108 @@ export class IntersectionScene extends Phaser.Scene {
     const cx = this.config.centerX;
     const cy = this.config.centerY;
     const hw = this.config.roadWidth / 2;
-    const offset = hw + 45;
+    const offset = hw + 20;
+    const MARKER = 0x1a1a1a;
 
-    const positions: { x: number; y: number; direction: TrafficDirection }[] = [
-      { x: cx + offset, y: cy - offset, direction: 'south' },
-      { x: cx - offset, y: cy + offset, direction: 'north' },
-      { x: cx + offset, y: cy + offset, direction: 'west' },
-      { x: cx - offset, y: cy - offset, direction: 'east' },
+    const positions: { px: number; py: number; armDx: number; armDy: number; direction: TrafficDirection }[] = [
+      // NE corner — controls south traffic, arm extends left
+      { px: cx + offset, py: cy - offset, armDx: -1, armDy: 0, direction: 'south' },
+      // SW corner — controls north traffic, arm extends right
+      { px: cx - offset, py: cy + offset, armDx: 1, armDy: 0, direction: 'north' },
+      // SE corner — controls west traffic, arm extends up
+      { px: cx + offset, py: cy + offset, armDx: 0, armDy: -1, direction: 'west' },
+      // NW corner — controls east traffic, arm extends down
+      { px: cx - offset, py: cy - offset, armDx: 0, armDy: 1, direction: 'east' },
     ];
 
     for (const pos of positions) {
       const color = this.trafficLights.getLightColor(pos.direction);
-      g.fillStyle(0x1a1a1a, 1);
-      g.fillRoundedRect(pos.x - 10, pos.y - 15, 20, 30, 4);
-      g.fillStyle(color === 'red' ? 0xff0000 : 0x330000, 1);
-      g.fillCircle(pos.x, pos.y - 8, 6);
-      g.fillStyle(color === 'yellow' ? 0xffff00 : 0x333300, 1);
-      g.fillCircle(pos.x, pos.y, 6);
-      g.fillStyle(color === 'green' ? 0x00ff00 : 0x003300, 1);
-      g.fillCircle(pos.x, pos.y + 8, 6);
+
+      // Pole (circle from above)
+      g.fillStyle(0x888888, 1);
+      g.fillCircle(pos.px, pos.py, 5);
+      g.lineStyle(2, MARKER, 0.9);
+      g.strokeCircle(pos.px, pos.py, 5);
+
+      // Arm extending over road
+      const armLen = 55;
+      const armEndX = pos.px + pos.armDx * armLen;
+      const armEndY = pos.py + pos.armDy * armLen;
+
+      g.fillStyle(0x555555, 1);
+      if (pos.armDx !== 0) {
+        g.fillRoundedRect(
+          Math.min(pos.px, armEndX), pos.py - 4,
+          armLen, 8, 2
+        );
+      } else {
+        g.fillRoundedRect(
+          pos.px - 4, Math.min(pos.py, armEndY),
+          8, armLen, 2
+        );
+      }
+      g.lineStyle(1.5, MARKER, 0.7);
+      if (pos.armDx !== 0) {
+        g.strokeRoundedRect(
+          Math.min(pos.px, armEndX), pos.py - 4,
+          armLen, 8, 2
+        );
+      } else {
+        g.strokeRoundedRect(
+          pos.px - 4, Math.min(pos.py, armEndY),
+          8, armLen, 2
+        );
+      }
+
+      // 3 light circles at end of arm (viewed from above, in a row)
+      const spacing = 15;
+      const lights: { dx: number; dy: number; lc: string }[] = [
+        { dx: 0, dy: 0, lc: 'red' },
+        { dx: pos.armDx !== 0 ? pos.armDx * spacing : 0, dy: pos.armDy !== 0 ? pos.armDy * spacing : 0, lc: 'yellow' },
+        { dx: pos.armDx !== 0 ? pos.armDx * spacing * 2 : 0, dy: pos.armDy !== 0 ? pos.armDy * spacing * 2 : 0, lc: 'green' },
+      ];
+
+      for (const light of lights) {
+        const lx = armEndX + light.dx;
+        const ly = armEndY + light.dy;
+        const isActive = light.lc === color;
+
+        // Background (dark housing)
+        g.fillStyle(isActive ? this.getLightHex(light.lc) : this.getDimLightHex(light.lc), 1);
+        g.fillCircle(lx, ly, 7);
+        g.lineStyle(1.5, MARKER, 0.8);
+        g.strokeCircle(lx, ly, 7);
+
+        // Glow on road surface for active light
+        if (isActive && light.lc === 'green') {
+          g.fillStyle(0x22c55e, 0.06);
+          g.fillEllipse(lx, ly + 25, 50, 30);
+        } else if (isActive && light.lc === 'red') {
+          g.fillStyle(0xef4444, 0.06);
+          g.fillEllipse(lx, ly + 25, 50, 30);
+        } else if (isActive && light.lc === 'yellow') {
+          g.fillStyle(0xfbbf24, 0.06);
+          g.fillEllipse(lx, ly + 25, 50, 30);
+        }
+      }
+    }
+  }
+
+  private getLightHex(lc: string): number {
+    switch (lc) {
+      case 'red': return 0xef4444;
+      case 'yellow': return 0xfbbf24;
+      case 'green': return 0x22c55e;
+      default: return 0x333333;
+    }
+  }
+
+  private getDimLightHex(lc: string): number {
+    switch (lc) {
+      case 'red': return 0x6b2020;
+      case 'yellow': return 0x6b5520;
+      case 'green': return 0x206b30;
+      default: return 0x333333;
     }
   }
 
@@ -612,53 +876,115 @@ export class IntersectionScene extends Phaser.Scene {
   // VISUAL FEEDBACK
   // ============================================================
 
+  /**
+   * Show paper cutout speech bubble reaction feedback.
+   * Matches mockup: paper-white bubble with marker outline, Bangers font,
+   * slight rotation, triangle tail pointing at car.
+   */
   private showReactionFeedback(
     worldX: number,
     worldY: number,
-    reaction: { emoji: string; scoreValue: number; color: number; label: string },
+    reaction: { emoji: string; scoreValue: number; color: number; label: string; sentiment?: string },
     wasRaiseBoosted: boolean,
     wasDeflected: boolean,
     finalScoreValue: number,
   ): void {
-    // Emoji pop
-    if (reaction.emoji) {
-      const emojiText = wasDeflected ? '🛡️' : reaction.emoji;
-      const emoji = this.add.text(worldX, worldY - 20, emojiText, {
-        fontSize: wasRaiseBoosted || wasDeflected ? '36px' : '28px',
-      });
-      emoji.setOrigin(0.5);
-      emoji.setDepth(20);
+    const rotation = (Math.random() - 0.5) * 8; // -4 to +4 degrees
 
-      this.tweens.add({
-        targets: emoji,
-        y: worldY - 80,
-        alpha: 0,
-        duration: 1200,
-        ease: 'Quad.easeOut',
-        onComplete: () => emoji.destroy(),
-      });
+    // Update car emoji face if the car is still accessible
+    for (const car of this.cars) {
+      if (car.active && Math.abs(car.x - worldX) < 5 && Math.abs(car.y - worldY) < 5) {
+        const sentiment = reaction.sentiment || (finalScoreValue > 0 ? 'positive' : finalScoreValue < 0 ? 'negative' : 'neutral');
+        car.setReactionFace(sentiment as 'positive' | 'negative' | 'neutral');
+        break;
+      }
     }
 
-    // Score floater
+    // Speech bubble (paper cutout)
+    if (reaction.emoji || reaction.label) {
+      const bubbleText = wasDeflected
+        ? '\uD83D\uDEE1\uFE0F'
+        : reaction.emoji
+          ? `${reaction.emoji}`
+          : '';
+
+      const bubbleLabel = wasRaiseBoosted
+        ? `${bubbleText} YEAH!`
+        : wasDeflected
+          ? `${bubbleText} DEFLECT!`
+          : reaction.label === 'Honk!'
+            ? `HONK! \uD83C\uDFBA`
+            : bubbleText || reaction.label;
+
+      if (bubbleLabel) {
+        // Paper cutout bubble background
+        const bubbleW = Math.max(50, bubbleLabel.length * 10 + 20);
+        const bubbleH = 24;
+
+        const bg = this.add.graphics();
+        const isPositive = finalScoreValue > 0;
+        const bubbleFill = isPositive ? 0xfbbf24 : 0xf5f0e8;
+
+        // Shadow
+        bg.fillStyle(0x1a1a1a, 0.3);
+        bg.fillRoundedRect(worldX - bubbleW / 2 + 2, worldY - 42, bubbleW, bubbleH, 4);
+
+        // Bubble body
+        bg.fillStyle(bubbleFill, 1);
+        bg.fillRoundedRect(worldX - bubbleW / 2, worldY - 44, bubbleW, bubbleH, 4);
+        bg.lineStyle(2, 0x1a1a1a, 0.9);
+        bg.strokeRoundedRect(worldX - bubbleW / 2, worldY - 44, bubbleW, bubbleH, 4);
+
+        // Triangle tail
+        bg.fillStyle(bubbleFill, 1);
+        bg.fillTriangle(
+          worldX - 5, worldY - 22,
+          worldX + 5, worldY - 22,
+          worldX, worldY - 14,
+        );
+
+        bg.setDepth(20);
+        bg.setAngle(rotation);
+
+        const text = this.add.text(worldX, worldY - 32, bubbleLabel, {
+          fontFamily: "'Bangers', cursive",
+          fontSize: (wasRaiseBoosted || wasDeflected) ? '14px' : '12px',
+          color: finalScoreValue < 0 ? '#ef4444' : '#1a1a1a',
+          letterSpacing: 1,
+        });
+        text.setOrigin(0.5);
+        text.setDepth(21);
+        text.setAngle(rotation);
+
+        this.tweens.add({
+          targets: [bg, text],
+          y: `-=${50}`,
+          alpha: 0,
+          duration: 1500,
+          delay: 400,
+          ease: 'Quad.easeOut',
+          onComplete: () => { bg.destroy(); text.destroy(); },
+        });
+      }
+    }
+
+    // Score floater (Bangers font, paper style)
     if (finalScoreValue !== 0) {
       const sign = finalScoreValue > 0 ? '+' : '';
-      let label = `${sign}${finalScoreValue}`;
-      if (wasRaiseBoosted) label += ' BONUS!';
-      if (wasDeflected) label += ' DEFLECT!';
-
+      const label = `${sign}${finalScoreValue}`;
       const color = finalScoreValue > 0 ? '#22c55e' : '#ef4444';
-      const fontSize = (wasRaiseBoosted || wasDeflected) ? '26px' : '22px';
+      const fontSize = (wasRaiseBoosted || wasDeflected) ? '24px' : '20px';
 
-      const floater = this.add.text(worldX + 20, worldY - 10, label, {
-        fontFamily: 'system-ui, sans-serif',
+      const floater = this.add.text(worldX + 25, worldY - 15, label, {
+        fontFamily: "'Bangers', cursive",
         fontSize,
-        fontStyle: 'bold',
         color,
-        stroke: '#000000',
+        stroke: '#1a1a1a',
         strokeThickness: 3,
+        letterSpacing: 1,
       });
       floater.setOrigin(0.5);
-      floater.setDepth(21);
+      floater.setDepth(22);
 
       this.tweens.add({
         targets: floater,
@@ -679,34 +1005,47 @@ export class IntersectionScene extends Phaser.Scene {
     const viewW = this.scale.width;
     const viewH = this.scale.height;
 
-    // --- Score text (top left) ---
-    this.scoreText = this.add.text(0, 0, 'Score: 0', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '28px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 4,
-      padding: { x: 8, y: 4 },
+    // --- Score display (top right, paper cutout card) ---
+    // Background card
+    const scoreBg = this.add.graphics();
+    scoreBg.fillStyle(0xf5f0e8, 0.9);
+    scoreBg.fillRoundedRect(0, 0, 155, 42, 3);
+    scoreBg.lineStyle(2.5, 0x1a1a1a, 0.9);
+    scoreBg.strokeRoundedRect(0, 0, 155, 42, 3);
+    scoreBg.setScrollFactor(0);
+    scoreBg.setDepth(99);
+    scoreBg.setPosition(viewW - 175, 15);
+
+    this.scoreText = this.add.text(0, 0, '0 HONKS', {
+      fontFamily: "'Bangers', cursive",
+      fontSize: '26px',
+      color: '#1a1a1a',
+      letterSpacing: 2,
     });
     this.scoreText.setScrollFactor(0);
     this.scoreText.setDepth(100);
-    this.scoreText.setPosition(20, 20);
+    this.scoreText.setOrigin(0.5);
+    this.scoreText.setPosition(viewW - 97, 36);
 
-    // --- Timer text (top right) ---
+    // --- Timer / Clock display (top center, paper cutout card) ---
+    const timerBg = this.add.graphics();
+    timerBg.fillStyle(0xf5f0e8, 0.9);
+    timerBg.fillRoundedRect(0, 0, 100, 48, 3);
+    timerBg.lineStyle(2.5, 0x1a1a1a, 0.9);
+    timerBg.strokeRoundedRect(0, 0, 100, 48, 3);
+    timerBg.setScrollFactor(0);
+    timerBg.setDepth(99);
+    timerBg.setPosition(viewW / 2 - 50, 10);
+
     this.timerText = this.add.text(0, 0, '3:00', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '28px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 4,
-      padding: { x: 8, y: 4 },
+      fontFamily: "'Bangers', cursive",
+      fontSize: '20px',
+      color: '#1a1a1a',
     });
     this.timerText.setScrollFactor(0);
     this.timerText.setDepth(100);
-    this.timerText.setOrigin(1, 0);
-    this.timerText.setPosition(viewW - 20, 20);
+    this.timerText.setOrigin(0.5);
+    this.timerText.setPosition(viewW / 2, 34);
 
     // --- Confidence meter (left side, vertical bar) ---
     this.createConfidenceUI(viewW, viewH);
@@ -717,13 +1056,21 @@ export class IntersectionScene extends Phaser.Scene {
     // --- Action buttons (bottom) ---
     this.createActionButtons(viewW, viewH);
 
-    // --- Mute button (top center) ---
-    this.muteBtn = this.add.text(viewW / 2, 24, '\uD83D\uDD0A', {
-      fontSize: '24px',
-      backgroundColor: '#1a1a2e99',
-      padding: { x: 8, y: 4 },
+    // --- Settings/Mute button (top left, paper cutout gear) ---
+    // Paper card background
+    const muteBg = this.add.graphics();
+    muteBg.fillStyle(0xf5f0e8, 0.85);
+    muteBg.fillRoundedRect(0, 0, 42, 42, 3);
+    muteBg.lineStyle(2.5, 0x1a1a1a, 0.9);
+    muteBg.strokeRoundedRect(0, 0, 42, 42, 3);
+    muteBg.setScrollFactor(0);
+    muteBg.setDepth(99);
+    muteBg.setPosition(15, 15);
+
+    this.muteBtn = this.add.text(36, 36, '\uD83D\uDD0A', {
+      fontSize: '20px',
     });
-    this.muteBtn.setOrigin(0.5, 0);
+    this.muteBtn.setOrigin(0.5);
     this.muteBtn.setScrollFactor(0);
     this.muteBtn.setDepth(100);
     this.muteBtn.setInteractive({ useHandCursor: true });
@@ -742,68 +1089,106 @@ export class IntersectionScene extends Phaser.Scene {
     });
   }
 
-  private createConfidenceUI(viewW: number, _viewH: number): void {
-    const barX = 24;
-    const barY = 70;
-    const barWidth = 160;
-    const barHeight = 18;
+  /**
+   * Confidence meter — Paper cutout card, bottom-right.
+   * Matches mockup: paper-white card, Bangers label, bar with marker outline.
+   */
+  private createConfidenceUI(viewW: number, viewH: number): void {
+    const cardW = 165;
+    const cardH = 40;
+    const barX = viewW - cardW - 15;
+    const barY = viewH - cardH - 15;
+
+    // Paper card background
+    const confCard = this.add.graphics();
+    confCard.fillStyle(0xf5f0e8, 0.9);
+    confCard.fillRoundedRect(barX, barY, cardW, cardH, 3);
+    confCard.lineStyle(2.5, 0x1a1a1a, 0.9);
+    confCard.strokeRoundedRect(barX, barY, cardW, cardH, 3);
+    confCard.setScrollFactor(0);
+    confCard.setDepth(99);
 
     // Label
-    this.confidenceLabel = this.add.text(barX, barY - 4, 'Confidence: 30%', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3,
+    this.confidenceLabel = this.add.text(barX + 12, barY + 5, 'CONFIDENCE', {
+      fontFamily: "'Bangers', cursive",
+      fontSize: '9px',
+      color: '#3a3a3a',
+      letterSpacing: 1,
     });
     this.confidenceLabel.setScrollFactor(0);
     this.confidenceLabel.setDepth(100);
-    this.confidenceLabel.setOrigin(0, 1);
 
-    // Background
-    this.confidenceBarBg = this.add.rectangle(barX, barY, barWidth, barHeight, 0x1a1a1a, 0.8);
+    // Bar background
+    const barInnerX = barX + 10;
+    const barInnerY = barY + 20;
+    const barWidth = 145;
+    const barHeight = 12;
+
+    this.confidenceBarBg = this.add.rectangle(barInnerX, barInnerY, barWidth, barHeight, 0xdddddd);
     this.confidenceBarBg.setOrigin(0, 0);
-    this.confidenceBarBg.setStrokeStyle(2, 0xffffff, 0.3);
+    this.confidenceBarBg.setStrokeStyle(1.5, 0x1a1a1a, 0.8);
     this.confidenceBarBg.setScrollFactor(0);
     this.confidenceBarBg.setDepth(100);
 
-    // Fill
+    // Bar fill
     const initialWidth = (CONFIDENCE_DEFAULTS.startingConfidence / 100) * barWidth;
-    this.confidenceBarFill = this.add.rectangle(barX + 2, barY + 2, initialWidth - 4, barHeight - 4, 0xfbbf24);
+    this.confidenceBarFill = this.add.rectangle(barInnerX + 1, barInnerY + 1, initialWidth - 2, barHeight - 2, 0x22c55e);
     this.confidenceBarFill.setOrigin(0, 0);
     this.confidenceBarFill.setScrollFactor(0);
     this.confidenceBarFill.setDepth(101);
   }
 
-  private createFatigueUI(viewW: number, _viewH: number): void {
-    const barWidth = 160;
-    const barHeight = 18;
-    const barX = viewW - barWidth - 24;
-    const barY = 70;
+  /**
+   * Fatigue meter — Paper cutout card, bottom-left.
+   * Matches mockup: paper-white card, muscle emoji, Bangers label, bar.
+   */
+  private createFatigueUI(_viewW: number, viewH: number): void {
+    const cardW = 160;
+    const cardH = 40;
+    const barX = 15;
+    const barY = viewH - cardH - 15;
+
+    // Paper card background
+    const fatCard = this.add.graphics();
+    fatCard.fillStyle(0xf5f0e8, 0.9);
+    fatCard.fillRoundedRect(barX, barY, cardW, cardH, 3);
+    fatCard.lineStyle(2.5, 0x1a1a1a, 0.9);
+    fatCard.strokeRoundedRect(barX, barY, cardW, cardH, 3);
+    fatCard.setScrollFactor(0);
+    fatCard.setDepth(99);
+
+    // Muscle emoji
+    const muscleEmoji = this.add.text(barX + 18, barY + 22, '\uD83D\uDCAA', {
+      fontSize: '16px',
+    });
+    muscleEmoji.setOrigin(0.5);
+    muscleEmoji.setScrollFactor(0);
+    muscleEmoji.setDepth(100);
 
     // Label
-    this.fatigueLabel = this.add.text(barX, barY - 4, 'Fatigue: 0%', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3,
+    this.fatigueLabel = this.add.text(barX + 36, barY + 5, 'ARM STRONG', {
+      fontFamily: "'Bangers', cursive",
+      fontSize: '9px',
+      color: '#22c55e',
+      letterSpacing: 1,
     });
     this.fatigueLabel.setScrollFactor(0);
     this.fatigueLabel.setDepth(100);
-    this.fatigueLabel.setOrigin(0, 1);
 
-    // Background
-    this.fatigueBarBg = this.add.rectangle(barX, barY, barWidth, barHeight, 0x1a1a1a, 0.8);
+    // Bar background
+    const barInnerX = barX + 36;
+    const barInnerY = barY + 18;
+    const barWidth = 110;
+    const barHeight = 16;
+
+    this.fatigueBarBg = this.add.rectangle(barInnerX, barInnerY, barWidth, barHeight, 0xdddddd);
     this.fatigueBarBg.setOrigin(0, 0);
-    this.fatigueBarBg.setStrokeStyle(2, 0xffffff, 0.3);
+    this.fatigueBarBg.setStrokeStyle(2, 0x1a1a1a, 0.8);
     this.fatigueBarBg.setScrollFactor(0);
     this.fatigueBarBg.setDepth(100);
 
-    // Fill (starts empty)
-    this.fatigueBarFill = this.add.rectangle(barX + 2, barY + 2, 0, barHeight - 4, 0x22c55e);
+    // Bar fill (starts empty)
+    this.fatigueBarFill = this.add.rectangle(barInnerX + 1, barInnerY + 1, 0, barHeight - 2, 0x22c55e);
     this.fatigueBarFill.setOrigin(0, 0);
     this.fatigueBarFill.setScrollFactor(0);
     this.fatigueBarFill.setDepth(101);
@@ -814,15 +1199,15 @@ export class IntersectionScene extends Phaser.Scene {
     const btnHeight = 48;
     const btnGap = 12;
 
-    // --- RAISE button (center, large) ---
+    // --- RAISE button (center, large) --- Paper Mario neobrutalist style
     const raiseBtnWidth = 140;
     const raiseBg = this.add.rectangle(0, 0, raiseBtnWidth, btnHeight, 0xfbbf24);
-    raiseBg.setStrokeStyle(3, 0xffffff, 0.6);
+    raiseBg.setStrokeStyle(3, 0x1a1a1a, 1);
     const raiseText = this.add.text(0, 0, 'RAISE', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '22px',
-      fontStyle: 'bold',
+      fontFamily: "'Bangers', cursive",
+      fontSize: '24px',
       color: '#1a1a1a',
+      letterSpacing: 3,
     });
     raiseText.setOrigin(0.5);
 
@@ -882,16 +1267,16 @@ export class IntersectionScene extends Phaser.Scene {
       }
     });
 
-    // --- Switch Arms button (left of raise) ---
+    // --- Switch Arms button (left of raise) --- Paper cutout style
     const switchBtnWidth = 100;
     const switchBg = this.add.rectangle(0, 0, switchBtnWidth, btnHeight, 0x3b82f6);
-    switchBg.setStrokeStyle(2, 0xffffff, 0.4);
-    const switchText = this.add.text(0, 0, 'Switch\nArms', {
-      fontFamily: 'system-ui, sans-serif',
+    switchBg.setStrokeStyle(3, 0x1a1a1a, 1);
+    const switchText = this.add.text(0, 0, 'SWITCH\nARMS', {
+      fontFamily: "'Bangers', cursive",
       fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffffff',
+      color: '#f5f0e8',
       align: 'center',
+      letterSpacing: 1,
     });
     switchText.setOrigin(0.5);
 
@@ -920,15 +1305,15 @@ export class IntersectionScene extends Phaser.Scene {
       }
     });
 
-    // --- Rest button (right of raise) ---
+    // --- Rest button (right of raise) --- Paper cutout style
     const restBtnWidth = 100;
     const restBg = this.add.rectangle(0, 0, restBtnWidth, btnHeight, 0x6b7280);
-    restBg.setStrokeStyle(2, 0xffffff, 0.4);
-    const restText = this.add.text(0, 0, 'Rest', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '16px',
-      fontStyle: 'bold',
-      color: '#ffffff',
+    restBg.setStrokeStyle(3, 0x1a1a1a, 1);
+    const restText = this.add.text(0, 0, 'REST', {
+      fontFamily: "'Bangers', cursive",
+      fontSize: '18px',
+      color: '#f5f0e8',
+      letterSpacing: 2,
     });
     restText.setOrigin(0.5);
 
@@ -971,8 +1356,8 @@ export class IntersectionScene extends Phaser.Scene {
   private updateUI(): void {
     const state = this.gameState.getState();
 
-    // Score
-    this.scoreText.setText(`Score: ${state.score}`);
+    // Score (paper cutout HUD)
+    this.scoreText.setText(`${state.score} HONKS`);
 
     // Timer
     const minutes = Math.floor(state.timeRemaining / 60);
@@ -985,7 +1370,7 @@ export class IntersectionScene extends Phaser.Scene {
 
     // --- Confidence bar ---
     const confPct = state.confidence / 100;
-    const confBarMaxWidth = 160 - 4; // barWidth - padding
+    const confBarMaxWidth = 145 - 2; // barWidth - padding
     const targetWidth = confPct * confBarMaxWidth;
 
     // Smooth animation: lerp toward target
@@ -1004,11 +1389,11 @@ export class IntersectionScene extends Phaser.Scene {
       confColor = 0x22c55e;
     }
     this.confidenceBarFill.setFillStyle(confColor);
-    this.confidenceLabel.setText(`Confidence: ${Math.round(state.confidence)}%`);
+    this.confidenceLabel.setText(`CONFIDENCE`);
 
     // --- Fatigue bar ---
     const fatPct = state.armFatigue / 100;
-    const fatBarMaxWidth = 160 - 4;
+    const fatBarMaxWidth = 110 - 2;
     this.fatigueBarFill.width = fatPct * fatBarMaxWidth;
 
     // Color: green (0-40), orange (40-70), red (70-100)
@@ -1021,7 +1406,17 @@ export class IntersectionScene extends Phaser.Scene {
       fatColor = 0xef4444;
     }
     this.fatigueBarFill.setFillStyle(fatColor);
-    this.fatigueLabel.setText(`Fatigue: ${Math.round(state.armFatigue)}%`);
+    // Update fatigue label text and color
+    if (state.armFatigue < 40) {
+      this.fatigueLabel.setText('ARM STRONG');
+      this.fatigueLabel.setColor('#22c55e');
+    } else if (state.armFatigue < 70) {
+      this.fatigueLabel.setText('ARM TIRED');
+      this.fatigueLabel.setColor('#fbbf24');
+    } else {
+      this.fatigueLabel.setText('ARM DEAD');
+      this.fatigueLabel.setColor('#ef4444');
+    }
 
     // Disable raise button while resting
     if (state.isResting) {
@@ -1130,18 +1525,20 @@ export class IntersectionScene extends Phaser.Scene {
   // EVENT BANNER HELPER (Phase 5)
   // ============================================================
 
+  /**
+   * Show event banner — Paper cutout card with Bangers font.
+   */
   private showEventBannerText(text: string, color: string): void {
     const viewW = this.scale.width;
 
     const banner = this.add.text(viewW / 2, 120, text, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '16px',
-      fontStyle: 'bold',
+      fontFamily: "'Bangers', cursive",
+      fontSize: '18px',
       color,
-      stroke: '#000000',
-      strokeThickness: 3,
-      backgroundColor: '#1a1a2eee',
-      padding: { x: 12, y: 6 },
+      stroke: '#1a1a1a',
+      strokeThickness: 2,
+      backgroundColor: '#f5f0e8ee',
+      padding: { x: 16, y: 8 },
     });
     banner.setOrigin(0.5);
     banner.setScrollFactor(0);
