@@ -324,7 +324,7 @@ export class PlayerController {
 
         // Show visual feedback
         this.reactionFeedback.showReactionFeedback(
-          car.x, car.y, reaction, wasRaiseBoosted, wasDeflected, finalScoreValue, this.cars()
+          car, reaction, wasRaiseBoosted, wasDeflected, finalScoreValue
         );
       }
     }
