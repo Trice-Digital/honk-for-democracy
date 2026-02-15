@@ -17,6 +17,8 @@ import { PALETTE } from '../config/paletteConfig';
  * - GameStateManager (confidence drain, group size)
  * - Sign durability (material-driven degradation)
  * - Visual layer (rain particles, sign darkening)
+ *
+ * @stateAccess Uses getState() for session active check. Writes confidence/group size changes via GameStateManager methods. Emits events that trigger reaction weight shifts.
  */
 
 export type WeatherState = 'clear' | 'rain';

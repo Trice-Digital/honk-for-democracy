@@ -8,6 +8,8 @@
  * Chain: Noise -> Filter (lowpass) -> AutoFilter (slow sweep) -> Gain
  *
  * Registered in Phaser registry for cross-scene access.
+ *
+ * @stateAccess Does not read GameStateManager. Continuous sound generator, no state dependencies.
  */
 
 import { Noise, Filter, AutoFilter, Gain, type InputNode } from 'tone';

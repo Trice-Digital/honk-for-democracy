@@ -25,6 +25,8 @@ function hotTune<T>(obj: T, key: keyof T, value: T[keyof T]): void {
  * key config values without rebuilding.
  *
  * Only instantiated when import.meta.env.DEV is true.
+ *
+ * @stateAccess Reads getState() for display values. Mutates config defaults directly for hot-tuning (see hotTune helper).
  */
 
 interface DebugSystems {

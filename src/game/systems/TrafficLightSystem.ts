@@ -6,6 +6,8 @@ import type { LightPhase, TrafficDirection, IntersectionMapConfig } from '../con
  *
  * Reads light cycle config, advances phases on timer,
  * emits events on phase changes. Systems query current state.
+ *
+ * @stateAccess Self-contained state. Does not read from GameStateManager. Exposes own getState() for light phase. Receives config at construction.
  */
 
 export interface TrafficLightState {

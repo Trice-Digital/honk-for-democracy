@@ -31,6 +31,8 @@ import {
  * - WeatherSystem (rain trigger)
  * - ConfidenceSystem (indirect, via confidence changes)
  * - IntersectionScene (UI overlays)
+ *
+ * @stateAccess Uses getState() for full snapshot (needs multiple fields: isSessionActive, confidence, timeRemaining). Also uses getElapsed() individually.
  */
 
 export type EventState = 'idle' | 'copCheck' | 'weather' | 'karma';

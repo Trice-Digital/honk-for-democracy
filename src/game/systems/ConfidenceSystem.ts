@@ -8,6 +8,8 @@ import { CONFIDENCE_DEFAULTS } from '../config/confidenceConfig';
  *
  * Listens to GameStateManager events and calls addConfidence() to update.
  * Group size provides a floor below which passive drain won't push confidence.
+ *
+ * @stateAccess Uses getState() for full snapshot in update(). Listens to GameStateManager events for reaction handling.
  */
 
 export class ConfidenceSystem {

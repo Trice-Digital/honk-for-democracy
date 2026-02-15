@@ -8,6 +8,8 @@ import { CONFIDENCE_DEFAULTS } from '../config/confidenceConfig';
  *
  * All systems read/write here. Changes emit events so UI and other
  * systems can react. Registered in Phaser's registry for cross-scene access.
+ *
+ * @stateAccess Source of truth. Exposes getState() (full readonly snapshot) and individual getters (getElapsed(), getConfidence(), etc). Other systems use whichever is convenient.
  */
 
 export interface ReactionTally {

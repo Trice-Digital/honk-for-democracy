@@ -7,6 +7,8 @@
  *
  * Enhanced in Plan 10-04: 4 honk variants with doppler pitch shift,
  * improved coal roller with engine roar, traffic light clunk.
+ *
+ * @stateAccess Does not read GameStateManager. Stateless sound generator. Triggered by events/method calls.
  */
 
 import { AUDIO_CONFIG } from '../config/audioConfig';

@@ -7,6 +7,8 @@ import type { DifficultyConfig } from '../config/difficultyConfig';
  * ReactionSystem — Determines car reactions and produces visual feedback events.
  *
  * Config-driven. Same system works on any map. Weights come from DifficultyConfig.
+ *
+ * @stateAccess Does not read GameStateManager directly. Receives difficulty config at construction. Stateless — just rolls reactions.
  */
 
 export interface ReactionEvent {

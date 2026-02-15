@@ -9,6 +9,8 @@
  *
  * All layers feed into a master gain node connected to Tone.js destination.
  * Registered in Phaser registry for cross-scene access (same pattern as AudioSystem).
+ *
+ * @stateAccess Does not read GameStateManager. Provides wiring infrastructure. Volume control only.
  */
 
 import * as Tone from 'tone';

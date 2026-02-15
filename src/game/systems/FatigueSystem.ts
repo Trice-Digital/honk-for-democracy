@@ -18,6 +18,8 @@ import type { DifficultyConfig } from '../config/difficultyConfig';
  *   - Raise sign: active timing mechanic (bonus/deflect)
  *
  * Cone shrink is driven by fatigue level (mapped in getConeWidth).
+ *
+ * @stateAccess Uses individual getters (getFatigue(), getIsRaised()). Reads specific values frequently in update() — individual getters avoid destructuring overhead.
  */
 
 export class FatigueSystem {

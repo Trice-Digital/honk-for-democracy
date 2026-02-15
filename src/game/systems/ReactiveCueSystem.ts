@@ -14,6 +14,8 @@
  *
  * Does NOT connect to destination directly — exposes connectTo() for mixer wiring.
  * Registered in Phaser registry for cross-scene access.
+ *
+ * @stateAccess Receives confidence value via update(confidence, delta) method. Does not read GameStateManager directly.
  */
 
 import {

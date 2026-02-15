@@ -13,6 +13,8 @@
  * Energy transitions happen at phrase boundaries to avoid jarring mid-phrase changes.
  *
  * Registered in Phaser registry for cross-scene access.
+ *
+ * @stateAccess Receives confidence value via updateConfidence(confidence) method. Does not read GameStateManager directly.
  */
 
 import { PolySynth, FMSynth, Gain, Loop, getTransport, type InputNode } from 'tone';
