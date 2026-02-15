@@ -86,42 +86,41 @@ export class ScoreScene extends Phaser.Scene {
       // Stick
       this.add.rectangle(cx, y + signDisplayHeight / 2 + 30, 5, 40, 0x92400e);
 
-      // Remove stale texture from previous session (addBase64 silently fails if key exists)
-      if (this.textures.exists('scoreSign')) {
-        this.textures.remove('scoreSign');
-      }
-
       // Capture y in closure for async callback
       const signY = y;
 
-      // Load PNG as texture
-      this.textures.once('addtexture', (key: string) => {
-        if (key === 'scoreSign') {
-          const signImg = this.add.image(cx, signY + signDisplayHeight / 2, 'scoreSign');
-          signImg.setOrigin(0.5);
-
-          // Scale to fit display area, maintaining aspect ratio
-          const scaleX = signDisplayWidth / signImg.width;
-          const scaleY = signDisplayHeight / signImg.height;
-          const scale = Math.min(scaleX, scaleY);
-          signImg.setScale(scale);
-
-          // Subtle border/shadow
-          const borderPadding = 8;
-          const borderRect = this.add.rectangle(
-            cx,
-            signY + signDisplayHeight / 2,
-            signImg.displayWidth + borderPadding * 2,
-            signImg.displayHeight + borderPadding * 2,
-            0x1a1a1a,
-            0.3
-          );
-          borderRect.setStrokeStyle(2, 0xffffff, 0.2);
-          borderRect.setDepth(-1);
-          signImg.setDepth(0);
+      // Load PNG directly as an Image element, then add as texture
+      const imgEl = new Image();
+      imgEl.onload = () => {
+        if (this.textures.exists('scoreSign')) {
+          this.textures.remove('scoreSign');
         }
-      });
-      this.textures.addBase64('scoreSign', signData.signImageDataUrl);
+        this.textures.addImage('scoreSign', imgEl);
+
+        const signImg = this.add.image(cx, signY + signDisplayHeight / 2, 'scoreSign');
+        signImg.setOrigin(0.5);
+
+        // Scale to fit display area, maintaining aspect ratio
+        const scaleX = signDisplayWidth / signImg.width;
+        const scaleY = signDisplayHeight / signImg.height;
+        const scale = Math.min(scaleX, scaleY);
+        signImg.setScale(scale);
+
+        // Subtle border/shadow
+        const borderPadding = 8;
+        const borderRect = this.add.rectangle(
+          cx,
+          signY + signDisplayHeight / 2,
+          signImg.displayWidth + borderPadding * 2,
+          signImg.displayHeight + borderPadding * 2,
+          0x1a1a1a,
+          0.3
+        );
+        borderRect.setStrokeStyle(2, 0xffffff, 0.2);
+        borderRect.setDepth(-1);
+        signImg.setDepth(0);
+      };
+      imgEl.src = signData.signImageDataUrl;
 
       y += signDisplayHeight + 55;
     } else {

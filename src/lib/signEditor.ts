@@ -199,8 +199,12 @@ export class SignEditor {
     const canvasW = this.canvas.width!;
     const canvasH = this.canvas.height!;
     img.set({
-      scaleX: canvasW / (img.width || canvasW),
-      scaleY: canvasH / (img.height || canvasH),
+      left: 0,
+      top: 0,
+      originX: 'left',
+      originY: 'top',
+      scaleX: (canvasW + 2) / (img.width || canvasW),
+      scaleY: (canvasH + 2) / (img.height || canvasH),
     });
 
     // Fabric.js v6+/v7: set backgroundImage property directly (setBackgroundImage was removed)

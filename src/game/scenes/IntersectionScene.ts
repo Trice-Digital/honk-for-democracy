@@ -166,17 +166,16 @@ export class IntersectionScene extends Phaser.Scene {
     // --- Apply sign data to player character ---
     // Check if we have a crafted sign PNG (M2 sign creator) or fallback to M1 rectangle rendering
     if (this.signData.signImageDataUrl) {
-      // Remove stale texture from previous session (addBase64 silently fails if key exists)
-      if (this.textures.exists('craftedSign')) {
-        this.textures.remove('craftedSign');
-      }
-      // Load PNG as Phaser texture
-      this.textures.once('addtexture', (key: string) => {
-        if (key === 'craftedSign') {
-          this.player.setSignTexture('craftedSign');
+      // Load PNG directly as an Image element, then add as texture
+      const img = new Image();
+      img.onload = () => {
+        if (this.textures.exists('craftedSign')) {
+          this.textures.remove('craftedSign');
         }
-      });
-      this.textures.addBase64('craftedSign', this.signData.signImageDataUrl);
+        this.textures.addImage('craftedSign', img);
+        this.player.setSignTexture('craftedSign');
+      };
+      img.src = this.signData.signImageDataUrl;
     } else {
       // Backward compatibility: M1 rectangle-based sign rendering
       this.player.setSignMessage(this.signData.message);
