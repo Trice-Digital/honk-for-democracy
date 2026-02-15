@@ -98,6 +98,10 @@ export class IntersectionScene extends Phaser.Scene {
   private clockContainer!: Phaser.GameObjects.Container;
   private clockHandGraphics!: Phaser.GameObjects.Graphics;
 
+  // Menu / Pause
+  private isPaused: boolean = false;
+  private menuOverlay: Phaser.GameObjects.Container | null = null;
+
   // Raise tap mechanic
   private raiseHoldActive: boolean = false;
   private raiseTapTimer: Phaser.Time.TimerEvent | null = null;
@@ -316,6 +320,7 @@ export class IntersectionScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (!this.gameState.isActive()) return;
+    if (this.isPaused) return;
 
     // Update systems
     this.gameState.updateTime(delta);
@@ -1267,6 +1272,9 @@ export class IntersectionScene extends Phaser.Scene {
     // --- Paper cutout analog clock (top center, above timer) ---
     this.createClockUI(viewW);
 
+    // --- In-game menu button (top left, below mute) ---
+    this.createMenuButton(viewW, viewH);
+
     // --- Settings/Mute button (top left, neobrutalist card) ---
     const muteShadow = this.add.graphics();
     muteShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
@@ -1716,6 +1724,178 @@ export class IntersectionScene extends Phaser.Scene {
   }
 
   /**
+   * Paper cutout menu button — hamburger icon in top-left, below mute button.
+   * Opens pause overlay with Resume, Restart, Quit to Title.
+   */
+  private createMenuButton(_viewW: number, _viewH: number): void {
+    const btnX = 15;
+    const btnY = 65; // Below the mute button
+    const btnSize = 36;
+
+    // Shadow
+    const menuShadow = this.add.graphics();
+    menuShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+    menuShadow.fillRoundedRect(btnX + 3, btnY + 3, btnSize, btnSize, 4);
+    menuShadow.setScrollFactor(0);
+    menuShadow.setDepth(104);
+
+    // Button background (paper cutout)
+    const menuBg = this.add.graphics();
+    menuBg.fillStyle(PALETTE.paperWhite, 0.9);
+    menuBg.fillRoundedRect(btnX, btnY, btnSize, btnSize, 4);
+    menuBg.lineStyle(2.5, PALETTE.markerBlack, 1);
+    menuBg.strokeRoundedRect(btnX, btnY, btnSize, btnSize, 4);
+    menuBg.setScrollFactor(0);
+    menuBg.setDepth(105);
+
+    // Hamburger icon (three marker lines)
+    const iconG = this.add.graphics();
+    const cx = btnX + btnSize / 2;
+    const cy = btnY + btnSize / 2;
+    iconG.lineStyle(3, PALETTE.markerBlack, 0.9);
+    for (let i = -1; i <= 1; i++) {
+      const ly = cy + i * 7;
+      iconG.beginPath();
+      iconG.moveTo(cx - 9, ly);
+      iconG.lineTo(cx + 9, ly);
+      iconG.strokePath();
+    }
+    iconG.setScrollFactor(0);
+    iconG.setDepth(106);
+
+    // Interactive hit area
+    const hitArea = this.add.rectangle(cx, cy, btnSize, btnSize);
+    hitArea.setScrollFactor(0);
+    hitArea.setDepth(107);
+    hitArea.setInteractive({ useHandCursor: true });
+    hitArea.setAlpha(0.001); // Invisible but interactive
+
+    hitArea.on('pointerdown', () => {
+      this.toggleMenuOverlay();
+    });
+  }
+
+  /**
+   * Toggle menu overlay — creates or destroys the pause panel.
+   */
+  private toggleMenuOverlay(): void {
+    if (this.menuOverlay) {
+      // Close overlay, resume
+      this.menuOverlay.destroy();
+      this.menuOverlay = null;
+      this.isPaused = false;
+      return;
+    }
+
+    // Open overlay, pause
+    this.isPaused = true;
+
+    const viewW = this.scale.width;
+    const viewH = this.scale.height;
+
+    // Dark overlay background
+    const darkBg = this.add.rectangle(0, 0, viewW, viewH, 0x000000, 0.6);
+    darkBg.setOrigin(0, 0);
+
+    // Paper cutout panel
+    const panelW = 240;
+    const panelH = 220;
+    const panelX = viewW / 2 - panelW / 2;
+    const panelY = viewH / 2 - panelH / 2;
+
+    const panelG = this.add.graphics();
+    // Shadow
+    drawPaperShadow(panelG, panelX, panelY, panelW, panelH);
+    // Body
+    drawScissorCutRect(panelG, panelX, panelY, panelW, panelH, PALETTE.cardboard);
+
+    // Title: "PAUSED"
+    const titleText = this.add.text(viewW / 2, panelY + 30, 'PAUSED', {
+      fontFamily: "'Bangers', cursive",
+      fontSize: '32px',
+      color: '#fbbf24',
+      stroke: '#1a1a1a',
+      strokeThickness: 4,
+      letterSpacing: 3,
+    });
+    titleText.setOrigin(0.5);
+
+    // Button factory
+    const createMenuBtn = (
+      y: number,
+      label: string,
+      fillColor: number,
+      callback: () => void,
+    ): Phaser.GameObjects.Container => {
+      const bw = 180;
+      const bh = 42;
+      const bx = viewW / 2;
+
+      const btnShadow = this.add.graphics();
+      btnShadow.fillStyle(PALETTE.shadowDark, 0.5);
+      btnShadow.fillRoundedRect(-bw / 2 + 3, -bh / 2 + 3, bw, bh, 4);
+
+      const bg = this.add.rectangle(0, 0, bw, bh, fillColor);
+      bg.setStrokeStyle(3, PALETTE.markerBlack, 1);
+
+      const text = this.add.text(0, 0, label, {
+        fontFamily: "'Bangers', cursive",
+        fontSize: '20px',
+        color: '#f5f0e8',
+        letterSpacing: 2,
+      });
+      text.setOrigin(0.5);
+
+      const container = this.add.container(bx, y, [btnShadow, bg, text]);
+      container.setSize(bw, bh);
+      container.setInteractive({ useHandCursor: true });
+
+      container.on('pointerdown', () => {
+        container.setPosition(bx + 2, y + 2);
+      });
+      container.on('pointerup', () => {
+        container.setPosition(bx, y);
+        callback();
+      });
+      container.on('pointerout', () => {
+        container.setPosition(bx, y);
+      });
+
+      return container;
+    };
+
+    const btnStartY = panelY + 75;
+    const btnGap = 50;
+
+    // Resume button
+    const resumeBtn = createMenuBtn(btnStartY, 'RESUME', PALETTE.stoplightGreen, () => {
+      this.toggleMenuOverlay();
+    });
+
+    // Restart button
+    const restartBtn = createMenuBtn(btnStartY + btnGap, 'RESTART', PALETTE.actionBlue, () => {
+      this.menuOverlay?.destroy();
+      this.menuOverlay = null;
+      this.isPaused = false;
+      this.scene.restart();
+    });
+
+    // Quit to Title button
+    const quitBtn = createMenuBtn(btnStartY + btnGap * 2, 'QUIT TO TITLE', PALETTE.stoplightRed, () => {
+      this.menuOverlay?.destroy();
+      this.menuOverlay = null;
+      this.isPaused = false;
+      this.scene.start('BootScene');
+    });
+
+    this.menuOverlay = this.add.container(0, 0, [
+      darkBg, panelG, titleText, resumeBtn, restartBtn, quitBtn,
+    ]);
+    this.menuOverlay.setScrollFactor(0);
+    this.menuOverlay.setDepth(500);
+  }
+
+  /**
    * Update clock hands based on game progress.
    * Maps session time to 10:00 AM -> 12:00 PM (2 hours).
    */
@@ -1893,6 +2073,13 @@ export class IntersectionScene extends Phaser.Scene {
     if (this.raiseTapTimer) {
       this.raiseTapTimer.destroy();
       this.raiseTapTimer = null;
+    }
+
+    // Clean up menu overlay
+    if (this.menuOverlay) {
+      this.menuOverlay.destroy();
+      this.menuOverlay = null;
+      this.isPaused = false;
     }
 
     // Clean up stopped traffic banner
