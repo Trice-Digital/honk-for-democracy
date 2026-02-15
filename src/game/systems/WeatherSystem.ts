@@ -4,6 +4,7 @@ import type { WeatherConfig } from '../config/eventConfig';
 import { WEATHER_DEFAULTS } from '../config/eventConfig';
 import type { SignMaterial } from '../config/signConfig';
 import type { DifficultyConfig } from '../config/difficultyConfig';
+import { PALETTE } from '../config/paletteConfig';
 
 /**
  * WeatherSystem — Manages weather state and rain effects.
@@ -173,15 +174,19 @@ export class WeatherSystem extends Phaser.Events.EventEmitter {
       });
     }
 
-    // Darken overlay for rain mood
+    // Blue vellum overlay — desaturated blue tint like blue construction paper laid over scene
     const overlay = this.scene.add.rectangle(
-      viewW / 2, viewH / 2, viewW, viewH, 0x000022, 0.15,
+      viewW / 2, viewH / 2, viewW, viewH, 0x3366aa, 0.08,
     );
     overlay.setScrollFactor(0);
     overlay.setDepth(149);
     overlay.setName('rainOverlay');
   }
 
+  /**
+   * Update rain visual — Paper teardrop particles from mockup.
+   * Each drop is a small paper cutout teardrop shape with marker outline.
+   */
   private updateRainVisual(deltaSec: number): void {
     if (!this.rainGraphics) return;
 
@@ -189,7 +194,6 @@ export class WeatherSystem extends Phaser.Events.EventEmitter {
     const viewH = this.scene.scale.height;
 
     this.rainGraphics.clear();
-    this.rainGraphics.lineStyle(1, 0x8899cc, 0.5);
 
     for (const drop of this.rainDrops) {
       drop.y += drop.speed * deltaSec;
@@ -204,9 +208,29 @@ export class WeatherSystem extends Phaser.Events.EventEmitter {
         drop.x = viewW + 10;
       }
 
+      // Paper teardrop cutout shape — blue construction paper raindrop
+      const tx = drop.x;
+      const ty = drop.y;
+      const r = drop.length * 0.3;
+
+      // Fill: blue construction paper cutout color
+      this.rainGraphics.fillStyle(0x6699cc, 0.4);
       this.rainGraphics.beginPath();
-      this.rainGraphics.moveTo(drop.x, drop.y);
-      this.rainGraphics.lineTo(drop.x - 2, drop.y + drop.length);
+      this.rainGraphics.moveTo(tx, ty);
+      this.rainGraphics.lineTo(tx - r, ty + r * 2.5);
+      this.rainGraphics.arc(tx, ty + r * 2.5, r, Math.PI, 0, false);
+      this.rainGraphics.lineTo(tx + r, ty + r * 2.5);
+      this.rainGraphics.closePath();
+      this.rainGraphics.fillPath();
+
+      // Subtle darker border (marker outline)
+      this.rainGraphics.lineStyle(1, PALETTE.markerBlack, 0.2);
+      this.rainGraphics.beginPath();
+      this.rainGraphics.moveTo(tx, ty);
+      this.rainGraphics.lineTo(tx - r, ty + r * 2.5);
+      this.rainGraphics.arc(tx, ty + r * 2.5, r, Math.PI, 0, false);
+      this.rainGraphics.lineTo(tx + r, ty + r * 2.5);
+      this.rainGraphics.closePath();
       this.rainGraphics.strokePath();
     }
   }
