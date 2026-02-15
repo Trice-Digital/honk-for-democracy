@@ -104,6 +104,18 @@ export class EventSystem extends Phaser.Events.EventEmitter {
 
   /**
    * Check if conditions are met to trigger a new event.
+   *
+   * Called each frame when no event is currently active. Evaluates multiple
+   * conditions in priority order:
+   *
+   * 1. **Minimum time window**: Bail if before nextEventMinTime
+   * 2. **Max events cap**: Bail if hit maxEventsPerSession (but checkGuaranteedEvents still runs)
+   * 3. **Minimum spacing**: Bail if < minEventSpacing seconds since last event
+   * 4. **Guaranteed event urgency**: If < 30s remaining, force any guaranteed events that haven't fired yet
+   * 5. **Probability roll**: baseTriggerChancePerSecond * eventFrequencyMultiplier * deltaSec
+   *
+   * The guaranteed event urgency check at <30s overrides the max-events cap via checkGuaranteedEvents().
+   * Probability is a per-frame chance: e.g. 0.02/sec * 1.0 * 0.016s = 0.00032 per frame.
    */
   private checkEventTrigger(
     elapsed: number,
@@ -174,6 +186,14 @@ export class EventSystem extends Phaser.Events.EventEmitter {
 
   /**
    * Pick which event type to trigger based on weights and eligibility.
+   *
+   * Filters all event types through canTriggerEvent() to determine which are currently eligible,
+   * then performs weighted random selection from the eligible pool.
+   *
+   * Weights are pulled from config.eventWeights and used directly (NOT normalized).
+   * For example: { copCheck: 0.5, weather: 0.3, karma: 0.2 } → total weight 1.0
+   *
+   * Returns null if no event types are eligible (all exhausted or blocked by constraints).
    */
   private pickEventType(
     state: Readonly<ReturnType<GameStateManager['getState']>>,
@@ -202,6 +222,15 @@ export class EventSystem extends Phaser.Events.EventEmitter {
 
   /**
    * Check if a specific event type can trigger right now.
+   *
+   * Per-type constraints that gate eligibility:
+   *
+   * - **copCheck**: Blocked when confidence < copCheckMinConfidence (don't pile on struggling player)
+   * - **weather**: One per session only. Blocked if weather already triggered OR if it's currently raining.
+   * - **karma**: Requires karmaMinTime elapsed (mid-to-late game event). One per session only.
+   * - **default**: Always eligible (future event types pass by default)
+   *
+   * Returns true if this specific event can fire right now, false otherwise.
    */
   private canTriggerEvent(
     type: EventType,
