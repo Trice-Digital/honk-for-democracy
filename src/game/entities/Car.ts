@@ -9,20 +9,16 @@ import { drawPaperShadow, drawScissorCutPolygon } from '../utils/paperArt';
  * 8 vehicle types matched to the paper-mario-style.html mockup reference sheet:
  *   sedan, suv, compact, pickup, truck, coalRoller, motorcycle, bicycle
  *
- * Each type has a dedicated drawing function that replicates the mockup's
- * SVG details: windshield proportions, roof racks, trailer sections,
- * bed rails, smoke stacks, rider silhouettes, etc.
- *
  * All drawn to Graphics → baked to texture via generateTexture() → displayed as Image.
  * No per-frame earcut triangulation.
+ *
+ * Dimensions are at final display size — no runtime scaling.
+ * All oriented northbound (front = -y). Container rotation handles direction.
  */
 
 // ---------------------------------------------------------------------------
 // Car type system
 // ---------------------------------------------------------------------------
-
-// Scale factor to make cars ~2x larger and fill ~70-85% of 80px lane width
-const SCALE_FACTOR = 2.0;
 
 export type CarType = 'sedan' | 'suv' | 'compact' | 'pickup' | 'truck' | 'coalRoller' | 'motorcycle' | 'bicycle';
 
@@ -48,7 +44,7 @@ function pickWeightedCarType(): CarType {
 }
 
 // ---------------------------------------------------------------------------
-// Vehicle dimensions (used for baking, bounds, and collision)
+// Vehicle dimensions — at final display size (no scaling needed)
 // All oriented northbound (front = -y). Container rotation handles direction.
 // ---------------------------------------------------------------------------
 
@@ -62,22 +58,22 @@ interface VehicleDef {
 }
 
 const VEHICLE_DEFS: Record<CarType, VehicleDef> = {
-  // Matches mockup Section 2: 50w × 90h scaled to game proportions
-  sedan:       { width: 30, height: 50, faceY: -16, faceSize: 14 },
-  // Mockup: 56w × 100h — boxy, bigger
-  suv:         { width: 34, height: 56, faceY: -18, faceSize: 14 },
-  // Mockup: 40w × 65h — small, very rounded
-  compact:     { width: 24, height: 38, faceY: -11, faceSize: 12 },
-  // Mockup: 52w × 110h — cab + open bed
-  pickup:      { width: 30, height: 58, faceY: -20, faceSize: 14 },
-  // Mockup: 48w × 155h — cab + long trailer (scaled down for game)
-  truck:       { width: 28, height: 78, faceY: -30, faceSize: 12 },
-  // Mockup: 55w × 100h — dark aggressive cab + bed
-  coalRoller:  { width: 34, height: 56, faceY: -18, faceSize: 14 },
-  // Not in mockup — new. Small narrow silhouette
-  motorcycle:  { width: 14, height: 30, faceY: -4, faceSize: 11 },
-  // Not in mockup — new. Tiny, thin frame
-  bicycle:     { width: 10, height: 26, faceY: -2, faceSize: 10 },
+  // Mockup SVG: 50w × 90h — rounded body, windshield strip
+  sedan:       { width: 50, height: 90, faceY: -28, faceSize: 22 },
+  // Mockup SVG: 56w × 100h — boxy, roof rack rails
+  suv:         { width: 56, height: 100, faceY: -32, faceSize: 22 },
+  // Mockup SVG: 40w × 65h — small, very rounded
+  compact:     { width: 40, height: 65, faceY: -20, faceSize: 18 },
+  // Mockup SVG: 52w × 110h — cab + open bed
+  pickup:      { width: 52, height: 110, faceY: -36, faceSize: 22 },
+  // Mockup SVG: 48w × 155h — cab + long trailer
+  truck:       { width: 48, height: 155, faceY: -60, faceSize: 18 },
+  // Mockup SVG: 55w × 100h — dark aggressive cab + bed
+  coalRoller:  { width: 55, height: 100, faceY: -32, faceSize: 22 },
+  // Small narrow silhouette
+  motorcycle:  { width: 24, height: 54, faceY: -8, faceSize: 18 },
+  // Tiny, thin frame
+  bicycle:     { width: 18, height: 46, faceY: -4, faceSize: 16 },
 };
 
 // Emoji face sets
@@ -140,9 +136,8 @@ export class Car extends Phaser.GameObjects.Container {
     this.carType = pickWeightedCarType();
 
     const def = VEHICLE_DEFS[this.carType];
-    const isVertical = this.direction === 'north' || this.direction === 'south';
-    this.carWidth = (isVertical ? def.width : def.height) * SCALE_FACTOR;
-    this.carLength = (isVertical ? def.height : def.width) * SCALE_FACTOR;
+    this.carWidth = def.width;
+    this.carLength = def.height;
 
     this.carColor = this.pickColor();
 
@@ -153,8 +148,8 @@ export class Car extends Phaser.GameObjects.Container {
       ? CYCLIST_FACES[Math.floor(Math.random() * CYCLIST_FACES.length)]
       : DRIVER_FACES[Math.floor(Math.random() * DRIVER_FACES.length)];
     const driverX = (this.carType === 'motorcycle' || this.carType === 'bicycle') ? 0 : -(def.width * 0.2);
-    this.emojiText = scene.add.text(driverX * SCALE_FACTOR, def.faceY * SCALE_FACTOR, face, {
-      fontSize: `${Math.round(def.faceSize * 1.5)}px`,
+    this.emojiText = scene.add.text(driverX, def.faceY, face, {
+      fontSize: `${def.faceSize}px`,
     });
     this.emojiText.setOrigin(0.5);
     this.add(this.emojiText);
@@ -174,7 +169,6 @@ export class Car extends Phaser.GameObjects.Container {
       case 'coalRoller':
         return COAL_ROLLER_COLORS[Math.floor(Math.random() * COAL_ROLLER_COLORS.length)];
       case 'truck':
-        // Cab gets craft brown, trailer gets paper white (drawn separately)
         return PALETTE.craftBrown;
       case 'motorcycle':
         return [0x2a2a2a, 0xc0392b, 0x2980b9, 0xf39c12][Math.floor(Math.random() * 4)];
@@ -195,14 +189,12 @@ export class Car extends Phaser.GameObjects.Container {
   }
 
   private maybeAddPassenger(): void {
-    // Remove any existing passenger
     if (this.passengerText) {
       this.remove(this.passengerText);
       this.passengerText.destroy();
       this.passengerText = null;
     }
 
-    // Only cars (not motorcycles or bicycles) can have passengers
     if (this.carType === 'motorcycle' || this.carType === 'bicycle') {
       return;
     }
@@ -210,15 +202,15 @@ export class Car extends Phaser.GameObjects.Container {
     // 30% chance of passenger
     if (Math.random() < 0.3) {
       const def = VEHICLE_DEFS[this.carType];
-      const isDog = Math.random() < 0.1; // 10% of passengers are dogs
+      const isDog = Math.random() < 0.1;
       const passengerEmoji = isDog
         ? DOG_EMOJIS[Math.floor(Math.random() * DOG_EMOJIS.length)]
         : PASSENGER_EMOJIS[Math.floor(Math.random() * PASSENGER_EMOJIS.length)];
 
-      // Passenger in front-right seat: positive X (right side), same Y as driver
-      const passengerX = (def.width * 0.2) * SCALE_FACTOR;
-      const passengerY = def.faceY * SCALE_FACTOR;
-      const passengerSize = Math.round(def.faceSize * (isDog ? 1.2 : 1.4));
+      // Passenger in front-right seat
+      const passengerX = def.width * 0.2;
+      const passengerY = def.faceY;
+      const passengerSize = Math.round(def.faceSize * (isDog ? 0.8 : 0.9));
 
       this.passengerText = this.scene.add.text(passengerX, passengerY, passengerEmoji, {
         fontSize: `${passengerSize}px`,
@@ -246,7 +238,7 @@ export class Car extends Phaser.GameObjects.Container {
     this.drawVehicle(tempG);
 
     const def = VEHICLE_DEFS[this.carType];
-    const pad = 12;
+    const pad = 20;
     const texW = def.width + pad * 2;
     const texH = def.height + pad * 2;
     tempG.setPosition(texW / 2, texH / 2);
@@ -256,12 +248,12 @@ export class Car extends Phaser.GameObjects.Container {
     this.carTexKey = texKey;
 
     this.carBodyImage = this.scene.add.image(0, 0, texKey);
-    this.carBodyImage.setScale(SCALE_FACTOR);
     this.add(this.carBodyImage);
   }
 
   // ---------------------------------------------------------------------------
   // Drawing — type-specific rendering matched to mockup reference sheet
+  // All coordinates at final display size (no scaling).
   // ---------------------------------------------------------------------------
 
   private drawVehicle(g: Phaser.GameObjects.Graphics): void {
@@ -278,349 +270,331 @@ export class Car extends Phaser.GameObjects.Container {
   }
 
   /**
-   * Sedan — Mockup ref: rounded body (rx=14), windshield strip, rear window, center line.
-   * Proportions: 30w × 50h
+   * Sedan — 50w × 90h. Rounded body, windshield strip, rear window, center line.
    */
   private drawSedan(g: Phaser.GameObjects.Graphics): void {
-    const hw = 15, hh = 25;
-
-    // Shadow
-    drawPaperShadow(g, -hw, -hh, hw * 2, hh * 2);
-
-    // Body — well-rounded sedan silhouette
-    const pts = [
-      { x: -10, y: -25 }, { x: -13, y: -21 }, { x: -15, y: -14 },
-      { x: -15, y: 14 }, { x: -13, y: 21 }, { x: -10, y: 25 },
-      { x: 10, y: 25 }, { x: 13, y: 21 }, { x: 15, y: 14 },
-      { x: 15, y: -14 }, { x: 13, y: -21 }, { x: 10, y: -25 },
-    ];
-    drawScissorCutPolygon(g, pts, this.carColor, PALETTE.markerBlack);
-
-    // Windshield — generous strip across front (mockup: ~22% of height)
-    g.fillStyle(WINDSHIELD_TINT, 0.45);
-    g.fillRoundedRect(-11, -22, 22, 12, 4);
-    g.lineStyle(1.2, PALETTE.markerBlack, 0.7);
-    g.strokeRoundedRect(-11, -22, 22, 12, 4);
-
-    // Rear window
-    g.fillStyle(WINDSHIELD_TINT, 0.3);
-    g.fillRoundedRect(-9, 14, 18, 7, 3);
-    g.lineStyle(0.8, PALETTE.markerBlack, 0.5);
-    g.strokeRoundedRect(-9, 14, 18, 7, 3);
-
-    // Center line detail (subtle roof seam)
-    g.lineStyle(0.5, PALETTE.markerBlack, 0.15);
-    g.beginPath(); g.moveTo(0, -8); g.lineTo(0, 12); g.strokePath();
-
-    // Wheels
-    this.drawWheels(g, hw, hh, 5, 8);
-
-    // Final outline
-    this.strokeOutline(g, pts);
-  }
-
-  /**
-   * SUV — Mockup ref: boxy, roof rack rails + cross struts, wider body.
-   * Proportions: 34w × 56h
-   */
-  private drawSUV(g: Phaser.GameObjects.Graphics): void {
-    const hw = 17, hh = 28;
+    const hw = 25, hh = 45;
 
     drawPaperShadow(g, -hw, -hh, hw * 2, hh * 2);
 
-    // Boxy body
     const pts = [
-      { x: -14, y: -28 }, { x: -16, y: -23 },
-      { x: -17, y: -16 }, { x: -17, y: 23 },
-      { x: -15, y: 28 }, { x: 15, y: 28 },
-      { x: 17, y: 23 }, { x: 17, y: -16 },
-      { x: 16, y: -23 }, { x: 14, y: -28 },
-    ];
-    drawScissorCutPolygon(g, pts, this.carColor, PALETTE.markerBlack);
-
-    // Roof rack rails (vertical lines on sides)
-    g.lineStyle(2, PALETTE.markerBlack, 0.4);
-    g.beginPath(); g.moveTo(-15, -24); g.lineTo(-15, 24); g.strokePath();
-    g.beginPath(); g.moveTo(15, -24); g.lineTo(15, 24); g.strokePath();
-
-    // Roof rack cross struts
-    g.lineStyle(1.5, PALETTE.markerBlack, 0.3);
-    g.beginPath(); g.moveTo(-15, -14); g.lineTo(15, -14); g.strokePath();
-    g.beginPath(); g.moveTo(-15, 18); g.lineTo(15, 18); g.strokePath();
-
-    // Windshield — wide, boxy
-    g.fillStyle(WINDSHIELD_TINT, 0.45);
-    g.fillRoundedRect(-13, -25, 26, 14, 4);
-    g.lineStyle(1.2, PALETTE.markerBlack, 0.7);
-    g.strokeRoundedRect(-13, -25, 26, 14, 4);
-
-    // Rear window
-    g.fillStyle(WINDSHIELD_TINT, 0.3);
-    g.fillRoundedRect(-11, 16, 22, 8, 3);
-    g.lineStyle(0.8, PALETTE.markerBlack, 0.5);
-    g.strokeRoundedRect(-11, 16, 22, 8, 3);
-
-    this.drawWheels(g, hw, hh, 5, 9);
-    this.strokeOutline(g, pts);
-  }
-
-  /**
-   * Compact — Mockup ref: small, very rounded (rx=14), cute proportions.
-   * Proportions: 24w × 38h
-   */
-  private drawCompact(g: Phaser.GameObjects.Graphics): void {
-    const hw = 12, hh = 19;
-
-    drawPaperShadow(g, -hw, -hh, hw * 2, hh * 2);
-
-    // Very rounded body
-    const pts = [
-      { x: -8, y: -19 }, { x: -11, y: -15 }, { x: -12, y: -8 },
-      { x: -12, y: 8 }, { x: -11, y: 15 }, { x: -8, y: 19 },
-      { x: 8, y: 19 }, { x: 11, y: 15 }, { x: 12, y: 8 },
-      { x: 12, y: -8 }, { x: 11, y: -15 }, { x: 8, y: -19 },
+      { x: -18, y: -45 }, { x: -23, y: -38 }, { x: -25, y: -25 },
+      { x: -25, y: 25 }, { x: -23, y: 38 }, { x: -18, y: 45 },
+      { x: 18, y: 45 }, { x: 23, y: 38 }, { x: 25, y: 25 },
+      { x: 25, y: -25 }, { x: 23, y: -38 }, { x: 18, y: -45 },
     ];
     drawScissorCutPolygon(g, pts, this.carColor, PALETTE.markerBlack);
 
     // Windshield
     g.fillStyle(WINDSHIELD_TINT, 0.45);
-    g.fillRoundedRect(-8, -16, 16, 9, 4);
-    g.lineStyle(1, PALETTE.markerBlack, 0.7);
-    g.strokeRoundedRect(-8, -16, 16, 9, 4);
+    g.fillRoundedRect(-20, -40, 40, 22, 6);
+    g.lineStyle(1.5, PALETTE.markerBlack, 0.7);
+    g.strokeRoundedRect(-20, -40, 40, 22, 6);
 
     // Rear window
     g.fillStyle(WINDSHIELD_TINT, 0.3);
-    g.fillRoundedRect(-7, 10, 14, 6, 3);
-    g.lineStyle(0.8, PALETTE.markerBlack, 0.5);
-    g.strokeRoundedRect(-7, 10, 14, 6, 3);
+    g.fillRoundedRect(-16, 24, 32, 12, 5);
+    g.lineStyle(1, PALETTE.markerBlack, 0.5);
+    g.strokeRoundedRect(-16, 24, 32, 12, 5);
 
-    this.drawWheels(g, hw, hh, 4, 6);
+    // Center line detail (roof seam)
+    g.lineStyle(0.8, PALETTE.markerBlack, 0.15);
+    g.beginPath(); g.moveTo(0, -14); g.lineTo(0, 22); g.strokePath();
+
+    this.drawWheels(g, hw, hh, 8, 14);
     this.strokeOutline(g, pts);
   }
 
   /**
-   * Pickup — Mockup ref: distinct cab + open bed with bed rails.
-   * Proportions: 30w × 58h
+   * SUV — 56w × 100h. Boxy, roof rack rails + cross struts.
    */
-  private drawPickup(g: Phaser.GameObjects.Graphics): void {
-    const hw = 15, hh = 29;
+  private drawSUV(g: Phaser.GameObjects.Graphics): void {
+    const hw = 28, hh = 50;
 
     drawPaperShadow(g, -hw, -hh, hw * 2, hh * 2);
 
-    // Cab section (front half, rounded front)
+    const pts = [
+      { x: -24, y: -50 }, { x: -27, y: -42 },
+      { x: -28, y: -28 }, { x: -28, y: 42 },
+      { x: -26, y: 50 }, { x: 26, y: 50 },
+      { x: 28, y: 42 }, { x: 28, y: -28 },
+      { x: 27, y: -42 }, { x: 24, y: -50 },
+    ];
+    drawScissorCutPolygon(g, pts, this.carColor, PALETTE.markerBlack);
+
+    // Roof rack rails
+    g.lineStyle(2.5, PALETTE.markerBlack, 0.4);
+    g.beginPath(); g.moveTo(-26, -44); g.lineTo(-26, 44); g.strokePath();
+    g.beginPath(); g.moveTo(26, -44); g.lineTo(26, 44); g.strokePath();
+
+    // Roof rack cross struts
+    g.lineStyle(2, PALETTE.markerBlack, 0.3);
+    g.beginPath(); g.moveTo(-26, -24); g.lineTo(26, -24); g.strokePath();
+    g.beginPath(); g.moveTo(-26, 32); g.lineTo(26, 32); g.strokePath();
+
+    // Windshield
+    g.fillStyle(WINDSHIELD_TINT, 0.45);
+    g.fillRoundedRect(-22, -46, 44, 24, 6);
+    g.lineStyle(1.5, PALETTE.markerBlack, 0.7);
+    g.strokeRoundedRect(-22, -46, 44, 24, 6);
+
+    // Rear window
+    g.fillStyle(WINDSHIELD_TINT, 0.3);
+    g.fillRoundedRect(-20, 28, 40, 14, 5);
+    g.lineStyle(1, PALETTE.markerBlack, 0.5);
+    g.strokeRoundedRect(-20, 28, 40, 14, 5);
+
+    this.drawWheels(g, hw, hh, 8, 16);
+    this.strokeOutline(g, pts);
+  }
+
+  /**
+   * Compact — 40w × 65h. Small, very rounded, cute.
+   */
+  private drawCompact(g: Phaser.GameObjects.Graphics): void {
+    const hw = 20, hh = 32;
+
+    drawPaperShadow(g, -hw, -hh, hw * 2, hh * 2);
+
+    const pts = [
+      { x: -14, y: -32 }, { x: -18, y: -26 }, { x: -20, y: -14 },
+      { x: -20, y: 14 }, { x: -18, y: 26 }, { x: -14, y: 32 },
+      { x: 14, y: 32 }, { x: 18, y: 26 }, { x: 20, y: 14 },
+      { x: 20, y: -14 }, { x: 18, y: -26 }, { x: 14, y: -32 },
+    ];
+    drawScissorCutPolygon(g, pts, this.carColor, PALETTE.markerBlack);
+
+    // Windshield
+    g.fillStyle(WINDSHIELD_TINT, 0.45);
+    g.fillRoundedRect(-14, -28, 28, 16, 6);
+    g.lineStyle(1.2, PALETTE.markerBlack, 0.7);
+    g.strokeRoundedRect(-14, -28, 28, 16, 6);
+
+    // Rear window
+    g.fillStyle(WINDSHIELD_TINT, 0.3);
+    g.fillRoundedRect(-12, 18, 24, 10, 4);
+    g.lineStyle(1, PALETTE.markerBlack, 0.5);
+    g.strokeRoundedRect(-12, 18, 24, 10, 4);
+
+    this.drawWheels(g, hw, hh, 7, 10);
+    this.strokeOutline(g, pts);
+  }
+
+  /**
+   * Pickup — 52w × 110h. Cab + open bed with bed rails.
+   */
+  private drawPickup(g: Phaser.GameObjects.Graphics): void {
+    const hw = 26, hh = 55;
+
+    drawPaperShadow(g, -hw, -hh, hw * 2, hh * 2);
+
+    // Cab section (front half)
     const cabPts = [
-      { x: -11, y: -29 }, { x: -14, y: -23 },
-      { x: -15, y: -16 }, { x: -15, y: 0 },
-      { x: 15, y: 0 }, { x: 15, y: -16 },
-      { x: 14, y: -23 }, { x: 11, y: -29 },
+      { x: -20, y: -55 }, { x: -24, y: -44 },
+      { x: -26, y: -30 }, { x: -26, y: 0 },
+      { x: 26, y: 0 }, { x: 26, y: -30 },
+      { x: 24, y: -44 }, { x: 20, y: -55 },
     ];
     drawScissorCutPolygon(g, cabPts, this.carColor, PALETTE.markerBlack);
 
-    // Open bed section (rear half, lighter color)
+    // Open bed section (rear half)
     const bedColor = PALETTE.cardboard;
     g.fillStyle(bedColor, 0.9);
-    g.lineStyle(2, PALETTE.markerBlack, 0.7);
+    g.lineStyle(2.5, PALETTE.markerBlack, 0.7);
     g.beginPath();
-    g.moveTo(-14, 0); g.lineTo(-14, 27); g.lineTo(14, 27); g.lineTo(14, 0);
+    g.moveTo(-24, 0); g.lineTo(-24, 50); g.lineTo(24, 50); g.lineTo(24, 0);
     g.closePath();
     g.fillPath();
     g.strokePath();
 
-    // Bed rails inside
-    g.lineStyle(1, PALETTE.markerBlack, 0.3);
-    g.beginPath(); g.moveTo(-10, 4); g.lineTo(-10, 24); g.strokePath();
-    g.beginPath(); g.moveTo(10, 4); g.lineTo(10, 24); g.strokePath();
+    // Bed rails
+    g.lineStyle(1.5, PALETTE.markerBlack, 0.3);
+    g.beginPath(); g.moveTo(-18, 6); g.lineTo(-18, 44); g.strokePath();
+    g.beginPath(); g.moveTo(18, 6); g.lineTo(18, 44); g.strokePath();
 
-    // Windshield on cab
+    // Windshield
     g.fillStyle(WINDSHIELD_TINT, 0.45);
-    g.fillRoundedRect(-11, -26, 22, 12, 4);
-    g.lineStyle(1.2, PALETTE.markerBlack, 0.7);
-    g.strokeRoundedRect(-11, -26, 22, 12, 4);
+    g.fillRoundedRect(-20, -50, 40, 22, 6);
+    g.lineStyle(1.5, PALETTE.markerBlack, 0.7);
+    g.strokeRoundedRect(-20, -50, 40, 22, 6);
 
-    this.drawWheels(g, hw, hh, 5, 8);
+    this.drawWheels(g, hw, hh, 8, 14);
 
-    // Full outline
     const fullPts = [
-      { x: -11, y: -29 }, { x: -14, y: -23 }, { x: -15, y: -16 },
-      { x: -15, y: 0 }, { x: -14, y: 0 }, { x: -14, y: 27 },
-      { x: 14, y: 27 }, { x: 14, y: 0 }, { x: 15, y: 0 },
-      { x: 15, y: -16 }, { x: 14, y: -23 }, { x: 11, y: -29 },
+      { x: -20, y: -55 }, { x: -24, y: -44 }, { x: -26, y: -30 },
+      { x: -26, y: 0 }, { x: -24, y: 0 }, { x: -24, y: 50 },
+      { x: 24, y: 50 }, { x: 24, y: 0 }, { x: 26, y: 0 },
+      { x: 26, y: -30 }, { x: 24, y: -44 }, { x: 20, y: -55 },
     ];
     this.strokeOutline(g, fullPts);
   }
 
   /**
-   * Truck/Semi — Mockup ref: small cab + large trailer, trailer detail lines.
-   * Proportions: 28w × 78h
+   * Truck/Semi — 48w × 155h. Small cab + large trailer.
    */
   private drawTruck(g: Phaser.GameObjects.Graphics): void {
-    const hw = 14, hh = 39;
+    const hw = 24, hh = 77;
 
     drawPaperShadow(g, -hw, -hh, hw * 2, hh * 2);
 
     // Cab (front, craft brown)
     const cabPts = [
-      { x: -10, y: -39 }, { x: -13, y: -34 },
-      { x: -14, y: -28 }, { x: -14, y: -18 },
-      { x: 14, y: -18 }, { x: 14, y: -28 },
-      { x: 13, y: -34 }, { x: 10, y: -39 },
+      { x: -18, y: -77 }, { x: -22, y: -68 },
+      { x: -24, y: -56 }, { x: -24, y: -36 },
+      { x: 24, y: -36 }, { x: 24, y: -56 },
+      { x: 22, y: -68 }, { x: 18, y: -77 },
     ];
     drawScissorCutPolygon(g, cabPts, PALETTE.craftBrown, PALETTE.markerBlack);
 
     // Trailer (rear, paper white)
     g.fillStyle(PALETTE.paperWhite, 1);
-    g.lineStyle(2, PALETTE.markerBlack, 0.8);
+    g.lineStyle(2.5, PALETTE.markerBlack, 0.8);
     g.beginPath();
-    g.moveTo(-13, -18); g.lineTo(-13, 37); g.lineTo(13, 37); g.lineTo(13, -18);
+    g.moveTo(-22, -36); g.lineTo(-22, 72); g.lineTo(22, 72); g.lineTo(22, -36);
     g.closePath();
     g.fillPath();
     g.strokePath();
 
-    // Trailer detail lines (horizontal dividers, like mockup)
-    g.lineStyle(0.8, PALETTE.markerBlack, 0.25);
-    g.beginPath(); g.moveTo(-13, 0); g.lineTo(13, 0); g.strokePath();
-    g.beginPath(); g.moveTo(-13, 18); g.lineTo(13, 18); g.strokePath();
+    // Trailer detail lines
+    g.lineStyle(1, PALETTE.markerBlack, 0.25);
+    g.beginPath(); g.moveTo(-22, 0); g.lineTo(22, 0); g.strokePath();
+    g.beginPath(); g.moveTo(-22, 36); g.lineTo(22, 36); g.strokePath();
 
-    // Windshield on cab
+    // Windshield
     g.fillStyle(WINDSHIELD_TINT, 0.45);
-    g.fillRoundedRect(-10, -36, 20, 10, 3);
-    g.lineStyle(1, PALETTE.markerBlack, 0.7);
-    g.strokeRoundedRect(-10, -36, 20, 10, 3);
+    g.fillRoundedRect(-18, -72, 36, 18, 5);
+    g.lineStyle(1.2, PALETTE.markerBlack, 0.7);
+    g.strokeRoundedRect(-18, -72, 36, 18, 5);
 
-    this.drawWheels(g, hw, hh, 5, 8);
+    this.drawWheels(g, hw, hh, 8, 14);
   }
 
   /**
-   * Coal Roller — Mockup ref: dark menacing cab + bed, smoke stack nubs, tinted windshield.
-   * Proportions: 34w × 56h
+   * Coal Roller — 55w × 100h. Dark menacing cab + bed, smoke stacks.
    */
   private drawCoalRoller(g: Phaser.GameObjects.Graphics): void {
-    const hw = 17, hh = 28;
+    const hw = 27, hh = 50;
 
     drawPaperShadow(g, -hw, -hh, hw * 2, hh * 2);
 
     // Cab section (front, dark)
     const cabPts = [
-      { x: -14, y: -28 }, { x: -16, y: -24 },
-      { x: -17, y: -18 }, { x: -17, y: 0 },
-      { x: 17, y: 0 }, { x: 17, y: -18 },
-      { x: 16, y: -24 }, { x: 14, y: -28 },
+      { x: -24, y: -50 }, { x: -26, y: -44 },
+      { x: -27, y: -32 }, { x: -27, y: 0 },
+      { x: 27, y: 0 }, { x: 27, y: -32 },
+      { x: 26, y: -44 }, { x: 24, y: -50 },
     ];
     drawScissorCutPolygon(g, cabPts, this.carColor, PALETTE.markerBlack);
 
-    // Bed section (rear, slightly lighter dark)
+    // Bed section (rear)
     const bedColor = this.carColor + 0x111111;
     g.fillStyle(bedColor, 0.9);
-    g.lineStyle(2, PALETTE.markerBlack, 0.7);
+    g.lineStyle(2.5, PALETTE.markerBlack, 0.7);
     g.beginPath();
-    g.moveTo(-16, 0); g.lineTo(-16, 26); g.lineTo(16, 26); g.lineTo(16, 0);
+    g.moveTo(-26, 0); g.lineTo(-26, 46); g.lineTo(26, 46); g.lineTo(26, 0);
     g.closePath();
     g.fillPath();
     g.strokePath();
 
-    // Smoke stack nubs on bed (mockup: two circles)
+    // Smoke stack nubs
     g.fillStyle(0x555555, 1);
-    g.lineStyle(1.5, PALETTE.markerBlack, 0.7);
-    g.fillCircle(-8, 14, 4); g.strokeCircle(-8, 14, 4);
-    g.fillCircle(8, 14, 4); g.strokeCircle(8, 14, 4);
+    g.lineStyle(2, PALETTE.markerBlack, 0.7);
+    g.fillCircle(-14, 24, 7); g.strokeCircle(-14, 24, 7);
+    g.fillCircle(14, 24, 7); g.strokeCircle(14, 24, 7);
 
-    // Windshield — darker tint for menacing look
+    // Windshield — darker tint
     g.fillStyle(WINDSHIELD_TINT, 0.3);
-    g.fillRoundedRect(-13, -25, 26, 14, 4);
-    g.lineStyle(1.2, PALETTE.markerBlack, 0.7);
-    g.strokeRoundedRect(-13, -25, 26, 14, 4);
+    g.fillRoundedRect(-22, -46, 44, 24, 6);
+    g.lineStyle(1.5, PALETTE.markerBlack, 0.7);
+    g.strokeRoundedRect(-22, -46, 44, 24, 6);
 
-    // Bull bar at very front
-    g.lineStyle(2.5, PALETTE.markerBlack, 0.8);
-    g.beginPath(); g.moveTo(-13, -28); g.lineTo(13, -28); g.strokePath();
+    // Bull bar
+    g.lineStyle(3, PALETTE.markerBlack, 0.8);
+    g.beginPath(); g.moveTo(-22, -50); g.lineTo(22, -50); g.strokePath();
 
-    this.drawWheels(g, hw, hh, 6, 9);
+    this.drawWheels(g, hw, hh, 10, 16);
 
     const fullPts = [
-      { x: -14, y: -28 }, { x: -16, y: -24 }, { x: -17, y: -18 },
-      { x: -17, y: 0 }, { x: -16, y: 0 }, { x: -16, y: 26 },
-      { x: 16, y: 26 }, { x: 16, y: 0 }, { x: 17, y: 0 },
-      { x: 17, y: -18 }, { x: 16, y: -24 }, { x: 14, y: -28 },
+      { x: -24, y: -50 }, { x: -26, y: -44 }, { x: -27, y: -32 },
+      { x: -27, y: 0 }, { x: -26, y: 0 }, { x: -26, y: 46 },
+      { x: 26, y: 46 }, { x: 26, y: 0 }, { x: 27, y: 0 },
+      { x: 27, y: -32 }, { x: 26, y: -44 }, { x: 24, y: -50 },
     ];
     this.strokeOutline(g, fullPts);
   }
 
   /**
-   * Motorcycle — narrow from above. Seat/body + rider circle + handlebars.
-   * Proportions: 14w × 30h
+   * Motorcycle — 24w × 54h. Narrow from above.
    */
   private drawMotorcycle(g: Phaser.GameObjects.Graphics): void {
-    const hw = 7, hh = 15;
+    const hw = 12, hh = 27;
 
-    // Shadow (smaller, offset)
     g.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
-    g.fillEllipse(3, 3, hw * 2 - 2, hh * 2 - 2);
+    g.fillEllipse(4, 4, hw * 2 - 4, hh * 2 - 4);
 
-    // Body — narrow elongated shape
+    // Body
     g.fillStyle(this.carColor, 1);
-    g.lineStyle(2, PALETTE.markerBlack, 1);
+    g.lineStyle(2.5, PALETTE.markerBlack, 1);
     g.beginPath();
-    g.moveTo(0, -15); // front
-    g.lineTo(-5, -10); g.lineTo(-6, -2); g.lineTo(-5, 8);
-    g.lineTo(-4, 14); g.lineTo(4, 14); g.lineTo(5, 8);
-    g.lineTo(6, -2); g.lineTo(5, -10);
+    g.moveTo(0, -27);
+    g.lineTo(-9, -18); g.lineTo(-10, -4); g.lineTo(-9, 14);
+    g.lineTo(-7, 25); g.lineTo(7, 25); g.lineTo(9, 14);
+    g.lineTo(10, -4); g.lineTo(9, -18);
     g.closePath();
     g.fillPath();
     g.strokePath();
 
-    // Handlebars (T-shape at front)
-    g.lineStyle(2, PALETTE.markerBlack, 0.8);
-    g.beginPath(); g.moveTo(-7, -11); g.lineTo(7, -11); g.strokePath();
+    // Handlebars
+    g.lineStyle(2.5, PALETTE.markerBlack, 0.8);
+    g.beginPath(); g.moveTo(-12, -20); g.lineTo(12, -20); g.strokePath();
 
-    // Front wheel hint
+    // Front wheel
     g.fillStyle(PALETTE.markerBlack, 0.7);
-    g.fillEllipse(0, -13, 4, 6);
+    g.fillEllipse(0, -24, 7, 10);
 
-    // Rear wheel hint
-    g.fillEllipse(0, 12, 4, 6);
+    // Rear wheel
+    g.fillEllipse(0, 22, 7, 10);
 
-    // Rider circle (head from above)
+    // Rider circle
     g.fillStyle(0xe8b88a, 1);
-    g.lineStyle(1.5, PALETTE.markerBlack, 0.8);
-    g.fillCircle(0, -4, 5);
-    g.strokeCircle(0, -4, 5);
+    g.lineStyle(2, PALETTE.markerBlack, 0.8);
+    g.fillCircle(0, -7, 9);
+    g.strokeCircle(0, -7, 9);
 
-    // Helmet visor line
-    g.lineStyle(1, PALETTE.markerBlack, 0.4);
-    g.beginPath(); g.moveTo(-3, -6); g.lineTo(3, -6); g.strokePath();
+    // Helmet visor
+    g.lineStyle(1.5, PALETTE.markerBlack, 0.4);
+    g.beginPath(); g.moveTo(-5, -10); g.lineTo(5, -10); g.strokePath();
   }
 
   /**
-   * Bicycle — tiny, thin frame from above + rider circle.
-   * Proportions: 10w × 26h
+   * Bicycle — 18w × 46h. Tiny, thin frame.
    */
   private drawBicycle(g: Phaser.GameObjects.Graphics): void {
-    // Shadow
     g.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha * 0.6);
-    g.fillEllipse(2, 2, 8, 22);
+    g.fillEllipse(3, 3, 14, 40);
 
-    // Frame — thin line from front to back
-    g.lineStyle(2, this.carColor, 1);
+    // Frame
+    g.lineStyle(2.5, this.carColor, 1);
     g.beginPath();
-    g.moveTo(0, -13); g.lineTo(0, 11);
+    g.moveTo(0, -23); g.lineTo(0, 19);
     g.strokePath();
 
     // Handlebars
-    g.lineStyle(1.5, this.carColor, 0.9);
-    g.beginPath(); g.moveTo(-5, -10); g.lineTo(5, -10); g.strokePath();
+    g.lineStyle(2, this.carColor, 0.9);
+    g.beginPath(); g.moveTo(-8, -18); g.lineTo(8, -18); g.strokePath();
 
-    // Front wheel (circle outline)
-    g.lineStyle(1.5, PALETTE.markerBlack, 0.7);
-    g.strokeCircle(0, -12, 3);
+    // Front wheel
+    g.lineStyle(2, PALETTE.markerBlack, 0.7);
+    g.strokeCircle(0, -21, 5);
 
     // Rear wheel
-    g.strokeCircle(0, 11, 3);
+    g.strokeCircle(0, 19, 5);
 
-    // Rider circle (head from above, slightly larger than motorcycle)
+    // Rider circle
     g.fillStyle(0xe8b88a, 1);
-    g.lineStyle(1.5, PALETTE.markerBlack, 0.7);
-    g.fillCircle(0, -2, 4.5);
-    g.strokeCircle(0, -2, 4.5);
+    g.lineStyle(2, PALETTE.markerBlack, 0.7);
+    g.fillCircle(0, -4, 7);
+    g.strokeCircle(0, -4, 7);
   }
 
   // ---------------------------------------------------------------------------
@@ -629,14 +603,14 @@ export class Car extends Phaser.GameObjects.Container {
 
   private drawWheels(g: Phaser.GameObjects.Graphics, hw: number, hh: number, ww: number, wh: number): void {
     g.fillStyle(PALETTE.markerBlack, 0.85);
-    g.fillRoundedRect(-hw - 1, -hh + 5, ww, wh, 2);
-    g.fillRoundedRect(hw - ww + 1, -hh + 5, ww, wh, 2);
-    g.fillRoundedRect(-hw - 1, hh - 5 - wh, ww, wh, 2);
-    g.fillRoundedRect(hw - ww + 1, hh - 5 - wh, ww, wh, 2);
+    g.fillRoundedRect(-hw - 2, -hh + 8, ww, wh, 3);
+    g.fillRoundedRect(hw - ww + 2, -hh + 8, ww, wh, 3);
+    g.fillRoundedRect(-hw - 2, hh - 8 - wh, ww, wh, 3);
+    g.fillRoundedRect(hw - ww + 2, hh - 8 - wh, ww, wh, 3);
   }
 
   private strokeOutline(g: Phaser.GameObjects.Graphics, pts: { x: number; y: number }[]): void {
-    g.lineStyle(2, PALETTE.markerBlack, 1);
+    g.lineStyle(2.5, PALETTE.markerBlack, 1);
     g.beginPath();
     g.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) {
@@ -724,7 +698,7 @@ export class Car extends Phaser.GameObjects.Container {
       const offsetX = (Math.random() - 0.5) * 10;
 
       const def = VEHICLE_DEFS[this.carType];
-      const hh = (def.height / 2) * SCALE_FACTOR;
+      const hh = def.height / 2;
       let spawnX = this.x + offsetX;
       let spawnY = this.y;
       let driftX = 0;
@@ -770,13 +744,13 @@ export class Car extends Phaser.GameObjects.Container {
       case 'west':  this.x -= moveAmount; break;
     }
 
-    // Gentle wobble (paper cutout jitter) — more wobble for bikes
+    // Gentle wobble (paper cutout jitter)
     this.wobblePhase += delta * 0.003;
     const wobbleAmp = this.carType === 'bicycle' ? 1.0 : this.carType === 'motorcycle' ? 0.6 : 0.4;
     const wobble = Math.sin(this.wobblePhase) * wobbleAmp;
     this.setAngle(this.baseRotation + wobble);
 
-    // Smoke puffs for coal rollers (every ~500ms)
+    // Smoke puffs for coal rollers
     if (this.carType === 'coalRoller' && !this.isStopped) {
       this.smokeTimer += delta;
       if (this.smokeTimer > 500) {
@@ -787,11 +761,11 @@ export class Car extends Phaser.GameObjects.Container {
   }
 
   // ---------------------------------------------------------------------------
-  // Game logic (preserved exactly)
+  // Game logic
   // ---------------------------------------------------------------------------
 
   isOffScreen(worldWidth: number, worldHeight: number): boolean {
-    const margin = 100;
+    const margin = 200;
     return (
       this.x < -margin ||
       this.x > worldWidth + margin ||
@@ -860,24 +834,22 @@ export class Car extends Phaser.GameObjects.Container {
 
     this.carType = pickWeightedCarType();
     const def = VEHICLE_DEFS[this.carType];
-    const isVertical = this.direction === 'north' || this.direction === 'south';
-    this.carWidth = (isVertical ? def.width : def.height) * SCALE_FACTOR;
-    this.carLength = (isVertical ? def.height : def.width) * SCALE_FACTOR;
+    this.carWidth = def.width;
+    this.carLength = def.height;
 
     this.carColor = this.pickColor();
 
     this.bakeCarBody();
 
-    // New emoji face (positioned at driver seat: front-left)
+    // New emoji face
     const face = this.carType === 'bicycle'
       ? CYCLIST_FACES[Math.floor(Math.random() * CYCLIST_FACES.length)]
       : DRIVER_FACES[Math.floor(Math.random() * DRIVER_FACES.length)];
     const driverX = (this.carType === 'motorcycle' || this.carType === 'bicycle') ? 0 : -(def.width * 0.2);
-    this.emojiText.setPosition(driverX * SCALE_FACTOR, def.faceY * SCALE_FACTOR);
+    this.emojiText.setPosition(driverX, def.faceY);
     this.emojiText.setText(face);
-    this.emojiText.setFontSize(Math.round(def.faceSize * 1.5));
+    this.emojiText.setFontSize(def.faceSize);
 
-    // Maybe add passenger
     this.maybeAddPassenger();
 
     this.wobblePhase = Math.random() * Math.PI * 2;
@@ -890,9 +862,6 @@ export class Car extends Phaser.GameObjects.Container {
 
   getBounds(): Phaser.Geom.Rectangle {
     const def = VEHICLE_DEFS[this.carType];
-    const isVertical = this.direction === 'north' || this.direction === 'south';
-    const w = (isVertical ? def.width : def.height) * SCALE_FACTOR;
-    const h = (isVertical ? def.height : def.width) * SCALE_FACTOR;
-    return new Phaser.Geom.Rectangle(this.x - w / 2, this.y - h / 2, w, h);
+    return new Phaser.Geom.Rectangle(this.x - def.width / 2, this.y - def.height / 2, def.width, def.height);
   }
 }
