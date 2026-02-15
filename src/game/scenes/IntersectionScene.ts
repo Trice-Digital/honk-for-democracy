@@ -94,6 +94,10 @@ export class IntersectionScene extends Phaser.Scene {
   // Tree canopy graphics for idle wobble animation
   private treeCanopies: Phaser.GameObjects.Graphics[] = [];
 
+  // Paper cutout analog clock
+  private clockContainer!: Phaser.GameObjects.Container;
+  private clockHandGraphics!: Phaser.GameObjects.Graphics;
+
   // Raise tap mechanic
   private raiseHoldActive: boolean = false;
   private raiseTapTimer: Phaser.Time.TimerEvent | null = null;
@@ -1260,6 +1264,9 @@ export class IntersectionScene extends Phaser.Scene {
     // --- Action buttons (bottom) ---
     this.createActionButtons(viewW, viewH);
 
+    // --- Paper cutout analog clock (top center, above timer) ---
+    this.createClockUI(viewW);
+
     // --- Settings/Mute button (top left, neobrutalist card) ---
     const muteShadow = this.add.graphics();
     muteShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
@@ -1616,6 +1623,148 @@ export class IntersectionScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Paper cutout analog clock — marker-drawn face, popsicle stick mount,
+   * hour/minute hands animating from 10:00 AM to 12:00 PM over session duration.
+   */
+  private createClockUI(viewW: number): void {
+    const clockX = viewW / 2;
+    const clockY = 100; // Below the timer card
+    const radius = 38;
+
+    this.clockContainer = this.add.container(clockX, clockY);
+    this.clockContainer.setScrollFactor(0);
+    this.clockContainer.setDepth(100);
+
+    // Popsicle stick mount below the clock
+    const stickG = this.add.graphics();
+    drawPopsicleStick(stickG, -4, radius + 2, 8, 22);
+    this.clockContainer.add(stickG);
+
+    // Clock face shadow (hard offset)
+    const shadowG = this.add.graphics();
+    drawPaperShadowCircle(shadowG, 0, 0, radius);
+    this.clockContainer.add(shadowG);
+
+    // Clock face circle (paper white with scissor-cut wobble)
+    const faceG = this.add.graphics();
+    // Draw wobbled circle (approximate with polygon)
+    const numSegments = 24;
+    const facePoints: { x: number; y: number }[] = [];
+    for (let i = 0; i < numSegments; i++) {
+      const angle = (i / numSegments) * Math.PI * 2;
+      const wobble = (Math.random() - 0.5) * 2.5;
+      facePoints.push({
+        x: Math.cos(angle) * (radius + wobble),
+        y: Math.sin(angle) * (radius + wobble),
+      });
+    }
+    faceG.fillStyle(PALETTE.paperWhite, 1);
+    faceG.lineStyle(2, PALETTE.markerBlack, 0.9);
+    faceG.beginPath();
+    faceG.moveTo(facePoints[0].x, facePoints[0].y);
+    for (let i = 1; i < facePoints.length; i++) {
+      faceG.lineTo(facePoints[i].x, facePoints[i].y);
+    }
+    faceG.closePath();
+    faceG.fillPath();
+    faceG.strokePath();
+    this.clockContainer.add(faceG);
+
+    // 12 tick marks at hour positions
+    const tickG = this.add.graphics();
+    for (let h = 0; h < 12; h++) {
+      const angle = (h / 12) * Math.PI * 2 - Math.PI / 2; // 12 at top
+      const innerR = radius - 8;
+      const outerR = radius - 3;
+      tickG.lineStyle(h % 3 === 0 ? 2.5 : 1.5, PALETTE.markerBlack, 0.85);
+      tickG.beginPath();
+      tickG.moveTo(Math.cos(angle) * innerR, Math.sin(angle) * innerR);
+      tickG.lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR);
+      tickG.strokePath();
+    }
+    this.clockContainer.add(tickG);
+
+    // Hour numbers: 12, 3, 6, 9
+    const numberPositions = [
+      { text: '12', angle: -Math.PI / 2, dist: radius - 15 },
+      { text: '3', angle: 0, dist: radius - 13 },
+      { text: '6', angle: Math.PI / 2, dist: radius - 15 },
+      { text: '9', angle: Math.PI, dist: radius - 13 },
+    ];
+    for (const np of numberPositions) {
+      const nx = Math.cos(np.angle) * np.dist;
+      const ny = Math.sin(np.angle) * np.dist;
+      const numText = this.add.text(nx, ny, np.text, {
+        fontFamily: "'Bangers', cursive",
+        fontSize: '9px',
+        color: '#3a3a3a',
+      });
+      numText.setOrigin(0.5);
+      this.clockContainer.add(numText);
+    }
+
+    // Clock hands (drawn each frame)
+    this.clockHandGraphics = this.add.graphics();
+    this.clockContainer.add(this.clockHandGraphics);
+
+    // Center dot
+    const centerDot = this.add.graphics();
+    centerDot.fillStyle(PALETTE.markerBlack, 1);
+    centerDot.fillCircle(0, 0, 3);
+    this.clockContainer.add(centerDot);
+  }
+
+  /**
+   * Update clock hands based on game progress.
+   * Maps session time to 10:00 AM -> 12:00 PM (2 hours).
+   */
+  private updateClock(): void {
+    if (!this.clockHandGraphics) return;
+
+    const state = this.gameState.getState();
+    const sessionDuration = this.config.sessionDuration;
+    const gameProgress = 1 - (state.timeRemaining / sessionDuration); // 0.0 -> 1.0
+
+    // Map to clock positions:
+    // 10:00 AM = hour hand at 10 o'clock, minute hand at 12
+    // 12:00 PM = hour hand at 12 o'clock, minute hand at 12
+    // Hour hand: 10 o'clock = 300 degrees, 12 o'clock = 360 degrees (60 degree sweep)
+    // Minute hand: 2 full rotations (0 -> 720 degrees)
+
+    // Convert clock positions to radians (0 = 12 o'clock position, clockwise)
+    // 10 o'clock in radians from 12 = (10/12) * 2PI = 5PI/3
+    const hourStartRad = (10 / 12) * Math.PI * 2; // 10 o'clock
+    const hourEndRad = Math.PI * 2; // 12 o'clock (full circle)
+    const hourAngle = hourStartRad + (hourEndRad - hourStartRad) * gameProgress;
+
+    // Minute hand: 2 full rotations
+    const minuteAngle = gameProgress * Math.PI * 2 * 2;
+
+    this.clockHandGraphics.clear();
+
+    // Hour hand (short, thick)
+    const hourLen = 16;
+    // Offset by -PI/2 so 0 radians points up (12 o'clock)
+    const hx = Math.cos(hourAngle - Math.PI / 2) * hourLen;
+    const hy = Math.sin(hourAngle - Math.PI / 2) * hourLen;
+    this.clockHandGraphics.lineStyle(3, PALETTE.markerBlack, 1);
+    this.clockHandGraphics.beginPath();
+    this.clockHandGraphics.moveTo(0, 0);
+    this.clockHandGraphics.lineTo(hx, hy);
+    this.clockHandGraphics.strokePath();
+
+    // Minute hand (longer, thinner)
+    const minLen = 26;
+    const mx = Math.cos(minuteAngle - Math.PI / 2) * minLen;
+    const my = Math.sin(minuteAngle - Math.PI / 2) * minLen;
+    this.clockHandGraphics.lineStyle(2, PALETTE.markerBlack, 0.9);
+    this.clockHandGraphics.beginPath();
+    this.clockHandGraphics.moveTo(0, 0);
+    this.clockHandGraphics.lineTo(mx, my);
+    this.clockHandGraphics.strokePath();
+  }
+
   private repositionUI(viewW: number, viewH: number): void {
     // Reposition fatigue bar
     const barWidth = 160;
@@ -1712,6 +1861,9 @@ export class IntersectionScene extends Phaser.Scene {
     } else {
       this.fatigueBarBg.setStrokeStyle(2, PALETTE.safetyYellow, 0.8);
     }
+
+    // --- Paper clock hands ---
+    this.updateClock();
 
     // --- Stopped traffic banner ---
     this.updateStoppedTrafficBanner();
