@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { IntersectionMapConfig, LaneDefinition } from '../config/intersectionConfig';
 import type { DifficultyConfig } from '../config/difficultyConfig';
 import { TrafficLightSystem } from '../systems/TrafficLightSystem';
+import { GameStateManager } from '../systems/GameStateManager';
 import { Car } from '../entities/Car';
 
 /**
@@ -13,6 +14,7 @@ import { Car } from '../entities/Car';
  * - Update all active cars
  * - Detect car-ahead for queue behavior
  * - Remove off-screen cars
+ * - Track missed cars (cars that went off-screen without being reached)
  */
 export class TrafficManager {
   private cars: Car[] = [];
@@ -24,6 +26,7 @@ export class TrafficManager {
     private config: IntersectionMapConfig,
     private difficulty: DifficultyConfig,
     private trafficLights: TrafficLightSystem,
+    private gameState: GameStateManager,
   ) {}
 
   /**
@@ -89,7 +92,10 @@ export class TrafficManager {
       car.update(time, delta);
 
       if (car.isOffScreen(this.config.worldWidth, this.config.worldHeight)) {
-        // Note: missed car tracking happens in PlayerController via cone intersection
+        if (!car.hasBeenReached && !car.hasPassed) {
+          car.hasPassed = true;
+          this.gameState.recordMissedCar();
+        }
         car.setActive(false);
         car.setVisible(false);
         this.cars.splice(i, 1);
