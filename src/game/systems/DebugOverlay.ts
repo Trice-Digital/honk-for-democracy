@@ -79,7 +79,7 @@ export class DebugOverlay {
         step: 0.1,
         getValue: () => CONFIDENCE_DEFAULTS.reactionToConfidenceMultiplier,
         setValue: (v: number) => {
-          (CONFIDENCE_DEFAULTS as Record<string, unknown>).reactionToConfidenceMultiplier = v;
+          (CONFIDENCE_DEFAULTS as any).reactionToConfidenceMultiplier = v;
         },
       },
       {
@@ -90,7 +90,7 @@ export class DebugOverlay {
         step: 0.1,
         getValue: () => CONFIDENCE_DEFAULTS.noReactionDrainRate,
         setValue: (v: number) => {
-          (CONFIDENCE_DEFAULTS as Record<string, unknown>).noReactionDrainRate = v;
+          (CONFIDENCE_DEFAULTS as any).noReactionDrainRate = v;
         },
       },
       {
@@ -101,7 +101,7 @@ export class DebugOverlay {
         step: 0.2,
         getValue: () => FATIGUE_DEFAULTS.baseDrainRate,
         setValue: (v: number) => {
-          (FATIGUE_DEFAULTS as Record<string, unknown>).baseDrainRate = v;
+          (FATIGUE_DEFAULTS as any).baseDrainRate = v;
         },
       },
       {
@@ -112,7 +112,7 @@ export class DebugOverlay {
         step: 0.005,
         getValue: () => EVENT_SCHEDULE_DEFAULTS.baseTriggerChancePerSecond,
         setValue: (v: number) => {
-          (EVENT_SCHEDULE_DEFAULTS as Record<string, unknown>).baseTriggerChancePerSecond = v;
+          (EVENT_SCHEDULE_DEFAULTS as any).baseTriggerChancePerSecond = v;
         },
       },
       {
@@ -123,7 +123,7 @@ export class DebugOverlay {
         step: 0.5,
         getValue: () => FATIGUE_DEFAULTS.raiseDrainRate,
         setValue: (v: number) => {
-          (FATIGUE_DEFAULTS as Record<string, unknown>).raiseDrainRate = v;
+          (FATIGUE_DEFAULTS as any).raiseDrainRate = v;
         },
       },
     ];
