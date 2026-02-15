@@ -215,9 +215,13 @@ export class SignEditor {
       return;
     }
 
-    // Scale image to fit canvas
-    img.scaleToWidth(this.canvas.width!);
-    img.scaleToHeight(this.canvas.height!);
+    // Scale image to fill entire canvas (set each axis independently)
+    const canvasW = this.canvas.width!;
+    const canvasH = this.canvas.height!;
+    img.set({
+      scaleX: canvasW / (img.width || canvasW),
+      scaleY: canvasH / (img.height || canvasH),
+    });
 
     // Fabric.js v6+/v7: set backgroundImage property directly (setBackgroundImage was removed)
     this.canvas.backgroundImage = img;
@@ -362,7 +366,7 @@ export class SignEditor {
    * All objects (text + decorations + background) are included automatically.
    */
   public exportToPNG(): string {
-    return this.canvas.toDataURL({ format: 'png', quality: 1 });
+    return this.canvas.toDataURL({ format: 'png', quality: 1, multiplier: 1 });
   }
 
   /**
