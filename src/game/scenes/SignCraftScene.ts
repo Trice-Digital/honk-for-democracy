@@ -3,58 +3,55 @@ import {
   SIGN_MATERIALS,
   SIGN_FONTS,
   SIGN_COLORS,
+  PRESET_MESSAGES,
+  getMaterialGroups,
   type SignMaterial,
   type SignData,
   setSignData,
   scoreMessageQuality,
 } from '../config/signConfig';
 import { SignEditor } from '../../lib/signEditor';
-import { generateMaterialTexture } from '../../lib/signMaterials';
-import { DECORATIONS, getDecorationsByCategory, EMOJI_CATEGORIES, type EmojiDef } from '../../lib/signDecorations';
+import { EMOJI_CATEGORIES, type EmojiDef } from '../../lib/signDecorations';
 
 /**
- * SignCraftScene — Fabric.js sign creator (M2 Phase 8).
+ * SignCraftScene — Phase 13 UX Redesign
  *
- * Mounts a DOM overlay with:
- * - Full-screen Fabric.js canvas for sign editing
- * - Material picker (4 material thumbnails)
- * - Font picker (4 font buttons)
- * - Color picker (7 color swatches)
- * - Text input field (HTML input for native keyboard)
- * - "START PROTESTING" button (exports sign and transitions to gameplay)
+ * Responsive two-column layout with tabbed controls (Material/Message/Decorate).
+ * Sticky sign preview, randomize feature, neobrutalist Paper Mario styling.
  *
  * Architecture:
  * - Fabric.js lives in DOM overlay OVER the Phaser canvas
- * - Phaser never touches Fabric.js; Fabric.js never touches Phaser
+ * - Injected CSS for all styling (no inline styles except dynamic values)
  * - Bridge: PNG data URL stored in SignData via Phaser registry
  */
 export class SignCraftScene extends Phaser.Scene {
   // DOM elements
   private overlayContainer: HTMLDivElement | null = null;
   private signEditor: SignEditor | null = null;
-  private textInput: HTMLInputElement | null = null;
-  private removeButton: HTMLButtonElement | null = null;
+  private textInput: HTMLTextAreaElement | null = null;
+  private styleElement: HTMLStyleElement | null = null;
 
   // State
   private selectedMaterial: SignMaterial = SIGN_MATERIALS[0];
   private selectedFont: string = SIGN_FONTS[0];
   private selectedColor: string = SIGN_COLORS[0];
   private signMessage: string = '';
-  private selectedDecorationTab: 'stickers' | 'tape' = 'stickers';
+  private activeTab: 'material' | 'message' | 'decorate' = 'material';
   private selectedEmojiCategory: string = 'protest';
+  private placedStickers: Array<{ obj: any; emoji: string }> = [];
 
   constructor() {
     super({ key: 'SignCraftScene' });
   }
 
   create(): void {
-    // Set Phaser background (will be hidden by overlay)
+    // Set Phaser background (hidden by overlay)
     this.cameras.main.setBackgroundColor('#1a1a2e');
 
     // Mount DOM overlay with Fabric.js editor
     this.mountFabricOverlay();
 
-    console.log('[HFD] SignCraftScene created. Fabric.js sign editor mounted.');
+    console.log('[HFD] SignCraftScene created. Phase 13 redesign active.');
   }
 
   shutdown(): void {
@@ -69,183 +66,957 @@ export class SignCraftScene extends Phaser.Scene {
     const canvas = this.game.canvas;
     const parent = canvas.parentElement ?? document.body;
 
+    // Inject CSS
+    this.injectStyles();
+
     // Create full-screen overlay container
     const container = document.createElement('div');
     container.id = 'sign-editor-overlay';
-    container.style.position = 'absolute';
-    container.style.top = '0';
-    container.style.left = '0';
-    container.style.width = '100%';
-    container.style.height = '100%';
-    container.style.backgroundColor = '#b8956a'; // Cardboard/craft-table
-    container.style.zIndex = '1000';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.alignItems = 'center';
-    container.style.padding = '20px';
-    container.style.boxSizing = 'border-box';
-    container.style.overflow = 'auto';
-    container.style.fontFamily = "'Patrick Hand', cursive, system-ui, sans-serif";
+    container.className = 'craft-overlay';
 
-    // Title
-    const title = document.createElement('h1');
-    title.textContent = 'CRAFT YOUR SIGN';
-    title.style.color = '#1a1a1a';
-    title.style.fontSize = '36px';
-    title.style.fontFamily = "'Bangers', cursive";
-    title.style.fontWeight = 'normal';
-    title.style.letterSpacing = '4px';
-    title.style.margin = '0 0 8px 0';
-    title.style.textAlign = 'center';
-    container.appendChild(title);
+    // Main layout container
+    const craftLayout = document.createElement('div');
+    craftLayout.className = 'craft-layout';
 
-    const subtitle = document.createElement('p');
-    subtitle.textContent = 'Pick your material, font, and color';
-    subtitle.style.color = '#3a3a3a';
-    subtitle.style.fontSize = '16px';
-    subtitle.style.margin = '0 0 20px 0';
-    subtitle.style.textAlign = 'center';
-    container.appendChild(subtitle);
+    // ===== SIGN AREA (left/top) =====
+    const signArea = document.createElement('div');
+    signArea.className = 'sign-area';
 
-    // Material picker
-    const materialSection = this.createMaterialPicker();
-    container.appendChild(materialSection);
+    // Sign canvas container
+    const signCanvas = document.createElement('div');
+    signCanvas.className = 'sign-canvas paper-cut';
+    signCanvas.id = 'sign-canvas-container';
+    signArea.appendChild(signCanvas);
 
-    // Text input
-    const inputSection = this.createTextInput();
-    container.appendChild(inputSection);
-
-    // Sign canvas (Fabric.js)
-    const canvasContainer = document.createElement('div');
-    canvasContainer.style.margin = '20px 0';
-    canvasContainer.style.position = 'relative';
-    container.appendChild(canvasContainer);
-
-    // Create SignEditor instance
-    const editorWidth = Math.min(600, window.innerWidth - 40);
-    const editorHeight = Math.min(400, (window.innerHeight * 0.4));
+    // Create SignEditor instance (Fabric.js canvas)
+    const containerWidth = Math.min(520, window.innerWidth - 40);
+    const editorWidth = containerWidth;
+    const editorHeight = Math.floor(editorWidth * 0.75); // 4:3 aspect ratio
 
     this.signEditor = new SignEditor({
-      container: canvasContainer,
+      container: signCanvas,
       width: editorWidth,
       height: editorHeight,
     });
 
-    // Set initial material
+    // Set initial material and ghost text
     this.signEditor.setMaterialById(this.selectedMaterial.id);
+    this.signEditor.setText('HONK FOR DEMOCRACY');
+    // Set ghost text opacity (need to access text object directly)
+    if (this.signEditor.canvas) {
+      const textObj = this.signEditor.canvas.getObjects().find((o: any) => o.data?.isTextObject);
+      if (textObj) {
+        textObj.set('opacity', 0.3);
+        this.signEditor.canvas.renderAll();
+      }
+    }
 
-    // Font picker
-    const fontSection = this.createFontPicker();
-    container.appendChild(fontSection);
+    // Buttons under sign
+    const buttonRow = document.createElement('div');
+    buttonRow.style.display = 'flex';
+    buttonRow.style.gap = '0.5rem';
+    buttonRow.style.alignItems = 'center';
+    buttonRow.style.flexWrap = 'wrap';
+    buttonRow.style.justifyContent = 'center';
 
-    // Color picker
-    const colorSection = this.createColorPicker();
-    container.appendChild(colorSection);
+    const randomizeBtn = document.createElement('button');
+    randomizeBtn.className = 'randomize-btn';
+    randomizeBtn.innerHTML = '<span class="dice">🎲</span> RANDOMIZE!';
+    randomizeBtn.addEventListener('click', () => this.randomizeSign());
+    buttonRow.appendChild(randomizeBtn);
 
-    // Decoration picker
-    const decorationSection = this.createDecorationPicker();
-    container.appendChild(decorationSection);
+    const ctaBtn = document.createElement('button');
+    ctaBtn.className = 'cta-btn';
+    ctaBtn.innerHTML = '🪧 START PROTESTING!';
+    ctaBtn.addEventListener('click', () => this.launchGame());
+    buttonRow.appendChild(ctaBtn);
 
-    // Start button
-    const startButton = this.createStartButton();
-    container.appendChild(startButton);
+    signArea.appendChild(buttonRow);
+
+    // Orientation hint
+    const orientHint = document.createElement('div');
+    orientHint.className = 'orient-hint';
+    orientHint.innerHTML = `
+      <p>🎲 <strong>Randomize</strong> for instant inspiration — or customize below</p>
+      <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 0.2rem;">Pick your material, write your message, add stickers. Then hit the streets!</p>
+    `;
+    signArea.appendChild(orientHint);
+
+    craftLayout.appendChild(signArea);
+
+    // ===== CONTROLS AREA (right/bottom) =====
+    const controlsArea = document.createElement('div');
+    controlsArea.className = 'controls-area';
+
+    // Tab bar
+    const tabBar = document.createElement('div');
+    tabBar.className = 'tab-bar';
+
+    const tabs = [
+      { id: 'material' as const, label: 'MATERIAL', num: '1' },
+      { id: 'message' as const, label: 'MESSAGE', num: '2' },
+      { id: 'decorate' as const, label: 'DECORATE', num: '3' },
+    ];
+
+    tabs.forEach((tab) => {
+      const btn = document.createElement('button');
+      btn.className = tab.id === 'material' ? 'tab-btn active' : 'tab-btn';
+      btn.dataset.tab = tab.id;
+      btn.innerHTML = `<span class="tab-num">${tab.num}</span> ${tab.label}`;
+      btn.addEventListener('click', () => this.switchTab(tab.id));
+      tabBar.appendChild(btn);
+    });
+
+    controlsArea.appendChild(tabBar);
+
+    // Tab content containers
+    const tabMaterial = this.createMaterialTab();
+    const tabMessage = this.createMessageTab();
+    const tabDecorate = this.createDecorateTab();
+
+    controlsArea.appendChild(tabMaterial);
+    controlsArea.appendChild(tabMessage);
+    controlsArea.appendChild(tabDecorate);
+
+    craftLayout.appendChild(controlsArea);
+    container.appendChild(craftLayout);
 
     // Append to parent
     parent.appendChild(container);
     this.overlayContainer = container;
+
+    // Update placed stickers list after canvas is ready
+    this.updatePlacedList();
   }
 
   // ============================================================
-  // MATERIAL PICKER
+  // CSS INJECTION
   // ============================================================
 
-  private createMaterialPicker(): HTMLElement {
-    const section = document.createElement('div');
-    section.style.marginBottom = '16px';
-    section.style.width = '100%';
-    section.style.maxWidth = '600px';
+  private injectStyles(): void {
+    const style = document.createElement('style');
+    style.id = 'sign-craft-styles';
+    style.textContent = `
+      /* Reset for overlay */
+      #sign-editor-overlay * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-    const label = document.createElement('div');
-    label.textContent = 'MATERIAL';
-    label.style.color = '#1a1a1a';
-    label.style.fontSize = '14px';
-    label.style.fontWeight = 'bold';
-    label.style.letterSpacing = '2px';
-    label.style.marginBottom = '8px';
-    label.style.textAlign = 'center';
-    section.appendChild(label);
+      /* Root variables */
+      #sign-editor-overlay {
+        --black: #1a1a1a;
+        --yellow: #fbbf24;
+        --kraft: #c5a059;
+        --kraft-light: #d4b06a;
+        --kraft-dark: #a3824f;
+        --text: #1a1a1a;
+        --text-muted: #3a3a3a;
+        --paper: rgba(245, 240, 232, 0.75);
+      }
 
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.gap = '8px';
-    row.style.justifyContent = 'center';
-    row.style.flexWrap = 'wrap';
+      /* Overlay container */
+      .craft-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        font-family: 'Patrick Hand', cursive, system-ui, sans-serif;
+        color: var(--text);
+        background: var(--kraft);
+        background-image:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
+          linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
+        background-size: 300px 300px, 100% 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
 
-    SIGN_MATERIALS.forEach((material, index) => {
-      const btn = this.createMaterialButton(material, index === 0);
-      row.appendChild(btn);
-    });
+      /* Main layout */
+      .craft-layout {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1rem;
+        padding-bottom: 2rem;
+      }
 
-    section.appendChild(row);
-    return section;
+      @media (min-width: 768px) {
+        .craft-layout {
+          display: grid;
+          grid-template-columns: 1fr 360px;
+          gap: 24px;
+          align-items: start;
+          padding: 1.5rem 2rem;
+          padding-bottom: 2rem;
+        }
+      }
+
+      /* Sign area */
+      .sign-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      @media (max-width: 767px) {
+        .sign-area {
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          background: var(--kraft);
+          background-image:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
+            linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
+          background-size: 300px 300px, 100% 100%;
+          padding: 0.75rem 0 0.5rem;
+          margin: 0 -1rem;
+          padding-left: 1rem;
+          padding-right: 1rem;
+          border-bottom: 3px solid var(--black);
+        }
+      }
+
+      @media (min-width: 768px) {
+        .sign-area {
+          position: sticky;
+          top: 1.5rem;
+        }
+      }
+
+      /* Sign canvas */
+      .sign-canvas {
+        width: 100%;
+        max-width: 320px;
+        transform: rotate(-1.5deg);
+      }
+
+      @media (min-width: 768px) {
+        .sign-canvas {
+          max-width: 520px;
+        }
+      }
+
+      /* Neobrutalist primitives */
+      .paper-cut {
+        border: 3px solid var(--black);
+        box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+        border-radius: 4px;
+      }
+
+      .paper-cut-sm {
+        border: 2px solid var(--black);
+        box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+        border-radius: 4px;
+      }
+
+      .tape-strip {
+        background: var(--paper);
+        border: 1px solid rgba(26, 26, 26, 0.15);
+        box-shadow: 1px 1px 0 rgba(26, 26, 26, 0.15);
+        padding: 0.3rem 1rem;
+      }
+
+      /* Randomize button */
+      .randomize-btn {
+        font-family: 'Bangers', cursive;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.8rem;
+        font-size: 1.1rem;
+        letter-spacing: 0.08em;
+        color: var(--black);
+        background: var(--yellow);
+        border: 3px solid var(--black);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+        box-shadow: 3px 3px 0 var(--black);
+      }
+
+      .randomize-btn:hover {
+        transform: translate(1px, 1px);
+        box-shadow: 2px 2px 0 var(--black);
+      }
+
+      .randomize-btn:active {
+        transform: translate(3px, 3px);
+        box-shadow: 0 0 0 var(--black);
+      }
+
+      @keyframes dice-shake {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(-12deg); }
+        75% { transform: rotate(12deg); }
+      }
+
+      .randomize-btn:hover .dice {
+        animation: dice-shake 0.3s ease-in-out infinite;
+      }
+
+      /* CTA button */
+      .cta-btn {
+        font-family: 'Bangers', cursive;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 0.6rem 1.8rem;
+        font-size: 1.1rem;
+        letter-spacing: 0.08em;
+        color: var(--black);
+        background: var(--yellow);
+        border: 3px solid var(--black);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+        box-shadow: 3px 3px 0 var(--black);
+      }
+
+      .cta-btn:hover {
+        transform: translate(2px, 2px);
+        box-shadow: 2px 2px 0 var(--black);
+      }
+
+      .cta-btn:active {
+        transform: translate(3px, 3px);
+        box-shadow: 0 0 0 var(--black);
+      }
+
+      /* Orientation hint */
+      .orient-hint {
+        font-family: 'Patrick Hand', cursive;
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        line-height: 1.4;
+        padding: 0.4rem 0.8rem;
+      }
+
+      /* Controls area */
+      .controls-area {
+        margin-top: 1rem;
+      }
+
+      @media (min-width: 768px) {
+        .controls-area {
+          margin-top: 0;
+          max-height: calc(100vh - 3rem);
+          overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: var(--kraft-dark) transparent;
+        }
+
+        .controls-area::-webkit-scrollbar { width: 6px; }
+        .controls-area::-webkit-scrollbar-track { background: transparent; }
+        .controls-area::-webkit-scrollbar-thumb { background: var(--kraft-dark); border-radius: 3px; }
+      }
+
+      /* Tab bar */
+      .tab-bar {
+        display: flex;
+        gap: 0.4rem;
+        margin-bottom: 1rem;
+      }
+
+      @media (min-width: 768px) {
+        .tab-bar {
+          position: sticky;
+          top: 0;
+          z-index: 5;
+          padding: 0.5rem 0;
+        }
+      }
+
+      .tab-btn {
+        font-family: 'Bangers', cursive;
+        flex: 1;
+        padding: 0.6rem 0.5rem;
+        font-size: 1rem;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        background: var(--kraft-dark);
+        border: 2px solid var(--black);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+      }
+
+      .tab-btn:hover {
+        background: var(--kraft-light);
+      }
+
+      .tab-btn.active {
+        background: var(--yellow);
+        color: var(--black);
+      }
+
+      .tab-num {
+        font-size: 0.7rem;
+        opacity: 0.5;
+        font-family: 'Patrick Hand', cursive;
+      }
+
+      /* Tab content */
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      /* Panel */
+      .panel {
+        background: rgba(163, 130, 79, 0.5);
+        border: 3px solid var(--black);
+        border-radius: 4px;
+        box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+      }
+
+      .panel-title {
+        font-family: 'Bangers', cursive;
+        font-size: 1.15rem;
+        letter-spacing: 0.12em;
+        color: var(--black);
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .panel-title .tape-label {
+        display: inline-block;
+        transform: rotate(-1deg);
+      }
+
+      .section-label {
+        font-family: 'Patrick Hand', cursive;
+        font-size: 1rem;
+        color: var(--text-muted);
+        font-weight: bold;
+        margin-bottom: 0.4rem;
+        margin-top: 0.8rem;
+      }
+
+      .section-label:first-of-type {
+        margin-top: 0;
+      }
+
+      /* Material swatches */
+      .swatch-row {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
+      }
+
+      .swatch {
+        width: 52px;
+        height: 52px;
+        border: 2px solid var(--black);
+        border-radius: 4px;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+        cursor: pointer;
+        transition: transform 0.1s;
+        position: relative;
+      }
+
+      .swatch:hover {
+        transform: scale(1.08);
+      }
+
+      .swatch.selected {
+        outline: 3px solid var(--yellow);
+        outline-offset: 2px;
+      }
+
+      .swatch.selected::after {
+        content: '✓';
+        position: absolute;
+        bottom: 1px;
+        right: 3px;
+        font-size: 0.7rem;
+        color: var(--black);
+        font-weight: bold;
+      }
+
+      /* Text input */
+      .text-input {
+        font-family: 'Patrick Hand', cursive;
+        width: 100%;
+        padding: 0.7rem;
+        font-size: 1.1rem;
+        color: var(--text);
+        background: var(--paper);
+        border: 2px solid var(--black);
+        border-radius: 4px;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+        resize: none;
+      }
+
+      .text-input:focus {
+        outline: 2px solid var(--yellow);
+        outline-offset: 1px;
+      }
+
+      .text-input::placeholder {
+        color: #999;
+      }
+
+      .char-count {
+        font-family: 'Patrick Hand', cursive;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.3rem;
+      }
+
+      /* Color dots */
+      .color-row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .color-dot {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid var(--black);
+        cursor: pointer;
+        transition: transform 0.1s;
+        box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+      }
+
+      .color-dot:hover {
+        transform: scale(1.15);
+      }
+
+      .color-dot.selected {
+        outline: 3px solid var(--yellow);
+        outline-offset: 2px;
+      }
+
+      /* Font cards */
+      .font-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+
+      .font-card {
+        padding: 0.6rem 0.5rem;
+        text-align: center;
+        background: var(--paper);
+        border: 2px solid var(--black);
+        border-radius: 4px;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+        line-height: 1.2;
+      }
+
+      .font-card:hover {
+        transform: translate(1px, 1px);
+        box-shadow: 1px 1px 0 rgba(0,0,0,0.35);
+      }
+
+      .font-card.selected {
+        background: var(--yellow);
+      }
+
+      .font-card .font-name {
+        font-family: 'Patrick Hand', cursive;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.2rem;
+      }
+
+      /* Font preview text */
+      .fp-bangers { font-family: 'Bangers', cursive; font-size: 1.3rem; }
+      .fp-marker { font-family: 'Permanent Marker', cursive; font-size: 1.1rem; }
+      .fp-bungee { font-family: 'Bungee', cursive; font-size: 0.95rem; }
+      .fp-caveat { font-family: 'Caveat', cursive; font-size: 1.3rem; font-weight: 700; }
+      .fp-fredoka { font-family: 'Fredoka', sans-serif; font-size: 1.1rem; font-weight: 600; }
+      .fp-protest { font-family: 'Protest Guerrilla', cursive; font-size: 1.1rem; }
+      .fp-rubik { font-family: 'Rubik Mono One', monospace; font-size: 0.75rem; }
+      .fp-shrikhand { font-family: 'Shrikhand', serif; font-size: 1.05rem; }
+
+      /* Sticker section */
+      .pill-row {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.8rem;
+      }
+
+      .pill {
+        font-family: 'Bangers', cursive;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        padding: 0.25rem 0.8rem;
+        border: 2px solid var(--black);
+        border-radius: 999px;
+        cursor: pointer;
+        background: var(--kraft-dark);
+        color: var(--text-muted);
+        box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+        transition: transform 0.1s;
+      }
+
+      .pill:hover {
+        transform: scale(1.05);
+      }
+
+      .pill.active {
+        background: var(--yellow);
+        color: var(--black);
+      }
+
+      .sticker-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.5rem;
+        text-align: center;
+      }
+
+      .sticker-item {
+        font-size: 1.8rem;
+        cursor: pointer;
+        transition: transform 0.1s;
+        user-select: none;
+        padding: 0.2rem;
+        border-radius: 4px;
+      }
+
+      .sticker-item:hover {
+        background: rgba(251, 191, 36, 0.3);
+      }
+
+      .sticker-item:active {
+        transform: scale(1.3);
+      }
+
+      .placed-list {
+        margin-top: 0.8rem;
+        padding-top: 0.6rem;
+        border-top: 2px dashed var(--kraft-dark);
+      }
+
+      .placed-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: var(--paper);
+        border: 2px solid var(--black);
+        border-radius: 4px;
+        padding: 0.2rem 0.5rem;
+        margin: 0.2rem;
+        font-size: 0.9rem;
+        box-shadow: 1px 1px 0 rgba(0,0,0,0.25);
+      }
+
+      .placed-tag button {
+        background: none;
+        border: none;
+        color: #dc2626;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: bold;
+        padding: 0 0.15rem;
+        font-family: 'Patrick Hand', cursive;
+      }
+
+      .placed-tag button:hover {
+        color: #b91c1c;
+      }
+
+      .hint {
+        font-family: 'Patrick Hand', cursive;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-align: center;
+        margin-top: 0.5rem;
+        font-style: italic;
+      }
+    `;
+
+    document.head.appendChild(style);
+    this.styleElement = style;
   }
 
-  private createMaterialButton(material: SignMaterial, selected: boolean): HTMLElement {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.style.width = '120px';
-    btn.style.height = '80px';
-    btn.style.border = selected ? '3px solid #3b82f6' : '2px solid #4b5563';
-    btn.style.borderRadius = '8px';
-    btn.style.backgroundColor = '#f5f0e8';
-    btn.style.cursor = 'pointer';
-    btn.style.padding = '8px';
-    btn.style.display = 'flex';
-    btn.style.flexDirection = 'column';
-    btn.style.alignItems = 'center';
-    btn.style.justifyContent = 'center';
-    btn.style.transition = 'all 0.2s';
-    btn.dataset.materialId = material.id;
+  // ============================================================
+  // TAB CREATION
+  // ============================================================
 
-    // Material thumbnail (small canvas preview)
-    const thumbnail = generateMaterialTexture(material.id, 60, 40);
-    thumbnail.style.borderRadius = '4px';
-    thumbnail.style.marginBottom = '4px';
-    btn.appendChild(thumbnail);
+  private createMaterialTab(): HTMLElement {
+    const tab = document.createElement('div');
+    tab.id = 'tab-material';
+    tab.className = 'tab-content active';
 
-    const name = document.createElement('div');
-    name.textContent = material.label;
-    name.style.color = '#ffffff';
-    name.style.fontSize = '12px';
-    name.style.fontWeight = 'bold';
-    name.style.textAlign = 'center';
-    btn.appendChild(name);
+    const panel = document.createElement('div');
+    panel.className = 'panel';
 
-    btn.addEventListener('click', () => this.selectMaterial(material));
+    const title = document.createElement('div');
+    title.className = 'panel-title';
+    title.innerHTML = '<span class="tape-strip tape-label">📦 PICK YOUR MATERIAL</span>';
+    panel.appendChild(title);
 
-    btn.addEventListener('mouseenter', () => {
-      if (!selected) {
-        btn.style.borderColor = '#60a5fa';
+    const groups = getMaterialGroups();
+    groups.forEach((group) => {
+      const label = document.createElement('div');
+      label.className = 'section-label';
+      label.textContent = `${group.emoji} ${group.label}`;
+      panel.appendChild(label);
+
+      const row = document.createElement('div');
+      row.className = 'swatch-row';
+
+      group.materials.forEach((material, index) => {
+        const swatch = document.createElement('div');
+        swatch.className = material.id === this.selectedMaterial.id ? 'swatch selected' : 'swatch';
+        swatch.dataset.materialId = material.id;
+        swatch.title = material.label;
+
+        // Set background (handle gradients)
+        if (material.baseColor.startsWith('linear-gradient')) {
+          swatch.style.background = material.baseColor;
+        } else {
+          swatch.style.backgroundColor = material.baseColor;
+        }
+
+        swatch.addEventListener('click', () => this.selectMaterial(material));
+        row.appendChild(swatch);
+      });
+
+      panel.appendChild(row);
+    });
+
+    tab.appendChild(panel);
+    return tab;
+  }
+
+  private createMessageTab(): HTMLElement {
+    const tab = document.createElement('div');
+    tab.id = 'tab-message';
+    tab.className = 'tab-content';
+
+    // Text input panel
+    const textPanel = document.createElement('div');
+    textPanel.className = 'panel';
+
+    const textTitle = document.createElement('div');
+    textTitle.className = 'panel-title';
+    textTitle.innerHTML = '<span class="tape-strip tape-label">✏️ YOUR MESSAGE</span>';
+    textPanel.appendChild(textTitle);
+
+    const textarea = document.createElement('textarea');
+    textarea.className = 'text-input';
+    textarea.rows = 2;
+    textarea.maxLength = 60;
+    textarea.placeholder = 'HONK FOR DEMOCRACY';
+    textarea.addEventListener('input', () => this.onTextInput());
+    textPanel.appendChild(textarea);
+
+    const charCount = document.createElement('div');
+    charCount.className = 'char-count';
+    charCount.innerHTML = '<span>Tap to edit</span><span><span id="char-count">0</span>/60</span>';
+    textPanel.appendChild(charCount);
+
+    this.textInput = textarea;
+    tab.appendChild(textPanel);
+
+    // Color panel
+    const colorPanel = document.createElement('div');
+    colorPanel.className = 'panel';
+
+    const colorTitle = document.createElement('div');
+    colorTitle.className = 'panel-title';
+    colorTitle.innerHTML = '<span class="tape-strip tape-label">🎨 TEXT COLOR</span>';
+    colorPanel.appendChild(colorTitle);
+
+    const colorRow = document.createElement('div');
+    colorRow.className = 'color-row';
+
+    SIGN_COLORS.forEach((color, index) => {
+      const dot = document.createElement('div');
+      dot.className = index === 0 ? 'color-dot selected' : 'color-dot';
+      dot.style.backgroundColor = color;
+      dot.dataset.color = color;
+      dot.title = color;
+      dot.addEventListener('click', () => this.selectColor(color));
+      colorRow.appendChild(dot);
+    });
+
+    colorPanel.appendChild(colorRow);
+    tab.appendChild(colorPanel);
+
+    // Font panel
+    const fontPanel = document.createElement('div');
+    fontPanel.className = 'panel';
+
+    const fontTitle = document.createElement('div');
+    fontTitle.className = 'panel-title';
+    fontTitle.innerHTML = '<span class="tape-strip tape-label">🔤 FONT</span>';
+    fontPanel.appendChild(fontTitle);
+
+    const fontGrid = document.createElement('div');
+    fontGrid.className = 'font-grid';
+
+    const fontClassMap: Record<string, string> = {
+      'Bangers': 'fp-bangers',
+      'Permanent Marker': 'fp-marker',
+      'Bungee': 'fp-bungee',
+      'Caveat': 'fp-caveat',
+      'Fredoka': 'fp-fredoka',
+      'Protest Guerrilla': 'fp-protest',
+      'Rubik Mono One': 'fp-rubik',
+      'Shrikhand': 'fp-shrikhand',
+    };
+
+    const fontLabelMap: Record<string, string> = {
+      'Bangers': 'Bangers',
+      'Permanent Marker': 'Marker',
+      'Bungee': 'Bungee',
+      'Caveat': 'Caveat',
+      'Fredoka': 'Fredoka',
+      'Protest Guerrilla': 'Protest',
+      'Rubik Mono One': 'Rubik Mono',
+      'Shrikhand': 'Shrikhand',
+    };
+
+    SIGN_FONTS.forEach((font, index) => {
+      const card = document.createElement('div');
+      card.className = index === 0 ? 'font-card selected' : 'font-card';
+      card.dataset.font = font;
+
+      const preview = document.createElement('div');
+      preview.className = fontClassMap[font] || '';
+      preview.textContent = 'HONK!';
+      card.appendChild(preview);
+
+      const name = document.createElement('div');
+      name.className = 'font-name';
+      name.textContent = fontLabelMap[font] || font;
+      card.appendChild(name);
+
+      card.addEventListener('click', () => this.selectFont(font));
+      fontGrid.appendChild(card);
+    });
+
+    fontPanel.appendChild(fontGrid);
+    tab.appendChild(fontPanel);
+
+    return tab;
+  }
+
+  private createDecorateTab(): HTMLElement {
+    const tab = document.createElement('div');
+    tab.id = 'tab-decorate';
+    tab.className = 'tab-content';
+
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+
+    const title = document.createElement('div');
+    title.className = 'panel-title';
+    title.innerHTML = '<span class="tape-strip tape-label">⭐ STICKERS</span>';
+    panel.appendChild(title);
+
+    // Category pills
+    const pillRow = document.createElement('div');
+    pillRow.className = 'pill-row';
+
+    EMOJI_CATEGORIES.forEach((cat, index) => {
+      const pill = document.createElement('button');
+      pill.className = index === 0 ? 'pill active' : 'pill';
+      pill.textContent = cat.label;
+      pill.dataset.category = cat.id;
+      pill.addEventListener('click', () => this.selectEmojiCategory(cat.id));
+      pillRow.appendChild(pill);
+    });
+
+    panel.appendChild(pillRow);
+
+    // Sticker grid
+    const grid = document.createElement('div');
+    grid.className = 'sticker-grid';
+    grid.id = 'sticker-grid';
+    panel.appendChild(grid);
+
+    // Update grid with initial category
+    this.updateStickerGrid();
+
+    const hint = document.createElement('p');
+    hint.className = 'hint';
+    hint.textContent = 'Tap a sticker to place it on your sign';
+    panel.appendChild(hint);
+
+    // Placed list
+    const placedList = document.createElement('div');
+    placedList.className = 'placed-list';
+    placedList.id = 'placed-list';
+    placedList.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem; font-weight: bold;">On your sign:</div><div id="placed-tags"></div>';
+    panel.appendChild(placedList);
+
+    tab.appendChild(panel);
+    return tab;
+  }
+
+  // ============================================================
+  // TAB SWITCHING
+  // ============================================================
+
+  private switchTab(tabId: 'material' | 'message' | 'decorate'): void {
+    this.activeTab = tabId;
+
+    // Update tab buttons
+    const buttons = this.overlayContainer?.querySelectorAll('.tab-btn');
+    buttons?.forEach((btn) => {
+      const isActive = (btn as HTMLElement).dataset.tab === tabId;
+      if (isActive) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
       }
     });
 
-    btn.addEventListener('mouseleave', () => {
-      if (!selected) {
-        btn.style.borderColor = '#4b5563';
+    // Update tab content
+    const tabs = this.overlayContainer?.querySelectorAll('.tab-content');
+    tabs?.forEach((tab) => {
+      if (tab.id === `tab-${tabId}`) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
       }
     });
-
-    return btn;
   }
+
+  // ============================================================
+  // MATERIAL SELECTION
+  // ============================================================
 
   private selectMaterial(material: SignMaterial): void {
     this.selectedMaterial = material;
 
-    // Update button styles
-    const buttons = this.overlayContainer?.querySelectorAll('[data-material-id]');
-    buttons?.forEach((btn) => {
-      const isSelected = (btn as HTMLElement).dataset.materialId === material.id;
-      (btn as HTMLElement).style.border = isSelected ? '3px solid #3b82f6' : '2px solid #4b5563';
+    // Update swatch styles
+    const swatches = this.overlayContainer?.querySelectorAll('.swatch');
+    swatches?.forEach((swatch) => {
+      const isSelected = (swatch as HTMLElement).dataset.materialId === material.id;
+      if (isSelected) {
+        swatch.classList.add('selected');
+      } else {
+        swatch.classList.remove('selected');
+      }
     });
 
     // Update canvas background
@@ -258,216 +1029,52 @@ export class SignCraftScene extends Phaser.Scene {
   // TEXT INPUT
   // ============================================================
 
-  private createTextInput(): HTMLElement {
-    const section = document.createElement('div');
-    section.style.marginBottom = '16px';
-    section.style.width = '100%';
-    section.style.maxWidth = '600px';
+  private onTextInput(): void {
+    if (!this.textInput || !this.signEditor) return;
 
-    const label = document.createElement('div');
-    label.textContent = 'YOUR MESSAGE';
-    label.style.color = '#1a1a1a';
-    label.style.fontSize = '14px';
-    label.style.fontWeight = 'bold';
-    label.style.letterSpacing = '2px';
-    label.style.marginBottom = '8px';
-    label.style.textAlign = 'center';
-    section.appendChild(label);
+    const text = this.textInput.value;
+    this.signMessage = text;
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.maxLength = 60;
-    input.placeholder = 'Type your protest message...';
-    input.autocomplete = 'off';
-    input.autocapitalize = 'characters';
-    input.style.width = '100%';
-    input.style.padding = '12px';
-    input.style.fontSize = '18px';
-    input.style.color = '#1a1a1a';
-    input.style.backgroundColor = '#f5f0e8';
-    input.style.border = '3px solid #1a1a1a';
-    input.style.borderRadius = '8px';
-    input.style.outline = 'none';
-    input.style.fontFamily = 'system-ui, sans-serif';
-    input.style.textAlign = 'center';
-    input.style.boxSizing = 'border-box';
+    // Update char count
+    const charCountSpan = this.overlayContainer?.querySelector('#char-count');
+    if (charCountSpan) {
+      charCountSpan.textContent = String(text.length);
+    }
 
-    input.addEventListener('input', () => {
-      this.signMessage = input.value;
-      if (this.signEditor) {
-        this.signEditor.setText(this.signMessage);
+    // Update sign editor
+    if (text.trim()) {
+      // Clear ghost state
+      const textObj = this.signEditor.canvas.getObjects().find((o: any) => o.data?.isTextObject);
+      if (textObj) {
+        textObj.set('opacity', 1);
       }
-    });
-
-    input.addEventListener('focus', () => {
-      input.style.borderColor = '#60a5fa';
-    });
-
-    input.addEventListener('blur', () => {
-      input.style.borderColor = '#3b82f6';
-    });
-
-    section.appendChild(input);
-    this.textInput = input;
-
-    return section;
-  }
-
-  // ============================================================
-  // FONT PICKER
-  // ============================================================
-
-  private createFontPicker(): HTMLElement {
-    const section = document.createElement('div');
-    section.style.marginBottom = '16px';
-    section.style.width = '100%';
-    section.style.maxWidth = '600px';
-
-    const label = document.createElement('div');
-    label.textContent = 'FONT';
-    label.style.color = '#1a1a1a';
-    label.style.fontSize = '14px';
-    label.style.fontWeight = 'bold';
-    label.style.letterSpacing = '2px';
-    label.style.marginBottom = '8px';
-    label.style.textAlign = 'center';
-    section.appendChild(label);
-
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.gap = '8px';
-    row.style.justifyContent = 'center';
-    row.style.flexWrap = 'wrap';
-
-    SIGN_FONTS.forEach((font, index) => {
-      const btn = this.createFontButton(font, index === 0);
-      row.appendChild(btn);
-    });
-
-    section.appendChild(row);
-    return section;
-  }
-
-  private createFontButton(font: string, selected: boolean): HTMLElement {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = font.replace(/\s/g, '\n');
-    btn.style.minWidth = '120px';
-    btn.style.padding = '12px 16px';
-    btn.style.border = selected ? '3px solid #3b82f6' : '2px solid #4b5563';
-    btn.style.borderRadius = '8px';
-    btn.style.backgroundColor = '#f5f0e8';
-    btn.style.color = '#1a1a1a';
-    btn.style.fontSize = '14px';
-    btn.style.fontFamily = font;
-    btn.style.cursor = 'pointer';
-    btn.style.transition = 'all 0.2s';
-    btn.style.whiteSpace = 'pre-line';
-    btn.style.lineHeight = '1.2';
-    btn.dataset.font = font;
-
-    btn.addEventListener('click', () => this.selectFont(font));
-
-    btn.addEventListener('mouseenter', () => {
-      if (!selected) {
-        btn.style.borderColor = '#60a5fa';
+      this.signEditor.setText(text);
+    } else {
+      // Restore ghost text
+      const textObj = this.signEditor.canvas.getObjects().find((o: any) => o.data?.isTextObject);
+      if (textObj) {
+        textObj.set('opacity', 0.3);
       }
-    });
-
-    btn.addEventListener('mouseleave', () => {
-      if (!selected) {
-        btn.style.borderColor = '#4b5563';
-      }
-    });
-
-    return btn;
-  }
-
-  private selectFont(font: string): void {
-    this.selectedFont = font;
-
-    // Update button styles
-    const buttons = this.overlayContainer?.querySelectorAll('[data-font]');
-    buttons?.forEach((btn) => {
-      const isSelected = (btn as HTMLElement).dataset.font === font;
-      (btn as HTMLElement).style.border = isSelected ? '3px solid #3b82f6' : '2px solid #4b5563';
-    });
-
-    // Update canvas text font
-    if (this.signEditor) {
-      this.signEditor.setFont(font);
+      this.signEditor.setText('HONK FOR DEMOCRACY');
     }
   }
 
   // ============================================================
-  // COLOR PICKER
+  // COLOR SELECTION
   // ============================================================
-
-  private createColorPicker(): HTMLElement {
-    const section = document.createElement('div');
-    section.style.marginBottom = '24px';
-    section.style.width = '100%';
-    section.style.maxWidth = '600px';
-
-    const label = document.createElement('div');
-    label.textContent = 'COLOR';
-    label.style.color = '#1a1a1a';
-    label.style.fontSize = '14px';
-    label.style.fontWeight = 'bold';
-    label.style.letterSpacing = '2px';
-    label.style.marginBottom = '8px';
-    label.style.textAlign = 'center';
-    section.appendChild(label);
-
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.gap = '12px';
-    row.style.justifyContent = 'center';
-    row.style.flexWrap = 'wrap';
-
-    SIGN_COLORS.forEach((color, index) => {
-      const btn = this.createColorButton(color, index === 0);
-      row.appendChild(btn);
-    });
-
-    section.appendChild(row);
-    return section;
-  }
-
-  private createColorButton(color: string, selected: boolean): HTMLElement {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.style.width = '48px';
-    btn.style.height = '48px';
-    btn.style.borderRadius = '50%';
-    btn.style.backgroundColor = color;
-    btn.style.border = selected ? '4px solid #3b82f6' : '3px solid #4b5563';
-    btn.style.cursor = 'pointer';
-    btn.style.transition = 'all 0.2s';
-    btn.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.3)';
-    btn.dataset.color = color;
-
-    btn.addEventListener('click', () => this.selectColor(color));
-
-    btn.addEventListener('mouseenter', () => {
-      btn.style.transform = 'scale(1.1)';
-    });
-
-    btn.addEventListener('mouseleave', () => {
-      btn.style.transform = 'scale(1)';
-    });
-
-    return btn;
-  }
 
   private selectColor(color: string): void {
     this.selectedColor = color;
 
-    // Update button styles
-    const buttons = this.overlayContainer?.querySelectorAll('[data-color]');
-    buttons?.forEach((btn) => {
-      const isSelected = (btn as HTMLElement).dataset.color === color;
-      (btn as HTMLElement).style.border = isSelected ? '4px solid #3b82f6' : '3px solid #4b5563';
+    // Update dot styles
+    const dots = this.overlayContainer?.querySelectorAll('.color-dot');
+    dots?.forEach((dot) => {
+      const isSelected = (dot as HTMLElement).dataset.color === color;
+      if (isSelected) {
+        dot.classList.add('selected');
+      } else {
+        dot.classList.remove('selected');
+      }
     });
 
     // Update canvas text color
@@ -477,336 +1084,203 @@ export class SignCraftScene extends Phaser.Scene {
   }
 
   // ============================================================
-  // DECORATION PICKER
+  // FONT SELECTION
   // ============================================================
 
-  private createDecorationPicker(): HTMLElement {
-    const section = document.createElement('div');
-    section.style.marginBottom = '24px';
-    section.style.width = '100%';
-    section.style.maxWidth = '600px';
+  private selectFont(font: string): void {
+    this.selectedFont = font;
 
-    const label = document.createElement('div');
-    label.textContent = 'DECORATIONS';
-    label.style.color = '#1a1a1a';
-    label.style.fontSize = '14px';
-    label.style.fontWeight = 'bold';
-    label.style.letterSpacing = '2px';
-    label.style.marginBottom = '8px';
-    label.style.textAlign = 'center';
-    section.appendChild(label);
-
-    // Main tabs: Stickers | Tape
-    const tabRow = document.createElement('div');
-    tabRow.style.display = 'flex';
-    tabRow.style.gap = '4px';
-    tabRow.style.justifyContent = 'center';
-    tabRow.style.marginBottom = '12px';
-
-    const tabs = [
-      { id: 'stickers' as const, label: 'Stickers' },
-      { id: 'tape' as const, label: 'Tape' },
-    ];
-
-    tabs.forEach((tab, index) => {
-      const tabBtn = document.createElement('button');
-      tabBtn.type = 'button';
-      tabBtn.textContent = tab.label;
-      tabBtn.style.padding = '8px 20px';
-      tabBtn.style.fontSize = '14px';
-      tabBtn.style.fontWeight = 'bold';
-      tabBtn.style.border = 'none';
-      tabBtn.style.borderBottom = index === 0 ? '3px solid #3b82f6' : '2px solid transparent';
-      tabBtn.style.backgroundColor = 'transparent';
-      tabBtn.style.color = index === 0 ? '#3b82f6' : '#9ca3af';
-      tabBtn.style.cursor = 'pointer';
-      tabBtn.style.transition = 'all 0.2s';
-      tabBtn.dataset.mainTab = tab.id;
-
-      tabBtn.addEventListener('click', () => this.selectDecorationTab(tab.id));
-      tabRow.appendChild(tabBtn);
-    });
-
-    section.appendChild(tabRow);
-
-    // Emoji sub-category pills (only visible when Stickers tab active)
-    const emojiCatRow = document.createElement('div');
-    emojiCatRow.id = 'emoji-category-row';
-    emojiCatRow.style.display = 'flex';
-    emojiCatRow.style.gap = '6px';
-    emojiCatRow.style.justifyContent = 'center';
-    emojiCatRow.style.flexWrap = 'wrap';
-    emojiCatRow.style.marginBottom = '10px';
-
-    EMOJI_CATEGORIES.forEach((cat, index) => {
-      const pill = document.createElement('button');
-      pill.type = 'button';
-      pill.textContent = cat.label;
-      pill.style.padding = '4px 12px';
-      pill.style.fontSize = '12px';
-      pill.style.fontWeight = 'bold';
-      pill.style.border = 'none';
-      pill.style.borderRadius = '12px';
-      pill.style.backgroundColor = index === 0 ? '#3b82f6' : '#374151';
-      pill.style.color = index === 0 ? '#ffffff' : '#9ca3af';
-      pill.style.cursor = 'pointer';
-      pill.style.transition = 'all 0.2s';
-      pill.dataset.emojiCat = cat.id;
-
-      pill.addEventListener('click', () => this.selectEmojiCategory(cat.id));
-      emojiCatRow.appendChild(pill);
-    });
-
-    section.appendChild(emojiCatRow);
-
-    // Decoration grid container
-    const gridContainer = document.createElement('div');
-    gridContainer.id = 'decoration-grid';
-    gridContainer.style.display = 'grid';
-    gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, 44px)';
-    gridContainer.style.gap = '4px';
-    gridContainer.style.justifyContent = 'center';
-    gridContainer.style.maxHeight = '160px';
-    gridContainer.style.overflowY = 'auto';
-    gridContainer.style.padding = '8px';
-    gridContainer.style.backgroundColor = '#1e1e3a';
-    gridContainer.style.borderRadius = '8px';
-    gridContainer.style.border = '1px solid #374151';
-    section.appendChild(gridContainer);
-
-    // Remove Selected button
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.textContent = 'Remove Selected';
-    removeBtn.style.marginTop = '12px';
-    removeBtn.style.padding = '8px 16px';
-    removeBtn.style.fontSize = '14px';
-    removeBtn.style.fontWeight = 'bold';
-    removeBtn.style.color = '#ffffff';
-    removeBtn.style.backgroundColor = '#ef4444';
-    removeBtn.style.border = '2px solid #dc2626';
-    removeBtn.style.borderRadius = '8px';
-    removeBtn.style.cursor = 'pointer';
-    removeBtn.style.opacity = '0.5';
-    removeBtn.style.transition = 'all 0.2s';
-    removeBtn.disabled = true;
-
-    removeBtn.addEventListener('click', () => {
-      if (this.signEditor) {
-        this.signEditor.removeSelected();
+    // Update card styles
+    const cards = this.overlayContainer?.querySelectorAll('.font-card');
+    cards?.forEach((card) => {
+      const isSelected = (card as HTMLElement).dataset.font === font;
+      if (isSelected) {
+        card.classList.add('selected');
+      } else {
+        card.classList.remove('selected');
       }
     });
 
-    // Enable/disable based on canvas selection
+    // Update canvas text font
     if (this.signEditor) {
-      this.signEditor.canvas.on('selection:created', () => {
-        const activeObj = this.signEditor!.canvas.getActiveObject();
-        const objData = activeObj && 'data' in activeObj ? (activeObj as { data?: Record<string, unknown> }).data : undefined;
-        const isDecoration = objData && (objData.decorationId || objData.isEmoji);
-        removeBtn.disabled = !isDecoration;
-        removeBtn.style.opacity = isDecoration ? '1' : '0.5';
-        removeBtn.style.cursor = isDecoration ? 'pointer' : 'not-allowed';
-      });
-
-      this.signEditor.canvas.on('selection:updated', () => {
-        const activeObj = this.signEditor!.canvas.getActiveObject();
-        const objData = activeObj && 'data' in activeObj ? (activeObj as { data?: Record<string, unknown> }).data : undefined;
-        const isDecoration = objData && (objData.decorationId || objData.isEmoji);
-        removeBtn.disabled = !isDecoration;
-        removeBtn.style.opacity = isDecoration ? '1' : '0.5';
-        removeBtn.style.cursor = isDecoration ? 'pointer' : 'not-allowed';
-      });
-
-      this.signEditor.canvas.on('selection:cleared', () => {
-        removeBtn.disabled = true;
-        removeBtn.style.opacity = '0.5';
-        removeBtn.style.cursor = 'not-allowed';
-      });
+      this.signEditor.setFont(font);
     }
-
-    this.removeButton = removeBtn;
-    section.appendChild(removeBtn);
-
-    // Populate initial content
-    this.updateDecorationGrid();
-
-    return section;
   }
 
-  private selectDecorationTab(tabId: 'stickers' | 'tape'): void {
-    this.selectedDecorationTab = tabId;
-
-    // Update main tab styles
-    const mainTabs = this.overlayContainer?.querySelectorAll('[data-main-tab]');
-    mainTabs?.forEach((tab) => {
-      const isSelected = (tab as HTMLElement).dataset.mainTab === tabId;
-      (tab as HTMLElement).style.borderBottom = isSelected ? '3px solid #3b82f6' : '2px solid transparent';
-      (tab as HTMLElement).style.color = isSelected ? '#3b82f6' : '#9ca3af';
-    });
-
-    // Show/hide emoji category pills
-    const emojiCatRow = this.overlayContainer?.querySelector('#emoji-category-row') as HTMLElement;
-    if (emojiCatRow) {
-      emojiCatRow.style.display = tabId === 'stickers' ? 'flex' : 'none';
-    }
-
-    this.updateDecorationGrid();
-  }
+  // ============================================================
+  // EMOJI CATEGORY SELECTION
+  // ============================================================
 
   private selectEmojiCategory(categoryId: string): void {
     this.selectedEmojiCategory = categoryId;
 
     // Update pill styles
-    const pills = this.overlayContainer?.querySelectorAll('[data-emoji-cat]');
+    const pills = this.overlayContainer?.querySelectorAll('.pill');
     pills?.forEach((pill) => {
-      const isSelected = (pill as HTMLElement).dataset.emojiCat === categoryId;
-      (pill as HTMLElement).style.backgroundColor = isSelected ? '#3b82f6' : '#374151';
-      (pill as HTMLElement).style.color = isSelected ? '#ffffff' : '#9ca3af';
+      const isActive = (pill as HTMLElement).dataset.category === categoryId;
+      if (isActive) {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
     });
 
-    this.updateDecorationGrid();
+    // Update grid
+    this.updateStickerGrid();
   }
 
-  private updateDecorationGrid(): void {
-    const gridContainer = this.overlayContainer?.querySelector('#decoration-grid') as HTMLElement;
-    if (!gridContainer) return;
+  private updateStickerGrid(): void {
+    const grid = this.overlayContainer?.querySelector('#sticker-grid');
+    if (!grid) return;
 
-    gridContainer.innerHTML = '';
+    grid.innerHTML = '';
 
-    if (this.selectedDecorationTab === 'stickers') {
-      // Emoji picker grid
-      const category = EMOJI_CATEGORIES.find((c) => c.id === this.selectedEmojiCategory);
-      if (!category) return;
+    const category = EMOJI_CATEGORIES.find((c) => c.id === this.selectedEmojiCategory);
+    if (!category) return;
 
-      // Use grid layout for emojis
-      gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, 44px)';
+    category.emojis.forEach((emojiDef) => {
+      const item = document.createElement('div');
+      item.className = 'sticker-item';
+      item.textContent = emojiDef.emoji;
+      item.title = emojiDef.label;
+      item.addEventListener('click', () => this.addSticker(emojiDef));
+      grid.appendChild(item);
+    });
+  }
 
-      category.emojis.forEach((emojiDef) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = emojiDef.emoji;
-        btn.style.width = '44px';
-        btn.style.height = '44px';
-        btn.style.border = '1px solid transparent';
-        btn.style.borderRadius = '8px';
-        btn.style.backgroundColor = 'transparent';
-        btn.style.cursor = 'pointer';
-        btn.style.fontSize = '28px';
-        btn.style.lineHeight = '1';
-        btn.style.display = 'flex';
-        btn.style.alignItems = 'center';
-        btn.style.justifyContent = 'center';
-        btn.style.transition = 'all 0.15s';
-        btn.style.padding = '0';
-        btn.title = emojiDef.label;
+  private addSticker(emojiDef: EmojiDef): void {
+    if (!this.signEditor) return;
 
-        btn.addEventListener('click', () => {
-          if (this.signEditor) {
-            this.signEditor.addEmoji(emojiDef);
-          }
-        });
+    this.signEditor.addEmoji(emojiDef);
 
-        btn.addEventListener('mouseenter', () => {
-          btn.style.backgroundColor = '#374151';
-          btn.style.borderColor = '#3b82f6';
-          btn.style.transform = 'scale(1.15)';
-        });
+    // Track placed sticker
+    const activeObj = this.signEditor.canvas.getActiveObject();
+    if (activeObj) {
+      this.placedStickers.push({ obj: activeObj, emoji: emojiDef.emoji });
+      this.updatePlacedList();
+    }
+  }
 
-        btn.addEventListener('mouseleave', () => {
-          btn.style.backgroundColor = 'transparent';
-          btn.style.borderColor = 'transparent';
-          btn.style.transform = 'scale(1)';
-        });
+  private updatePlacedList(): void {
+    const tagsContainer = this.overlayContainer?.querySelector('#placed-tags');
+    if (!tagsContainer) return;
 
-        gridContainer.appendChild(btn);
-      });
-    } else {
-      // Tape decorations (SVG-based)
-      gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, 100px)';
+    tagsContainer.innerHTML = '';
 
-      const tapeDecorations = getDecorationsByCategory('tape');
-      tapeDecorations.forEach((decoration) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.style.width = '100px';
-        btn.style.height = '44px';
-        btn.style.border = '2px solid #4b5563';
-        btn.style.borderRadius = '8px';
-        btn.style.backgroundColor = '#f5f0e8';
-        btn.style.cursor = 'pointer';
-        btn.style.padding = '4px';
-        btn.style.display = 'flex';
-        btn.style.alignItems = 'center';
-        btn.style.justifyContent = 'center';
-        btn.style.transition = 'all 0.2s';
-        btn.title = decoration.label;
+    if (this.placedStickers.length === 0) {
+      tagsContainer.innerHTML = '<span style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No stickers yet</span>';
+      return;
+    }
 
-        const svg = document.createElement('div');
-        svg.innerHTML = decoration.svgString;
-        svg.style.width = '90px';
-        svg.style.height = '24px';
-        svg.style.pointerEvents = 'none';
-        btn.appendChild(svg);
+    this.placedStickers.forEach((sticker, index) => {
+      const tag = document.createElement('span');
+      tag.className = 'placed-tag';
+      tag.innerHTML = `${sticker.emoji} <button data-index="${index}">✕</button>`;
 
-        btn.addEventListener('click', () => {
-          if (this.signEditor) {
-            this.signEditor.addDecoration(decoration);
-          }
-        });
+      const removeBtn = tag.querySelector('button');
+      removeBtn?.addEventListener('click', () => this.removeSticker(index));
 
-        btn.addEventListener('mouseenter', () => {
-          btn.style.borderColor = '#3b82f6';
-          btn.style.transform = 'scale(1.05)';
-        });
+      tagsContainer.appendChild(tag);
+    });
+  }
 
-        btn.addEventListener('mouseleave', () => {
-          btn.style.borderColor = '#4b5563';
-          btn.style.transform = 'scale(1)';
-        });
+  private removeSticker(index: number): void {
+    if (!this.signEditor) return;
 
-        gridContainer.appendChild(btn);
-      });
+    const sticker = this.placedStickers[index];
+    if (sticker) {
+      this.signEditor.canvas.remove(sticker.obj);
+      this.signEditor.canvas.renderAll();
+      this.placedStickers.splice(index, 1);
+      this.updatePlacedList();
     }
   }
 
   // ============================================================
-  // START BUTTON
+  // RANDOMIZE
   // ============================================================
 
-  private createStartButton(): HTMLElement {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = 'START PROTESTING';
-    btn.style.width = '100%';
-    btn.style.maxWidth = '400px';
-    btn.style.padding = '18px 32px';
-    btn.style.fontSize = '26px';
-    btn.style.fontWeight = 'normal';
-    btn.style.color = '#f5f0e8';
-    btn.style.backgroundColor = '#ef4444';
-    btn.style.border = '4px solid #1a1a1a';
-    btn.style.borderRadius = '0';
-    btn.style.cursor = 'pointer';
-    btn.style.transition = 'transform 0.1s, box-shadow 0.1s';
-    btn.style.fontFamily = "'Bangers', cursive";
-    btn.style.marginTop = '8px';
-    btn.style.letterSpacing = '4px';
-    btn.style.boxShadow = '6px 6px 0 #1a1a1a';
-    btn.style.transform = 'rotate(0.5deg)';
+  private randomizeSign(): void {
+    if (!this.signEditor) return;
 
-    btn.addEventListener('click', () => this.launchGame());
+    // 1. Random material
+    const randomMaterial = SIGN_MATERIALS[Math.floor(Math.random() * SIGN_MATERIALS.length)];
+    this.selectMaterial(randomMaterial);
 
-    btn.addEventListener('mouseenter', () => {
-      btn.style.transform = 'translate(3px, 3px) rotate(0.5deg)';
-      btn.style.boxShadow = '3px 3px 0 #1a1a1a';
+    // 2. Random font
+    const randomFont = SIGN_FONTS[Math.floor(Math.random() * SIGN_FONTS.length)];
+    this.selectFont(randomFont);
+
+    // 3. Random color (contrast-aware)
+    const isLight = this.isLightMaterial(randomMaterial.id);
+    const darkColors = ['#1a1a1a', '#DC143C', '#1E90FF', '#228B22', '#8B008B'];
+    const lightColors = ['#FFFFFF', '#fbbf24', '#FF8C00', '#FF1493'];
+    const colorPool = isLight ? darkColors : lightColors;
+    const randomColor = colorPool[Math.floor(Math.random() * colorPool.length)];
+    this.selectColor(randomColor);
+
+    // 4. Random message
+    const randomMessage = PRESET_MESSAGES[Math.floor(Math.random() * PRESET_MESSAGES.length)];
+    if (this.textInput) {
+      this.textInput.value = randomMessage;
+      this.signMessage = randomMessage;
+
+      // Update char count
+      const charCountSpan = this.overlayContainer?.querySelector('#char-count');
+      if (charCountSpan) {
+        charCountSpan.textContent = String(randomMessage.length);
+      }
+
+      // Update sign editor (clear ghost)
+      const textObj = this.signEditor.canvas.getObjects().find((o: any) => o.data?.isTextObject);
+      if (textObj) {
+        textObj.set('opacity', 1);
+      }
+      this.signEditor.setText(randomMessage);
+    }
+
+    // 5. Random stickers (0-3)
+    // Clear existing stickers
+    this.placedStickers.forEach((sticker) => {
+      this.signEditor!.canvas.remove(sticker.obj);
     });
+    this.placedStickers = [];
 
-    btn.addEventListener('mouseleave', () => {
-      btn.style.transform = 'rotate(0.5deg)';
-      btn.style.boxShadow = '6px 6px 0 #1a1a1a';
+    const stickerCount = Math.floor(Math.random() * 4); // 0-3
+    const allEmojis = EMOJI_CATEGORIES.flatMap((cat) => cat.emojis);
+
+    for (let i = 0; i < stickerCount; i++) {
+      const randomEmoji = allEmojis[Math.floor(Math.random() * allEmojis.length)];
+      this.signEditor.addEmoji(randomEmoji);
+
+      const activeObj = this.signEditor.canvas.getActiveObject();
+      if (activeObj) {
+        this.placedStickers.push({ obj: activeObj, emoji: randomEmoji.emoji });
+      }
+    }
+
+    this.updatePlacedList();
+
+    console.log('[SignCraftScene] Randomized sign:', {
+      material: randomMaterial.id,
+      font: randomFont,
+      color: randomColor,
+      message: randomMessage,
+      stickerCount,
     });
+  }
 
-    return btn;
+  private isLightMaterial(materialId: string): boolean {
+    const lightMaterials = [
+      'posterboard',
+      'posterboard-yellow',
+      'posterboard-pink',
+      'posterboard-sky',
+      'foamboard',
+      'foamboard-green',
+      'foamboard-purple',
+    ];
+    return lightMaterials.includes(materialId);
   }
 
   // ============================================================
@@ -823,7 +1297,7 @@ export class SignCraftScene extends Phaser.Scene {
     const signImageDataUrl = this.signEditor.exportToPNG();
 
     // Build sign data
-    const message = this.signMessage.trim() || 'HONK!';
+    const message = this.signMessage.trim() || 'HONK FOR DEMOCRACY';
     let qualityScore = scoreMessageQuality(message);
 
     // Add effort bonus from customizations
@@ -892,6 +1366,12 @@ export class SignCraftScene extends Phaser.Scene {
       this.overlayContainer = null;
     }
 
+    if (this.styleElement) {
+      this.styleElement.remove();
+      this.styleElement = null;
+    }
+
     this.textInput = null;
+    this.placedStickers = [];
   }
 }
