@@ -276,7 +276,7 @@ export class ScoreScene extends Phaser.Scene {
     const reactionsWithCounts = REACTION_TYPES
       .map((rt) => ({
         ...rt,
-        count: (finalState.reactions as unknown as Record<string, number>)[rt.id] || 0,
+        count: (rt.id in finalState.reactions ? finalState.reactions[rt.id as keyof typeof finalState.reactions] : 0) as number,
       }))
       .filter((r) => r.count > 0);
 

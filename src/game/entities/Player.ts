@@ -115,7 +115,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.drawHead();
     this.add(this.headGraphics);
 
-    scene.add.existing(this as unknown as Phaser.GameObjects.GameObject);
+    scene.add.existing(this);
   }
 
   // ============================================================

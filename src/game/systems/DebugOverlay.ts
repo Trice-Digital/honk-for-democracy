@@ -11,6 +11,12 @@ import { CONFIDENCE_DEFAULTS } from '../config/confidenceConfig';
 import { FATIGUE_DEFAULTS } from '../config/fatigueConfig';
 import { EVENT_SCHEDULE_DEFAULTS } from '../config/eventConfig';
 
+// DEV ONLY: Intentional mutation of config defaults for hot-tuning.
+// These objects are module-level singletons, so mutation affects all consumers in real-time.
+function hotTune<T>(obj: T, key: keyof T, value: T[keyof T]): void {
+  (obj as Record<string, unknown>)[key as string] = value;
+}
+
 /**
  * DebugOverlay — Dev-only real-time system monitor and tuning panel.
  *
@@ -79,7 +85,7 @@ export class DebugOverlay {
         step: 0.1,
         getValue: () => CONFIDENCE_DEFAULTS.reactionToConfidenceMultiplier,
         setValue: (v: number) => {
-          (CONFIDENCE_DEFAULTS as any).reactionToConfidenceMultiplier = v;
+          hotTune(CONFIDENCE_DEFAULTS, 'reactionToConfidenceMultiplier', v);
         },
       },
       {
@@ -90,7 +96,7 @@ export class DebugOverlay {
         step: 0.1,
         getValue: () => CONFIDENCE_DEFAULTS.noReactionDrainRate,
         setValue: (v: number) => {
-          (CONFIDENCE_DEFAULTS as any).noReactionDrainRate = v;
+          hotTune(CONFIDENCE_DEFAULTS, 'noReactionDrainRate', v);
         },
       },
       {
@@ -101,7 +107,7 @@ export class DebugOverlay {
         step: 0.2,
         getValue: () => FATIGUE_DEFAULTS.baseDrainRate,
         setValue: (v: number) => {
-          (FATIGUE_DEFAULTS as any).baseDrainRate = v;
+          hotTune(FATIGUE_DEFAULTS, 'baseDrainRate', v);
         },
       },
       {
@@ -112,7 +118,7 @@ export class DebugOverlay {
         step: 0.005,
         getValue: () => EVENT_SCHEDULE_DEFAULTS.baseTriggerChancePerSecond,
         setValue: (v: number) => {
-          (EVENT_SCHEDULE_DEFAULTS as any).baseTriggerChancePerSecond = v;
+          hotTune(EVENT_SCHEDULE_DEFAULTS, 'baseTriggerChancePerSecond', v);
         },
       },
       {
@@ -123,7 +129,7 @@ export class DebugOverlay {
         step: 0.5,
         getValue: () => FATIGUE_DEFAULTS.raiseDrainRate,
         setValue: (v: number) => {
-          (FATIGUE_DEFAULTS as any).raiseDrainRate = v;
+          hotTune(FATIGUE_DEFAULTS, 'raiseDrainRate', v);
         },
       },
     ];

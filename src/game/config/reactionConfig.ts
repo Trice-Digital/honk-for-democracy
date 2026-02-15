@@ -68,9 +68,10 @@ export function rollReaction(weights: { id: string; weight: number }[]): Reactio
   for (const w of weights) {
     cumulative += w.weight;
     if (roll <= cumulative) {
-      return REACTION_TYPES.find((r) => r.id === w.id)!;
+      const found = REACTION_TYPES.find((r) => r.id === w.id);
+      if (found) return found;
     }
   }
   // Fallback (should never happen if weights sum to 1)
-  return REACTION_TYPES.find((r) => r.id === 'nothing')!;
+  return REACTION_TYPES.find((r) => r.id === 'nothing') ?? REACTION_TYPES[0];
 }

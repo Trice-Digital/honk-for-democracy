@@ -117,7 +117,7 @@ export class GameStateManager extends Phaser.Events.EventEmitter {
 
   recordReaction(reactionId: string, scoreValue: number): void {
     if (reactionId in this.state.reactions) {
-      (this.state.reactions as unknown as Record<string, number>)[reactionId]++;
+      this.state.reactions[reactionId as keyof ReactionTally]++;
     }
     this.state.carsReached++;
     this.addScore(scoreValue);

@@ -601,7 +601,7 @@ export class SignCraftScene extends Phaser.Scene {
     if (this.signEditor) {
       this.signEditor.canvas.on('selection:created', () => {
         const activeObj = this.signEditor!.canvas.getActiveObject();
-        const objData = (activeObj as any)?.data;
+        const objData = activeObj && 'data' in activeObj ? (activeObj as { data?: Record<string, unknown> }).data : undefined;
         const isDecoration = objData && (objData.decorationId || objData.isEmoji);
         removeBtn.disabled = !isDecoration;
         removeBtn.style.opacity = isDecoration ? '1' : '0.5';
@@ -610,7 +610,7 @@ export class SignCraftScene extends Phaser.Scene {
 
       this.signEditor.canvas.on('selection:updated', () => {
         const activeObj = this.signEditor!.canvas.getActiveObject();
-        const objData = (activeObj as any)?.data;
+        const objData = activeObj && 'data' in activeObj ? (activeObj as { data?: Record<string, unknown> }).data : undefined;
         const isDecoration = objData && (objData.decorationId || objData.isEmoji);
         removeBtn.disabled = !isDecoration;
         removeBtn.style.opacity = isDecoration ? '1' : '0.5';
