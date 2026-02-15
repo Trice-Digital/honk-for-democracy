@@ -46,8 +46,8 @@ export class SignEditor {
 
     this.onChange = onChange;
 
-    // Preload Google Fonts (skip system/web-safe fonts like Impact, Courier New, Comic Sans MS, Georgia)
-    const googleFonts = ['Permanent Marker', 'Bangers', 'Rubik Mono One', 'Bungee'];
+    // Preload Google Fonts (all 8 sign fonts)
+    const googleFonts = ['Bangers', 'Permanent Marker', 'Bungee', 'Caveat', 'Fredoka', 'Protest Guerrilla', 'Rubik Mono One', 'Shrikhand'];
     for (const font of googleFonts) {
       this.preloadGoogleFont(font);
     }
