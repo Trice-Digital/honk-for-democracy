@@ -23,6 +23,9 @@ import { EventSystem } from '../systems/EventSystem';
 import { WeatherSystem } from '../systems/WeatherSystem';
 import { AudioSystem } from '../systems/AudioSystem';
 import { AudioMixerSystem } from '../systems/AudioMixerSystem';
+import { AmbientSystem } from '../systems/AmbientSystem';
+import { MusicSystem } from '../systems/MusicSystem';
+import { ReactiveCueSystem } from '../systems/ReactiveCueSystem';
 import { DebugOverlay } from '../systems/DebugOverlay';
 import { Car } from '../entities/Car';
 import { Player } from '../entities/Player';
@@ -47,6 +50,9 @@ export class IntersectionScene extends Phaser.Scene {
   private weatherSystem!: WeatherSystem;
   private audioSystem!: AudioSystem;
   private mixerSystem!: AudioMixerSystem;
+  private ambientSystem!: AmbientSystem;
+  private musicSystem!: MusicSystem;
+  private cueSystem!: ReactiveCueSystem;
 
   // Entities
   private player!: Player;
@@ -161,6 +167,20 @@ export class IntersectionScene extends Phaser.Scene {
       AudioMixerSystem.register(this, this.mixerSystem);
     }
 
+    // --- Ambient, Music, and Reactive Cue systems ---
+    // Create fresh instances each scene (they are scene-scoped, not persistent)
+    this.ambientSystem = new AmbientSystem();
+    this.ambientSystem.connectTo(this.mixerSystem.getLayerGain('ambient'));
+    AmbientSystem.register(this, this.ambientSystem);
+
+    this.musicSystem = new MusicSystem();
+    this.musicSystem.connectTo(this.mixerSystem.getLayerGain('music'));
+    MusicSystem.register(this, this.musicSystem);
+
+    this.cueSystem = new ReactiveCueSystem();
+    this.cueSystem.connectTo(this.mixerSystem.getLayerGain('cues'));
+    ReactiveCueSystem.register(this, this.cueSystem);
+
     // --- Apply sign quality multiplier to reaction weights ---
     this.applySignQualityMultiplier();
 
@@ -254,6 +274,9 @@ export class IntersectionScene extends Phaser.Scene {
         this.audioSystem.init();
         // Start Tone.js context from same user gesture
         this.mixerSystem.init();
+        // Start ambient street noise and stadium organ music
+        this.ambientSystem.start();
+        this.musicSystem.start();
         this.audioSystem.playSessionStart();
       }
 
@@ -282,6 +305,9 @@ export class IntersectionScene extends Phaser.Scene {
       } else {
         this.audioSystem.playSessionEnd();
       }
+      // Fade out ambient and music layers smoothly before scene transition
+      this.ambientSystem.stop();
+      this.musicSystem.stop();
       this.showSessionOver();
     });
 
@@ -294,6 +320,9 @@ export class IntersectionScene extends Phaser.Scene {
           }
         }
       }
+
+      // Traffic light clunk sound
+      this.audioSystem.playTrafficLightChange();
 
       // Camera flash on phase change (very subtle white flash)
       this.cameras.main.flash(150, 255, 255, 200, false, undefined, undefined, 0.1);
@@ -342,6 +371,11 @@ export class IntersectionScene extends Phaser.Scene {
     this.fatigueSystem.update(delta);
     this.eventSystem.update(delta);
     this.weatherSystem.update(delta);
+
+    // Update audio systems with current confidence
+    const confidence = this.gameState.getState().confidence;
+    this.musicSystem.updateConfidence(confidence);
+    this.cueSystem.update(confidence, delta);
 
     // Spawn cars
     this.updateCarSpawning(delta);
@@ -2083,6 +2117,11 @@ export class IntersectionScene extends Phaser.Scene {
     this.eventSystem.destroy();
     this.weatherSystem.destroy();
 
+    // Clean up audio systems (scene-scoped; mixer persists across scenes via registry)
+    if (this.ambientSystem) this.ambientSystem.destroy();
+    if (this.musicSystem) this.musicSystem.destroy();
+    if (this.cueSystem) this.cueSystem.destroy();
+
     // Clean up raise tap timer
     if (this.raiseTapTimer) {
       this.raiseTapTimer.destroy();
@@ -2111,8 +2150,8 @@ export class IntersectionScene extends Phaser.Scene {
     // Store final game state snapshot in registry for ScoreScene
     this.registry.set('finalGameState', { ...state, reactions: { ...state.reactions } });
 
-    // Brief delay to let the moment land, then transition to ScoreScene
-    this.time.delayedCall(800, () => {
+    // Extended delay to let audio fade out smoothly before scene transition (AUDI-05)
+    this.time.delayedCall(1500, () => {
       this.scene.start('ScoreScene');
     });
   }

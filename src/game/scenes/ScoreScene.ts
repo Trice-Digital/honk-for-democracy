@@ -10,6 +10,8 @@ import {
 } from '../config/scoreConfig';
 import { PALETTE, FONTS } from '../config/paletteConfig';
 import { drawScissorCutRect, drawPaperShadow, drawPaperShadowCircle, applyPaperGrain, drawMaskingTapeStrip } from '../utils/paperArt';
+import { AmbientSystem } from '../systems/AmbientSystem';
+import { AudioMixerSystem } from '../systems/AudioMixerSystem';
 
 /**
  * ScoreScene — End-of-session score screen.
@@ -18,11 +20,23 @@ import { drawScissorCutRect, drawPaperShadow, drawPaperShadowCircle, applyPaperG
  * scissor-cut panels, marker fonts, neobrutalist buttons.
  */
 export class ScoreScene extends Phaser.Scene {
+  private scoreAmbient: AmbientSystem | null = null;
+
   constructor() {
     super({ key: 'ScoreScene' });
   }
 
   create(): void {
+    // Optional quiet ambient for scene continuity
+    const mixer = AudioMixerSystem.get(this);
+    if (mixer && mixer.isInitialized()) {
+      this.scoreAmbient = new AmbientSystem();
+      this.scoreAmbient.connectTo(mixer.getLayerGain('ambient'));
+      // Set quieter volume — half the normal ambient presence
+      this.scoreAmbient.setVolume(-22);
+      this.scoreAmbient.start();
+    }
+
     const finalState = this.registry.get('finalGameState') as GameState | undefined;
     const signData = this.registry.get('signData') as SignData | undefined;
 
@@ -308,6 +322,7 @@ export class ScoreScene extends Phaser.Scene {
       // Press into shadow effect
       continueBg.setPosition(cx + 2, buttonAreaY + 2);
       continueShadow.setVisible(false);
+      this.cleanupScoreAmbient();
       this.time.delayedCall(100, () => {
         this.scene.start('ActivismScene');
       });
@@ -330,6 +345,7 @@ export class ScoreScene extends Phaser.Scene {
     playAgainBg.on('pointerdown', () => {
       playAgainBg.setPosition(cx + 2, buttonAreaY + 64 + 2);
       playAgainShadow.setVisible(false);
+      this.cleanupScoreAmbient();
       this.time.delayedCall(100, () => {
         this.scene.start('SignCraftScene');
       });
@@ -339,5 +355,18 @@ export class ScoreScene extends Phaser.Scene {
     this.input.mouse?.disableContextMenu();
 
     console.log('[HFD] ScoreScene created. Paper craft aesthetic active.');
+  }
+
+  private cleanupScoreAmbient(): void {
+    if (this.scoreAmbient) {
+      this.scoreAmbient.stop();
+      // Delay destroy to let fade-out complete
+      setTimeout(() => {
+        if (this.scoreAmbient) {
+          this.scoreAmbient.destroy();
+          this.scoreAmbient = null;
+        }
+      }, 1600);
+    }
   }
 }
