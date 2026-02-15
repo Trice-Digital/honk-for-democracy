@@ -61,6 +61,12 @@ Plans:
   3. No single sound effect is significantly louder or more jarring than others
   4. Audio transitions between scenes and states are smooth (no pops, clicks, or abrupt silence)
   5. All sound layers (music, ambient, SFX) are individually reasonable and comfortable when playing together
+**Plans:** 4 plans
+Plans:
+- [ ] 10-01-PLAN.md — Audio mixer foundation + Tone.js install + AudioSystem wiring
+- [ ] 10-02-PLAN.md — Ambient street noise system + centralized audio config
+- [ ] 10-03-PLAN.md — Confidence-reactive stadium organ music + reactive cue system
+- [ ] 10-04-PLAN.md — Full integration, SFX enhancement (honk variety, doppler, clunk), scene wiring, balance verification
 
 ### Phase 11: Social Share
 **Goal**: Post-game generates a shareable image — your sign + score + "I protested at honkfordemocracy.org". Player downloads or shares directly. The activism end screen with resource links is the CTA alongside the share. This is the viral loop.
@@ -90,6 +96,6 @@ Plans:
 |-------|----------------|--------|-----------|
 | 8. Sign Creator | 0/3 | Planned | -- |
 | 9. Visual & UI Polish | 0/? | Pending | -- |
-| 10. Audio Polish | 0/? | Pending | -- |
+| 10. Audio Polish | 0/4 | Planned | -- |
 | 11. Social Share | 0/? | Pending | -- |
 | 12. Debug & Tuning | 0/? | Pending | -- |
