@@ -77,7 +77,7 @@ export class IntersectionScene extends Phaser.Scene {
   private muteBtn!: Phaser.GameObjects.Text;
   private muteBtnBg!: Phaser.GameObjects.Graphics;
 
-  // Button shadow graphics (neobrutalist press-into-shadow)
+  // Neobrutalist button shadows (press-into-shadow effect)
   private raiseBtnShadow!: Phaser.GameObjects.Graphics;
   private switchBtnShadow!: Phaser.GameObjects.Graphics;
   private switchBtnBg!: Phaser.GameObjects.Rectangle;
@@ -664,7 +664,7 @@ export class IntersectionScene extends Phaser.Scene {
       drawScissorCutRect(g, hx, hy, housingW, housingH, PALETTE.asphalt, PALETTE.markerBlack);
 
       // 3 light circles inside housing
-      const spacing = isHorizontal ? 15 : 15;
+      const spacing = 15;
       const lightDefs: { dx: number; dy: number; lc: string }[] = [
         { dx: isHorizontal ? -spacing : 0, dy: isHorizontal ? 0 : -spacing, lc: 'red' },
         { dx: 0, dy: 0, lc: 'yellow' },
@@ -693,7 +693,6 @@ export class IntersectionScene extends Phaser.Scene {
           g.fillEllipse(lx + pos.armDx * 20, ly + pos.armDy * 20, 50, 30);
 
           // Track active circle graphics for pulse on phase change
-          // Use a small temporary Graphics for the tween target
           const activeG = this.add.graphics();
           activeG.fillStyle(this.getLightHex(light.lc), 1);
           activeG.fillCircle(lx, ly, 6);
@@ -961,17 +960,6 @@ export class IntersectionScene extends Phaser.Scene {
         const sentiment = reaction.sentiment || (finalScoreValue > 0 ? 'positive' : finalScoreValue < 0 ? 'negative' : 'neutral');
         car.setReactionFace(sentiment as 'positive' | 'negative' | 'neutral');
         carIsStopped = car.isStopped;
-
-        // Stopped cars: rotate emoji slightly toward player
-        if (carIsStopped) {
-          const dx = this.config.playerX - car.x;
-          const dy = this.config.playerY - car.y;
-          const lookAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-          // Subtle rotation toward player (clamped)
-          const clampedAngle = Math.max(-15, Math.min(15, lookAngle * 0.15));
-          car.setReactionFace(sentiment as 'positive' | 'negative' | 'neutral');
-          // We set angle on the container-level reaction, not the car body
-        }
         break;
       }
     }
@@ -1111,6 +1099,85 @@ export class IntersectionScene extends Phaser.Scene {
   }
 
   // ============================================================
+  // STOPPED TRAFFIC BANNER
+  // ============================================================
+
+  /**
+   * Show/hide "STOPPED TRAFFIC x2" paper cutout banner when all lights are red.
+   * Slides in from top, slides out when lights go green.
+   */
+  private updateStoppedTrafficBanner(): void {
+    const greenDirs = this.trafficLights.getGreenDirections();
+    const isAllRedPhase = greenDirs.length === 0;
+
+    if (isAllRedPhase && !this.isShowingStoppedBanner) {
+      this.isShowingStoppedBanner = true;
+      this.showStoppedBanner();
+    } else if (!isAllRedPhase && this.isShowingStoppedBanner) {
+      this.isShowingStoppedBanner = false;
+      this.hideStoppedBanner();
+    }
+  }
+
+  private showStoppedBanner(): void {
+    if (this.stoppedTrafficBanner) {
+      this.stoppedTrafficBanner.destroy();
+    }
+
+    const viewW = this.scale.width;
+    const bannerW = 220;
+    const bannerH = 36;
+
+    // Paper cutout background
+    const bg = this.add.graphics();
+    // Shadow
+    bg.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+    bg.fillRoundedRect(-bannerW / 2 + 3, 3, bannerW, bannerH, 4);
+    // Body
+    drawScissorCutRect(bg, -bannerW / 2, 0, bannerW, bannerH, PALETTE.stoplightRed);
+
+    const text = this.add.text(0, bannerH / 2, 'STOPPED TRAFFIC x2', {
+      fontFamily: "'Bangers', cursive",
+      fontSize: '18px',
+      color: '#fbbf24',
+      stroke: '#1a1a1a',
+      strokeThickness: 3,
+      letterSpacing: 2,
+    });
+    text.setOrigin(0.5);
+
+    this.stoppedTrafficBanner = this.add.container(viewW / 2, -40, [bg, text]);
+    this.stoppedTrafficBanner.setScrollFactor(0);
+    this.stoppedTrafficBanner.setDepth(150);
+
+    // Slide in from top
+    this.tweens.add({
+      targets: this.stoppedTrafficBanner,
+      y: 70,
+      duration: 300,
+      ease: 'Back.easeOut',
+    });
+  }
+
+  private hideStoppedBanner(): void {
+    if (!this.stoppedTrafficBanner) return;
+
+    const banner = this.stoppedTrafficBanner;
+    this.tweens.add({
+      targets: banner,
+      y: -50,
+      duration: 250,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        banner.destroy();
+        if (this.stoppedTrafficBanner === banner) {
+          this.stoppedTrafficBanner = null;
+        }
+      },
+    });
+  }
+
+  // ============================================================
   // UI OVERLAY
   // ============================================================
 
@@ -1118,67 +1185,95 @@ export class IntersectionScene extends Phaser.Scene {
     const viewW = this.scale.width;
     const viewH = this.scale.height;
 
-    // --- Score display (top right, paper cutout card) ---
-    // Background card
+    // --- Score display (top right, neobrutalist paper cutout card) ---
+    const scoreCardW = 155;
+    const scoreCardH = 42;
+    const scoreX = viewW - scoreCardW - 20;
+    const scoreY = 15;
+
+    // Hard offset shadow
+    const scoreShadow = this.add.graphics();
+    scoreShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+    scoreShadow.fillRoundedRect(scoreX + 3, scoreY + 3, scoreCardW, scoreCardH, 4);
+    scoreShadow.setScrollFactor(0);
+    scoreShadow.setDepth(98);
+
     const scoreBg = this.add.graphics();
-    scoreBg.fillStyle(0xf5f0e8, 0.9);
-    scoreBg.fillRoundedRect(0, 0, 155, 42, 3);
-    scoreBg.lineStyle(2.5, 0x1a1a1a, 0.9);
-    scoreBg.strokeRoundedRect(0, 0, 155, 42, 3);
+    scoreBg.fillStyle(PALETTE.paperWhite, 0.95);
+    scoreBg.fillRoundedRect(scoreX, scoreY, scoreCardW, scoreCardH, 4);
+    scoreBg.lineStyle(3, PALETTE.markerBlack, 1);
+    scoreBg.strokeRoundedRect(scoreX, scoreY, scoreCardW, scoreCardH, 4);
     scoreBg.setScrollFactor(0);
     scoreBg.setDepth(99);
-    scoreBg.setPosition(viewW - 175, 15);
 
     this.scoreText = this.add.text(0, 0, '0 HONKS', {
       fontFamily: "'Bangers', cursive",
-      fontSize: '26px',
-      color: '#1a1a1a',
+      fontSize: '32px',
+      color: '#fbbf24',
+      stroke: '#1a1a1a',
+      strokeThickness: 4,
       letterSpacing: 2,
     });
     this.scoreText.setScrollFactor(0);
     this.scoreText.setDepth(100);
     this.scoreText.setOrigin(0.5);
-    this.scoreText.setPosition(viewW - 97, 36);
+    this.scoreText.setPosition(scoreX + scoreCardW / 2, scoreY + scoreCardH / 2);
 
-    // --- Timer / Clock display (top center, paper cutout card) ---
+    // --- Timer / Clock display (top center, neobrutalist card) ---
+    const timerCardW = 100;
+    const timerCardH = 48;
+    const timerX = viewW / 2 - timerCardW / 2;
+    const timerY = 10;
+
+    const timerShadow = this.add.graphics();
+    timerShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+    timerShadow.fillRoundedRect(timerX + 3, timerY + 3, timerCardW, timerCardH, 4);
+    timerShadow.setScrollFactor(0);
+    timerShadow.setDepth(98);
+
     const timerBg = this.add.graphics();
-    timerBg.fillStyle(0xf5f0e8, 0.9);
-    timerBg.fillRoundedRect(0, 0, 100, 48, 3);
-    timerBg.lineStyle(2.5, 0x1a1a1a, 0.9);
-    timerBg.strokeRoundedRect(0, 0, 100, 48, 3);
+    timerBg.fillStyle(PALETTE.paperWhite, 0.95);
+    timerBg.fillRoundedRect(timerX, timerY, timerCardW, timerCardH, 4);
+    timerBg.lineStyle(3, PALETTE.markerBlack, 1);
+    timerBg.strokeRoundedRect(timerX, timerY, timerCardW, timerCardH, 4);
     timerBg.setScrollFactor(0);
     timerBg.setDepth(99);
-    timerBg.setPosition(viewW / 2 - 50, 10);
 
     this.timerText = this.add.text(0, 0, '3:00', {
       fontFamily: "'Bangers', cursive",
-      fontSize: '20px',
-      color: '#1a1a1a',
+      fontSize: '30px',
+      color: '#f5f0e8',
+      stroke: '#1a1a1a',
+      strokeThickness: 4,
     });
     this.timerText.setScrollFactor(0);
     this.timerText.setDepth(100);
     this.timerText.setOrigin(0.5);
-    this.timerText.setPosition(viewW / 2, 34);
+    this.timerText.setPosition(viewW / 2, timerY + timerCardH / 2);
 
-    // --- Confidence meter (left side, vertical bar) ---
+    // --- Confidence meter ---
     this.createConfidenceUI(viewW, viewH);
 
-    // --- Fatigue meter (right side, vertical bar) ---
+    // --- Fatigue meter ---
     this.createFatigueUI(viewW, viewH);
 
     // --- Action buttons (bottom) ---
     this.createActionButtons(viewW, viewH);
 
-    // --- Settings/Mute button (top left, paper cutout gear) ---
-    // Paper card background
-    const muteBg = this.add.graphics();
-    muteBg.fillStyle(0xf5f0e8, 0.85);
-    muteBg.fillRoundedRect(0, 0, 42, 42, 3);
-    muteBg.lineStyle(2.5, 0x1a1a1a, 0.9);
-    muteBg.strokeRoundedRect(0, 0, 42, 42, 3);
-    muteBg.setScrollFactor(0);
-    muteBg.setDepth(99);
-    muteBg.setPosition(15, 15);
+    // --- Settings/Mute button (top left, neobrutalist card) ---
+    const muteShadow = this.add.graphics();
+    muteShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+    muteShadow.fillRoundedRect(18, 18, 42, 42, 4);
+    muteShadow.setScrollFactor(0);
+    muteShadow.setDepth(98);
+
+    this.muteBtnBg = this.add.graphics();
+    this.muteBtnBg.fillStyle(PALETTE.paperWhite, 0.9);
+    this.muteBtnBg.fillRoundedRect(15, 15, 42, 42, 4);
+    this.muteBtnBg.lineStyle(3, PALETTE.markerBlack, 1);
+    this.muteBtnBg.strokeRoundedRect(15, 15, 42, 42, 4);
+    this.muteBtnBg.setScrollFactor(0);
+    this.muteBtnBg.setDepth(99);
 
     this.muteBtn = this.add.text(36, 36, '\uD83D\uDD0A', {
       fontSize: '20px',
@@ -1188,23 +1283,33 @@ export class IntersectionScene extends Phaser.Scene {
     this.muteBtn.setDepth(100);
     this.muteBtn.setInteractive({ useHandCursor: true });
     this.muteBtn.on('pointerdown', () => {
+      this.muteBtnBg.setPosition(2, 2);
+      this.muteBtn.setPosition(38, 38);
+    });
+    this.muteBtn.on('pointerup', () => {
+      this.muteBtnBg.setPosition(0, 0);
+      this.muteBtn.setPosition(36, 36);
       const muted = this.audioSystem.toggleMute();
       this.muteBtn.setText(muted ? '\uD83D\uDD07' : '\uD83D\uDD0A');
+    });
+    this.muteBtn.on('pointerout', () => {
+      this.muteBtnBg.setPosition(0, 0);
+      this.muteBtn.setPosition(36, 36);
     });
 
     // Listen for resize
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
-      this.timerText.setPosition(gameSize.width - 20, 20);
+      this.timerText.setPosition(gameSize.width / 2, timerY + timerCardH / 2);
       this.cameras.main.scrollX = this.config.centerX - gameSize.width / 2;
       this.cameras.main.scrollY = this.config.centerY - gameSize.height / 2;
-      // Reposition right-side elements
       this.repositionUI(gameSize.width, gameSize.height);
     });
   }
 
   /**
-   * Confidence meter — Paper cutout card, bottom-right.
-   * Matches mockup: paper-white card, Bangers label, bar with marker outline.
+   * Confidence meter — Neobrutalist paper cutout card, bottom-right.
+   * Paper-textured bar background with cardboard grain lines, marker border,
+   * hard offset shadow. Bangers label.
    */
   private createConfidenceUI(viewW: number, viewH: number): void {
     const cardW = 165;
@@ -1212,48 +1317,56 @@ export class IntersectionScene extends Phaser.Scene {
     const barX = viewW - cardW - 15;
     const barY = viewH - cardH - 15;
 
+    // Hard offset shadow
+    const confShadow = this.add.graphics();
+    confShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+    confShadow.fillRoundedRect(barX + 3, barY + 3, cardW, cardH, 4);
+    confShadow.setScrollFactor(0);
+    confShadow.setDepth(98);
+
     // Paper card background
     const confCard = this.add.graphics();
-    confCard.fillStyle(0xf5f0e8, 0.9);
-    confCard.fillRoundedRect(barX, barY, cardW, cardH, 3);
-    confCard.lineStyle(2.5, 0x1a1a1a, 0.9);
-    confCard.strokeRoundedRect(barX, barY, cardW, cardH, 3);
+    confCard.fillStyle(PALETTE.paperWhite, 0.95);
+    confCard.fillRoundedRect(barX, barY, cardW, cardH, 4);
+    confCard.lineStyle(3, PALETTE.markerBlack, 1);
+    confCard.strokeRoundedRect(barX, barY, cardW, cardH, 4);
     confCard.setScrollFactor(0);
     confCard.setDepth(99);
 
     // Label
     this.confidenceLabel = this.add.text(barX + 12, barY + 5, 'CONFIDENCE', {
       fontFamily: "'Bangers', cursive",
-      fontSize: '9px',
+      fontSize: '10px',
       color: '#3a3a3a',
       letterSpacing: 1,
     });
     this.confidenceLabel.setScrollFactor(0);
     this.confidenceLabel.setDepth(100);
 
-    // Bar background
+    // Bar background (paper-textured with grain lines)
     const barInnerX = barX + 10;
     const barInnerY = barY + 20;
     const barWidth = 145;
     const barHeight = 12;
 
-    this.confidenceBarBg = this.add.rectangle(barInnerX, barInnerY, barWidth, barHeight, 0xdddddd);
+    this.confidenceBarBg = this.add.rectangle(barInnerX, barInnerY, barWidth, barHeight, PALETTE.cardboard);
     this.confidenceBarBg.setOrigin(0, 0);
-    this.confidenceBarBg.setStrokeStyle(1.5, 0x1a1a1a, 0.8);
+    this.confidenceBarBg.setStrokeStyle(2, PALETTE.markerBlack, 0.9);
     this.confidenceBarBg.setScrollFactor(0);
     this.confidenceBarBg.setDepth(100);
 
     // Bar fill
     const initialWidth = (CONFIDENCE_DEFAULTS.startingConfidence / 100) * barWidth;
-    this.confidenceBarFill = this.add.rectangle(barInnerX + 1, barInnerY + 1, initialWidth - 2, barHeight - 2, 0x22c55e);
+    this.confidenceBarFill = this.add.rectangle(barInnerX + 1, barInnerY + 1, initialWidth - 2, barHeight - 2, PALETTE.stoplightGreen);
     this.confidenceBarFill.setOrigin(0, 0);
     this.confidenceBarFill.setScrollFactor(0);
     this.confidenceBarFill.setDepth(101);
   }
 
   /**
-   * Fatigue meter — Paper cutout card, bottom-left.
-   * Matches mockup: paper-white card, muscle emoji, Bangers label, bar.
+   * Fatigue meter — Neobrutalist paper cutout card, bottom-left.
+   * Paper-textured bar background, marker border, hard offset shadow.
+   * Border color-codes to traffic phase: green = push, yellow = conserve.
    */
   private createFatigueUI(_viewW: number, viewH: number): void {
     const cardW = 160;
@@ -1261,12 +1374,19 @@ export class IntersectionScene extends Phaser.Scene {
     const barX = 15;
     const barY = viewH - cardH - 15;
 
+    // Hard offset shadow
+    const fatShadow = this.add.graphics();
+    fatShadow.fillStyle(PALETTE.shadowDark, PALETTE.shadowAlpha);
+    fatShadow.fillRoundedRect(barX + 3, barY + 3, cardW, cardH, 4);
+    fatShadow.setScrollFactor(0);
+    fatShadow.setDepth(98);
+
     // Paper card background
     const fatCard = this.add.graphics();
-    fatCard.fillStyle(0xf5f0e8, 0.9);
-    fatCard.fillRoundedRect(barX, barY, cardW, cardH, 3);
-    fatCard.lineStyle(2.5, 0x1a1a1a, 0.9);
-    fatCard.strokeRoundedRect(barX, barY, cardW, cardH, 3);
+    fatCard.fillStyle(PALETTE.paperWhite, 0.95);
+    fatCard.fillRoundedRect(barX, barY, cardW, cardH, 4);
+    fatCard.lineStyle(3, PALETTE.markerBlack, 1);
+    fatCard.strokeRoundedRect(barX, barY, cardW, cardH, 4);
     fatCard.setScrollFactor(0);
     fatCard.setDepth(99);
 
@@ -1281,41 +1401,54 @@ export class IntersectionScene extends Phaser.Scene {
     // Label
     this.fatigueLabel = this.add.text(barX + 36, barY + 5, 'ARM STRONG', {
       fontFamily: "'Bangers', cursive",
-      fontSize: '9px',
+      fontSize: '10px',
       color: '#22c55e',
       letterSpacing: 1,
     });
     this.fatigueLabel.setScrollFactor(0);
     this.fatigueLabel.setDepth(100);
 
-    // Bar background
+    // Bar background (paper-textured)
     const barInnerX = barX + 36;
     const barInnerY = barY + 18;
     const barWidth = 110;
     const barHeight = 16;
 
-    this.fatigueBarBg = this.add.rectangle(barInnerX, barInnerY, barWidth, barHeight, 0xdddddd);
+    this.fatigueBarBg = this.add.rectangle(barInnerX, barInnerY, barWidth, barHeight, PALETTE.cardboard);
     this.fatigueBarBg.setOrigin(0, 0);
-    this.fatigueBarBg.setStrokeStyle(2, 0x1a1a1a, 0.8);
+    this.fatigueBarBg.setStrokeStyle(2, PALETTE.markerBlack, 0.9);
     this.fatigueBarBg.setScrollFactor(0);
     this.fatigueBarBg.setDepth(100);
 
     // Bar fill (starts empty)
-    this.fatigueBarFill = this.add.rectangle(barInnerX + 1, barInnerY + 1, 0, barHeight - 2, 0x22c55e);
+    this.fatigueBarFill = this.add.rectangle(barInnerX + 1, barInnerY + 1, 0, barHeight - 2, PALETTE.stoplightGreen);
     this.fatigueBarFill.setOrigin(0, 0);
     this.fatigueBarFill.setScrollFactor(0);
     this.fatigueBarFill.setDepth(101);
   }
 
+  /**
+   * Action buttons — Neobrutalist style: thick borders, hard offset shadows,
+   * press-into-shadow on pointerdown.
+   */
   private createActionButtons(viewW: number, viewH: number): void {
     const btnY = viewH - 80;
     const btnHeight = 48;
     const btnGap = 12;
 
-    // --- RAISE button (center, large) --- Paper Mario neobrutalist style
+    // --- RAISE button (center, large) --- Neobrutalist style
     const raiseBtnWidth = 140;
-    const raiseBg = this.add.rectangle(0, 0, raiseBtnWidth, btnHeight, 0xfbbf24);
-    raiseBg.setStrokeStyle(3, 0x1a1a1a, 1);
+
+    // Shadow (behind the container, fixed position)
+    this.raiseBtnShadow = this.add.graphics();
+    this.raiseBtnShadow.fillStyle(PALETTE.shadowDark, 0.5);
+    this.raiseBtnShadow.fillRoundedRect(-raiseBtnWidth / 2 + 3, -btnHeight / 2 + 3, raiseBtnWidth, btnHeight, 4);
+    this.raiseBtnShadow.setScrollFactor(0);
+    this.raiseBtnShadow.setDepth(109);
+    this.raiseBtnShadow.setPosition(viewW / 2, btnY);
+
+    const raiseBg = this.add.rectangle(0, 0, raiseBtnWidth, btnHeight, PALETTE.safetyYellow);
+    raiseBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
     const raiseText = this.add.text(0, 0, 'RAISE', {
       fontFamily: "'Bangers', cursive",
       fontSize: '24px',
@@ -1334,8 +1467,8 @@ export class IntersectionScene extends Phaser.Scene {
 
     // Raise button: supports both tap (auto-lower after 0.8s) and hold
     let raiseDownTime = 0;
-    const HOLD_THRESHOLD = 200; // ms: if held longer than this, treat as hold
-    const TAP_RAISE_DURATION = 800; // ms: how long sign stays raised on tap
+    const HOLD_THRESHOLD = 200;
+    const TAP_RAISE_DURATION = 800;
 
     this.raiseBtn.on('pointerdown', () => {
       if (!this.gameState.isActive()) return;
@@ -1345,26 +1478,28 @@ export class IntersectionScene extends Phaser.Scene {
       this.audioSystem.playRaiseSign();
       this.raiseBtnBg.setFillStyle(0xe89b0c);
       this.raiseBtnText.setText('RAISED!');
+      // Press-into-shadow effect
+      this.raiseBtn.setPosition(viewW / 2 + 2, btnY + 2);
     });
 
     this.raiseBtn.on('pointerup', () => {
       if (!this.raiseHoldActive) return;
       this.raiseHoldActive = false;
+      // Restore position
+      this.raiseBtn.setPosition(viewW / 2, btnY);
       const holdDuration = this.time.now - raiseDownTime;
 
       if (holdDuration < HOLD_THRESHOLD) {
-        // Tap: keep raised for a brief window, then auto-lower
         if (this.raiseTapTimer) this.raiseTapTimer.destroy();
         this.raiseTapTimer = this.time.delayedCall(TAP_RAISE_DURATION, () => {
           this.fatigueSystem.setRaised(false);
-          this.raiseBtnBg.setFillStyle(0xfbbf24);
+          this.raiseBtnBg.setFillStyle(PALETTE.safetyYellow);
           this.raiseBtnText.setText('RAISE');
           this.raiseTapTimer = null;
         });
       } else {
-        // Hold release: lower immediately
         this.fatigueSystem.setRaised(false);
-        this.raiseBtnBg.setFillStyle(0xfbbf24);
+        this.raiseBtnBg.setFillStyle(PALETTE.safetyYellow);
         this.raiseBtnText.setText('RAISE');
       }
     });
@@ -1372,18 +1507,28 @@ export class IntersectionScene extends Phaser.Scene {
     this.raiseBtn.on('pointerout', () => {
       if (!this.raiseHoldActive) return;
       this.raiseHoldActive = false;
-      // If no tap timer running, lower immediately
+      this.raiseBtn.setPosition(viewW / 2, btnY);
       if (!this.raiseTapTimer) {
         this.fatigueSystem.setRaised(false);
-        this.raiseBtnBg.setFillStyle(0xfbbf24);
+        this.raiseBtnBg.setFillStyle(PALETTE.safetyYellow);
         this.raiseBtnText.setText('RAISE');
       }
     });
 
-    // --- Switch Arms button (left of raise) --- Paper cutout style
+    // --- Switch Arms button (left of raise) --- Neobrutalist style
     const switchBtnWidth = 100;
-    const switchBg = this.add.rectangle(0, 0, switchBtnWidth, btnHeight, 0x3b82f6);
-    switchBg.setStrokeStyle(3, 0x1a1a1a, 1);
+    const switchX = viewW / 2 - raiseBtnWidth / 2 - btnGap - switchBtnWidth / 2;
+
+    this.switchBtnShadow = this.add.graphics();
+    this.switchBtnShadow.fillStyle(PALETTE.shadowDark, 0.5);
+    this.switchBtnShadow.fillRoundedRect(-switchBtnWidth / 2 + 3, -btnHeight / 2 + 3, switchBtnWidth, btnHeight, 4);
+    this.switchBtnShadow.setScrollFactor(0);
+    this.switchBtnShadow.setDepth(109);
+    this.switchBtnShadow.setPosition(switchX, btnY);
+
+    const switchBg = this.add.rectangle(0, 0, switchBtnWidth, btnHeight, PALETTE.actionBlue);
+    switchBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
+    this.switchBtnBg = switchBg;
     const switchText = this.add.text(0, 0, 'SWITCH\nARMS', {
       fontFamily: "'Bangers', cursive",
       fontSize: '14px',
@@ -1393,35 +1538,52 @@ export class IntersectionScene extends Phaser.Scene {
     });
     switchText.setOrigin(0.5);
 
-    this.switchArmBtn = this.add.container(viewW / 2 - raiseBtnWidth / 2 - btnGap - switchBtnWidth / 2, btnY, [switchBg, switchText]);
+    this.switchArmBtn = this.add.container(switchX, btnY, [switchBg, switchText]);
     this.switchArmBtn.setScrollFactor(0);
     this.switchArmBtn.setDepth(110);
     this.switchArmBtn.setSize(switchBtnWidth, btnHeight);
     this.switchArmBtn.setInteractive({ useHandCursor: true });
     this.switchArmBtn.on('pointerdown', () => {
       if (!this.gameState.isActive()) return;
+      // Press-into-shadow
+      this.switchArmBtn.setPosition(switchX + 2, btnY + 2);
       const switched = this.fatigueSystem.trySwitchArm();
       if (switched) {
-        switchBg.setFillStyle(0x22c55e);
+        switchBg.setFillStyle(PALETTE.stoplightGreen);
         const arm = this.gameState.getState().activeArm;
         switchText.setText(`${arm === 'left' ? 'Left' : 'Right'}\nArm`);
         this.time.delayedCall(500, () => {
-          switchBg.setFillStyle(0x3b82f6);
-          switchText.setText('Switch\nArms');
+          switchBg.setFillStyle(PALETTE.actionBlue);
+          switchText.setText('SWITCH\nARMS');
         });
       } else {
-        // On cooldown — flash red
-        switchBg.setFillStyle(0xef4444);
+        switchBg.setFillStyle(PALETTE.stoplightRed);
         this.time.delayedCall(300, () => {
-          switchBg.setFillStyle(0x3b82f6);
+          switchBg.setFillStyle(PALETTE.actionBlue);
         });
       }
     });
+    this.switchArmBtn.on('pointerup', () => {
+      this.switchArmBtn.setPosition(switchX, btnY);
+    });
+    this.switchArmBtn.on('pointerout', () => {
+      this.switchArmBtn.setPosition(switchX, btnY);
+    });
 
-    // --- Rest button (right of raise) --- Paper cutout style
+    // --- Rest button (right of raise) --- Neobrutalist style
     const restBtnWidth = 100;
+    const restX = viewW / 2 + raiseBtnWidth / 2 + btnGap + restBtnWidth / 2;
+
+    this.restBtnShadow = this.add.graphics();
+    this.restBtnShadow.fillStyle(PALETTE.shadowDark, 0.5);
+    this.restBtnShadow.fillRoundedRect(-restBtnWidth / 2 + 3, -btnHeight / 2 + 3, restBtnWidth, btnHeight, 4);
+    this.restBtnShadow.setScrollFactor(0);
+    this.restBtnShadow.setDepth(109);
+    this.restBtnShadow.setPosition(restX, btnY);
+
     const restBg = this.add.rectangle(0, 0, restBtnWidth, btnHeight, 0x6b7280);
-    restBg.setStrokeStyle(3, 0x1a1a1a, 1);
+    restBg.setStrokeStyle(3, PALETTE.markerBlack, 1);
+    this.restBtnBg = restBg;
     const restText = this.add.text(0, 0, 'REST', {
       fontFamily: "'Bangers', cursive",
       fontSize: '18px',
@@ -1430,7 +1592,7 @@ export class IntersectionScene extends Phaser.Scene {
     });
     restText.setOrigin(0.5);
 
-    this.restBtn = this.add.container(viewW / 2 + raiseBtnWidth / 2 + btnGap + restBtnWidth / 2, btnY, [restBg, restText]);
+    this.restBtn = this.add.container(restX, btnY, [restBg, restText]);
     this.restBtn.setScrollFactor(0);
     this.restBtn.setDepth(110);
     this.restBtn.setSize(restBtnWidth, btnHeight);
@@ -1439,10 +1601,18 @@ export class IntersectionScene extends Phaser.Scene {
 
     this.restBtn.on('pointerdown', () => {
       if (!this.gameState.isActive()) return;
+      // Press-into-shadow
+      this.restBtn.setPosition(restX + 2, btnY + 2);
       this.fatigueSystem.toggleRest();
       const isResting = this.gameState.getState().isResting;
-      restBg.setFillStyle(isResting ? 0x22c55e : 0x6b7280);
-      restText.setText(isResting ? 'Resting...' : 'Rest');
+      restBg.setFillStyle(isResting ? PALETTE.stoplightGreen : 0x6b7280);
+      restText.setText(isResting ? 'Resting...' : 'REST');
+    });
+    this.restBtn.on('pointerup', () => {
+      this.restBtn.setPosition(restX, btnY);
+    });
+    this.restBtn.on('pointerout', () => {
+      this.restBtn.setPosition(restX, btnY);
     });
   }
 
@@ -1469,10 +1639,10 @@ export class IntersectionScene extends Phaser.Scene {
   private updateUI(): void {
     const state = this.gameState.getState();
 
-    // Score (paper cutout HUD)
+    // Score (neobrutalist HUD, Bangers font, safety yellow with marker stroke)
     this.scoreText.setText(`${state.score} HONKS`);
 
-    // Timer
+    // Timer (marker-style font)
     const minutes = Math.floor(state.timeRemaining / 60);
     const seconds = Math.floor(state.timeRemaining % 60);
     this.timerText.setText(`${minutes}:${seconds.toString().padStart(2, '0')}`);
@@ -1483,7 +1653,7 @@ export class IntersectionScene extends Phaser.Scene {
 
     // --- Confidence bar ---
     const confPct = state.confidence / 100;
-    const confBarMaxWidth = 145 - 2; // barWidth - padding
+    const confBarMaxWidth = 145 - 2;
     const targetWidth = confPct * confBarMaxWidth;
 
     // Smooth animation: lerp toward target
@@ -1495,14 +1665,14 @@ export class IntersectionScene extends Phaser.Scene {
     // Color: red (0-30), yellow (30-60), green (60-100)
     let confColor: number;
     if (state.confidence < 30) {
-      confColor = 0xef4444;
+      confColor = PALETTE.stoplightRed;
     } else if (state.confidence < 60) {
-      confColor = 0xfbbf24;
+      confColor = PALETTE.safetyYellow;
     } else {
-      confColor = 0x22c55e;
+      confColor = PALETTE.stoplightGreen;
     }
     this.confidenceBarFill.setFillStyle(confColor);
-    this.confidenceLabel.setText(`CONFIDENCE`);
+    this.confidenceLabel.setText('CONFIDENCE');
 
     // --- Fatigue bar ---
     const fatPct = state.armFatigue / 100;
@@ -1512,13 +1682,14 @@ export class IntersectionScene extends Phaser.Scene {
     // Color: green (0-40), orange (40-70), red (70-100)
     let fatColor: number;
     if (state.armFatigue < 40) {
-      fatColor = 0x22c55e;
+      fatColor = PALETTE.stoplightGreen;
     } else if (state.armFatigue < 70) {
       fatColor = 0xf97316;
     } else {
-      fatColor = 0xef4444;
+      fatColor = PALETTE.stoplightRed;
     }
     this.fatigueBarFill.setFillStyle(fatColor);
+
     // Update fatigue label text and color
     if (state.armFatigue < 40) {
       this.fatigueLabel.setText('ARM STRONG');
@@ -1530,6 +1701,20 @@ export class IntersectionScene extends Phaser.Scene {
       this.fatigueLabel.setText('ARM DEAD');
       this.fatigueLabel.setColor('#ef4444');
     }
+
+    // --- Fatigue bar traffic light hint ---
+    // Green border = push now (traffic red, cars stopped)
+    // Yellow border = conserve (traffic green, cars moving)
+    const greenDirs = this.trafficLights.getGreenDirections();
+    const isAllRedPhase = greenDirs.length === 0;
+    if (isAllRedPhase) {
+      this.fatigueBarBg.setStrokeStyle(2.5, PALETTE.stoplightGreen, 1);
+    } else {
+      this.fatigueBarBg.setStrokeStyle(2, PALETTE.safetyYellow, 0.8);
+    }
+
+    // --- Stopped traffic banner ---
+    this.updateStoppedTrafficBanner();
 
     // Disable raise button while resting
     if (state.isResting) {
@@ -1556,6 +1741,12 @@ export class IntersectionScene extends Phaser.Scene {
     if (this.raiseTapTimer) {
       this.raiseTapTimer.destroy();
       this.raiseTapTimer = null;
+    }
+
+    // Clean up stopped traffic banner
+    if (this.stoppedTrafficBanner) {
+      this.stoppedTrafficBanner.destroy();
+      this.stoppedTrafficBanner = null;
     }
 
     // Clean up debug overlay
