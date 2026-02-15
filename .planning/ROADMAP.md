@@ -78,6 +78,11 @@ Plans:
   3. On devices supporting Web Share API, player can share the image directly to social apps
   4. Share prompt flows naturally into the activism end screen — share your sign, then see how to take real action
   5. The shareable image looks good when posted to social media (1080x1080 or similar, readable text, clear branding)
+**Plans:** 3 plans
+Plans:
+- [ ] 11-01-PLAN.md — ShareCardGenerator: Canvas API 1080x1080 Polaroid card compositor + share config
+- [ ] 11-02-PLAN.md — Share UI in ScoreScene: download/Web Share API + activism flow integration
+- [ ] 11-03-PLAN.md — OG meta tags + static preview image for URL sharing
 
 ### Phase 12: Debug & Tuning
 **Goal**: Use the existing debug overlay and hot-tune sliders to dial in the perfect feel. One map, perfectly balanced. Confidence arc feels emotional. Fatigue feels strategic. Reactions feel varied and real. Events surprise without frustrating.
@@ -97,5 +102,5 @@ Plans:
 | 8. Sign Creator | 0/3 | Planned | -- |
 | 9. Visual & UI Polish | 0/? | Pending | -- |
 | 10. Audio Polish | 0/4 | Planned | -- |
-| 11. Social Share | 0/? | Pending | -- |
+| 11. Social Share | 0/3 | Planned | -- |
 | 12. Debug & Tuning | 0/? | Pending | -- |
