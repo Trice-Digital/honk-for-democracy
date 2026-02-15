@@ -202,25 +202,20 @@ export class SignEditor {
   public async setMaterial(materialCanvas: HTMLCanvasElement): Promise<void> {
     const dataUrl = materialCanvas.toDataURL('image/png');
 
-    return new Promise((resolve) => {
-      FabricImage.fromURL(dataUrl).then((img) => {
-        if (!img) {
-          console.error('[SignEditor] Failed to load material texture as FabricImage');
-          resolve();
-          return;
-        }
+    const img = await FabricImage.fromURL(dataUrl);
+    if (!img) {
+      console.error('[SignEditor] Failed to load material texture as FabricImage');
+      return;
+    }
 
-        // Scale image to fit canvas
-        img.scaleToWidth(this.canvas.width!);
-        img.scaleToHeight(this.canvas.height!);
+    // Scale image to fit canvas
+    img.scaleToWidth(this.canvas.width!);
+    img.scaleToHeight(this.canvas.height!);
 
-        this.canvas.setBackgroundImage(img, () => {
-          this.canvas.renderAll();
-          this.notifyChange();
-          resolve();
-        });
-      });
-    });
+    // Fabric.js v6+/v7: set backgroundImage property directly (setBackgroundImage was removed)
+    this.canvas.backgroundImage = img;
+    this.canvas.renderAll();
+    this.notifyChange();
   }
 
   /**
