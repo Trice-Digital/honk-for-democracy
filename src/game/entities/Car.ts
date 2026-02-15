@@ -77,7 +77,7 @@ const VEHICLE_DEFS: Record<CarType, VehicleDef> = {
 };
 
 // Scale factor applied at draw time (generateTexture ignores Graphics.setScale)
-const SCALE_FACTOR = 1.4;
+const SCALE_FACTOR = 1.0;
 
 // Emoji face sets
 const DRIVER_FACES = ['😐', '😊', '😤', '😠', '🙂', '😑'];
@@ -107,8 +107,8 @@ export class Car extends Phaser.GameObjects.Container {
   private carTexKey: string | null = null;
   private emojiText!: Phaser.GameObjects.Text;
   private passengerText: Phaser.GameObjects.Text | null = null;
-  private carWidth: number = 0;
-  private carLength: number = 0;
+  public carWidth: number = 0;
+  public carLength: number = 0;
   private carColor: number = 0;
   private static carTexCounter = 0;
 
@@ -237,16 +237,22 @@ export class Car extends Phaser.GameObjects.Container {
       this.scene.textures.remove(this.carTexKey);
     }
 
-    const tempG = this.scene.add.graphics();
-    this.drawVehicle(tempG);
-
     const def = VEHICLE_DEFS[this.carType];
     const pad = 20;
     const texW = Math.ceil(def.width * SCALE_FACTOR) + pad * 2;
     const texH = Math.ceil(def.height * SCALE_FACTOR) + pad * 2;
-    tempG.setPosition(texW / 2, texH / 2);
+
+    const tempG = this.scene.add.graphics();
+    this.drawVehicle(tempG);
+
+    // Use RenderTexture to bake — draw the Graphics at (texW/2, texH/2) so
+    // the centered-at-origin drawing lands in the middle of the texture.
+    // (Graphics.setPosition + generateTexture does NOT reliably offset.)
     const texKey = `car_${Car.carTexCounter++}`;
-    tempG.generateTexture(texKey, texW, texH);
+    const rt = this.scene.make.renderTexture({ width: texW, height: texH }, false);
+    rt.draw(tempG, texW / 2, texH / 2);
+    rt.saveTexture(texKey);
+    rt.destroy();
     tempG.destroy();
     this.carTexKey = texKey;
 

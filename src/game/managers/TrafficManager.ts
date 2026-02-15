@@ -77,16 +77,31 @@ export class TrafficManager {
 
       if (!car.isPastStopLine()) {
         const carAhead = this.findCarAhead(car);
-        if (carAhead && carAhead.isStopped) {
+        if (carAhead) {
           const dist = this.getDistanceBetweenCars(car, carAhead);
-          if (dist < 70) {
+          // Stop if too close to car ahead (whether it's stopped or just slower)
+          const minGap = (car.carLength + carAhead.carLength) / 2 + 12;
+          if (dist < minGap) {
             car.isStopped = true;
+          } else if (carAhead.isStopped && dist < minGap + 20) {
+            // Ease to stop when approaching a stopped car
+            car.isStopped = true;
+          } else {
+            car.shouldStop(isGreen);
           }
         } else {
           car.shouldStop(isGreen);
         }
       } else {
-        car.isStopped = false;
+        // Past stop line — keep moving, but still respect car ahead
+        const carAhead = this.findCarAhead(car);
+        if (carAhead) {
+          const dist = this.getDistanceBetweenCars(car, carAhead);
+          const minGap = (car.carLength + carAhead.carLength) / 2 + 12;
+          car.isStopped = dist < minGap;
+        } else {
+          car.isStopped = false;
+        }
       }
 
       car.update(time, delta);
@@ -182,7 +197,7 @@ export class TrafficManager {
       if (!car.active || car.direction !== lane.direction) return false;
       const dx = car.x - lane.spawnX;
       const dy = car.y - lane.spawnY;
-      return Math.sqrt(dx * dx + dy * dy) < 80;
+      return Math.sqrt(dx * dx + dy * dy) < car.carLength + 20;
     });
 
     if (tooClose) return;
