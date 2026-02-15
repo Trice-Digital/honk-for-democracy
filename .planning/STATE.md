@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 Phase: 8 of 12 (Sign Creator) — in progress
 Plan: 2 of 3 completed
 Status: Phase 8 in progress (decorations system complete)
-Last activity: 2026-02-15 - Completed quick task 3: Fix car texture baking (SCALE_FACTOR applied to all drawing)
+Last activity: 2026-02-15 - Completed quick task 3: Fix car texture baking + stacking
 
 ## Performance Metrics
 
@@ -86,7 +86,7 @@ None.
 |---|-------------|------|--------|-----------|
 | 1 | Refactor IntersectionScene.ts into reusable managers for multi-scene support | 2026-02-15 | 2b9b931 | [1-refactor-intersectionscene-ts-into-reusa](./quick/1-refactor-intersectionscene-ts-into-reusa/) |
 | 2 | Fix car rendering: scale, rotation, driver seat, passengers | 2026-02-15 | aa8f0f8 | [2-fix-car-rendering-size-rotation-emoji-pl](./quick/2-fix-car-rendering-size-rotation-emoji-pl/) |
-| 3 | Fix car texture baking: apply SCALE_FACTOR to all drawing code | 2026-02-15 | 4718741 | [3-fix-car-texture-baking-apply-scale-facto](./quick/3-fix-car-texture-baking-apply-scale-facto/) |
+| 3 | Fix car texture baking + stacking | 2026-02-15 | 9d9c19e | [3-fix-car-texture-baking-apply-scale-facto](./quick/3-fix-car-texture-baking-apply-scale-facto/) |
 
 ## Session Continuity
 
