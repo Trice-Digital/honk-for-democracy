@@ -32,21 +32,56 @@ export function generateMaterialTexture(
   }
 
   switch (materialId) {
+    // Cardboard variants
     case 'cardboard':
-      drawCardboard(ctx, width, height);
+      drawCardboard(ctx, width, height, '#c4956a');
       break;
+    case 'cardboard-red':
+      drawCardboard(ctx, width, height, '#b85c4a');
+      break;
+    case 'cardboard-blue':
+      drawCardboard(ctx, width, height, '#6a8fb8');
+      break;
+    case 'cardboard-green':
+      drawCardboard(ctx, width, height, '#7a9a6a');
+      break;
+
+    // Posterboard variants
     case 'posterboard':
-      drawPosterboard(ctx, width, height);
+      drawPosterboard(ctx, width, height, '#f5f0e8');
       break;
+    case 'posterboard-yellow':
+      drawPosterboard(ctx, width, height, '#fbbf24');
+      break;
+    case 'posterboard-pink':
+      drawPosterboard(ctx, width, height, '#f472b6');
+      break;
+    case 'posterboard-sky':
+      drawPosterboard(ctx, width, height, '#7dd3fc');
+      break;
+
+    // Foam Board variants
     case 'foamboard':
-      drawFoamBoard(ctx, width, height);
+      drawFoamBoard(ctx, width, height, '#e8e8e8');
       break;
+    case 'foamboard-green':
+      drawFoamBoard(ctx, width, height, '#86efac');
+      break;
+    case 'foamboard-purple':
+      drawFoamBoard(ctx, width, height, '#c4b5fd');
+      break;
+
+    // Wood Plank variants
     case 'wood':
-      drawWood(ctx, width, height);
+      drawWood(ctx, width, height, '#DEB887');
       break;
+    case 'wood-dark':
+      drawWood(ctx, width, height, '#8B7355', ['#5C4033', '#3B2B1F', '#4A3728', '#6B5744']);
+      break;
+
     default:
       console.warn(`[SignMaterials] Unknown material ID: ${materialId}. Using posterboard.`);
-      drawPosterboard(ctx, width, height);
+      drawPosterboard(ctx, width, height, '#f5f0e8');
   }
 
   return canvas;
@@ -54,17 +89,17 @@ export function generateMaterialTexture(
 
 /**
  * Draw cardboard texture:
- * - Tan base (#d4a574)
+ * - Tan base (default #c4956a, or custom color)
  * - Horizontal grain lines (darker, semi-transparent, varied spacing)
  * - Slight noise texture
  * - Torn/rough edges (jagged border)
  */
-function drawCardboard(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+function drawCardboard(ctx: CanvasRenderingContext2D, width: number, height: number, baseColor: string = '#c4956a'): void {
   // Base color
-  ctx.fillStyle = '#d4a574';
+  ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, width, height);
 
-  // Horizontal grain lines
+  // Horizontal grain lines (darken the base color for grain)
   ctx.strokeStyle = 'rgba(120, 53, 15, 0.15)';
   ctx.lineWidth = 1;
 
@@ -84,13 +119,13 @@ function drawCardboard(ctx: CanvasRenderingContext2D, width: number, height: num
 
 /**
  * Draw posterboard texture:
- * - Clean white (#ffffff)
+ * - Clean white (default #f5f0e8, or custom color)
  * - Very subtle paper grain
  * - Clean-cut edges (thin gray border)
  */
-function drawPosterboard(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+function drawPosterboard(ctx: CanvasRenderingContext2D, width: number, height: number, baseColor: string = '#f5f0e8'): void {
   // Base color
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, width, height);
 
   // Subtle paper grain (very light noise)
@@ -104,13 +139,13 @@ function drawPosterboard(ctx: CanvasRenderingContext2D, width: number, height: n
 
 /**
  * Draw foam board texture:
- * - Off-white (#f0f0f0)
+ * - Off-white (default #e8e8e8, or custom color)
  * - Subtle foam-core texture (dotted pattern)
  * - Thick, clean edges (darker border)
  */
-function drawFoamBoard(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+function drawFoamBoard(ctx: CanvasRenderingContext2D, width: number, height: number, baseColor: string = '#e8e8e8'): void {
   // Base color
-  ctx.fillStyle = '#f0f0f0';
+  ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, width, height);
 
   // Foam-core texture (subtle dots)
@@ -131,22 +166,22 @@ function drawFoamBoard(ctx: CanvasRenderingContext2D, width: number, height: num
 
 /**
  * Draw wood texture:
- * - Brown wood grain (#8B6914)
+ * - Brown wood grain (default #DEB887 light, or darker variant)
  * - Horizontal wavy grain lines (varying browns)
  * - Knot marks (small darker circles)
  * - Rough edges
  */
-function drawWood(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+function drawWood(ctx: CanvasRenderingContext2D, width: number, height: number, baseColor: string = '#DEB887', grainColors?: string[]): void {
   // Base color
-  ctx.fillStyle = '#8B6914';
+  ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, width, height);
 
   // Wood grain lines (wavy horizontal)
-  const grainColors = ['#5C4033', '#6F4E37', '#78350f', '#A0522D'];
+  const grains = grainColors || ['#5C4033', '#6F4E37', '#78350f', '#A0522D'];
 
   for (let i = 0; i < 20; i++) {
     const y = (height / 20) * i + Math.random() * 20;
-    ctx.strokeStyle = grainColors[Math.floor(Math.random() * grainColors.length)];
+    ctx.strokeStyle = grains[Math.floor(Math.random() * grains.length)];
     ctx.globalAlpha = 0.2 + Math.random() * 0.3;
     ctx.lineWidth = 1 + Math.random() * 2;
 
