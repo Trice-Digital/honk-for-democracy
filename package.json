@@ -12,7 +12,8 @@
     "@astrojs/cloudflare": "^12.6.12",
     "astro": "^5.17.1",
     "fabric": "^7.1.0",
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.6",
