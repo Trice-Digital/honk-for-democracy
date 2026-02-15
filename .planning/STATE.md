@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 Phase: 8 of 12 (Sign Creator) — in progress
 Plan: 2 of 3 completed
 Status: Phase 8 in progress (decorations system complete)
-Last activity: 2026-02-15 - Completed quick task 5: Fix dialogue/reaction speech bubbles + emoji audit
+Last activity: 2026-02-15 - Completed quick task 6: Add dev testing tools for gameplay tuning
 
 ## Performance Metrics
 
