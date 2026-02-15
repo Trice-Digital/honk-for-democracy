@@ -86,6 +86,8 @@ const POSITIVE_FACES = ['😊', '🤟', '😄', '👍'];
 const NEGATIVE_FACES = ['😒', '😤', '🖕', '😡'];
 const NEUTRAL_FACES = ['😐', '😶', '🫤'];
 const CYCLIST_FACES = ['🚴', '😊', '🙂', '😐'];
+const PASSENGER_EMOJIS = ['👤', '👦', '👧', '👩', '👨', '🧒'];
+const DOG_EMOJIS = ['🐕', '🐶', '🐩'];
 
 // Windshield tint
 const WINDSHIELD_TINT = 0xc8e6ff;
@@ -105,6 +107,7 @@ export class Car extends Phaser.GameObjects.Container {
   private carBodyImage: Phaser.GameObjects.Image | null = null;
   private carTexKey: string | null = null;
   private emojiText!: Phaser.GameObjects.Text;
+  private passengerText: Phaser.GameObjects.Text | null = null;
   private carWidth: number = 0;
   private carLength: number = 0;
   private carColor: number = 0;
@@ -145,15 +148,19 @@ export class Car extends Phaser.GameObjects.Container {
 
     this.bakeCarBody();
 
-    // Emoji face driver
+    // Emoji face driver (positioned at driver seat: front-left)
     const face = this.carType === 'bicycle'
       ? CYCLIST_FACES[Math.floor(Math.random() * CYCLIST_FACES.length)]
       : DRIVER_FACES[Math.floor(Math.random() * DRIVER_FACES.length)];
-    this.emojiText = scene.add.text(0, def.faceY * SCALE_FACTOR, face, {
+    const driverX = (this.carType === 'motorcycle' || this.carType === 'bicycle') ? 0 : -(def.width * 0.2);
+    this.emojiText = scene.add.text(driverX * SCALE_FACTOR, def.faceY * SCALE_FACTOR, face, {
       fontSize: `${Math.round(def.faceSize * 1.5)}px`,
     });
     this.emojiText.setOrigin(0.5);
     this.add(this.emojiText);
+
+    // Maybe add passenger
+    this.maybeAddPassenger();
 
     // Set base rotation based on direction
     this.baseRotation = this.getBaseRotation();
@@ -184,6 +191,40 @@ export class Car extends Phaser.GameObjects.Container {
       case 'south': return 180;
       case 'east': return 90;
       case 'west': return -90;
+    }
+  }
+
+  private maybeAddPassenger(): void {
+    // Remove any existing passenger
+    if (this.passengerText) {
+      this.remove(this.passengerText);
+      this.passengerText.destroy();
+      this.passengerText = null;
+    }
+
+    // Only cars (not motorcycles or bicycles) can have passengers
+    if (this.carType === 'motorcycle' || this.carType === 'bicycle') {
+      return;
+    }
+
+    // 30% chance of passenger
+    if (Math.random() < 0.3) {
+      const def = VEHICLE_DEFS[this.carType];
+      const isDog = Math.random() < 0.1; // 10% of passengers are dogs
+      const passengerEmoji = isDog
+        ? DOG_EMOJIS[Math.floor(Math.random() * DOG_EMOJIS.length)]
+        : PASSENGER_EMOJIS[Math.floor(Math.random() * PASSENGER_EMOJIS.length)];
+
+      // Passenger in front-right seat: positive X (right side), same Y as driver
+      const passengerX = (def.width * 0.2) * SCALE_FACTOR;
+      const passengerY = def.faceY * SCALE_FACTOR;
+      const passengerSize = Math.round(def.faceSize * (isDog ? 1.2 : 1.4));
+
+      this.passengerText = this.scene.add.text(passengerX, passengerY, passengerEmoji, {
+        fontSize: `${passengerSize}px`,
+      });
+      this.passengerText.setOrigin(0.5);
+      this.add(this.passengerText);
     }
   }
 
@@ -827,13 +868,17 @@ export class Car extends Phaser.GameObjects.Container {
 
     this.bakeCarBody();
 
-    // New emoji face
+    // New emoji face (positioned at driver seat: front-left)
     const face = this.carType === 'bicycle'
       ? CYCLIST_FACES[Math.floor(Math.random() * CYCLIST_FACES.length)]
       : DRIVER_FACES[Math.floor(Math.random() * DRIVER_FACES.length)];
-    this.emojiText.setPosition(0, def.faceY * SCALE_FACTOR);
+    const driverX = (this.carType === 'motorcycle' || this.carType === 'bicycle') ? 0 : -(def.width * 0.2);
+    this.emojiText.setPosition(driverX * SCALE_FACTOR, def.faceY * SCALE_FACTOR);
     this.emojiText.setText(face);
     this.emojiText.setFontSize(Math.round(def.faceSize * 1.5));
+
+    // Maybe add passenger
+    this.maybeAddPassenger();
 
     this.wobblePhase = Math.random() * Math.PI * 2;
     this.baseRotation = this.getBaseRotation();
