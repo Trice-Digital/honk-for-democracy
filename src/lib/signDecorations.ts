@@ -1,109 +1,141 @@
 /**
- * SignDecorations — SVG-based decorative elements for sign editor.
+ * SignDecorations — Decorative elements for sign editor.
  *
- * Provides stickers, tape accents, and drawn flourishes that players can
- * drag onto their signs for arts & crafts personality.
+ * Provides:
+ * - Emoji stickers (rendered as text on canvas, no asset files needed)
+ * - Tape accents (SVG-based strips)
  *
- * Architecture: Pure TypeScript, no dependencies. SignEditor loads these
- * as Fabric.js FabricImage objects via data URLs.
+ * Architecture: Pure TypeScript, no dependencies. SignEditor loads SVG
+ * decorations as Fabric.js FabricImage objects, and emoji stickers as
+ * FabricText objects.
  */
 
 export interface DecorationDef {
   id: string;
-  category: 'sticker' | 'tape' | 'drawn';
+  category: 'sticker' | 'tape';
   label: string;
   svgString: string;
   defaultWidth: number;
   defaultHeight: number;
 }
 
+/** Emoji sticker definition (rendered as FabricText, not SVG) */
+export interface EmojiDef {
+  emoji: string;
+  label: string;
+}
+
 // ============================================================
-// STICKERS — Small SVG shapes placed on the sign
+// EMOJI CATEGORIES — organized for easy browsing
 // ============================================================
 
-const STICKER_PEACE: DecorationDef = {
-  id: 'peace-sign',
-  category: 'sticker',
-  label: 'Peace Sign',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <circle cx="50" cy="50" r="45" fill="none" stroke="#1a1a1a" stroke-width="6"/>
-    <line x1="50" y1="50" x2="50" y2="10" stroke="#1a1a1a" stroke-width="6"/>
-    <line x1="50" y1="50" x2="20" y2="80" stroke="#1a1a1a" stroke-width="6"/>
-    <line x1="50" y1="50" x2="80" y2="80" stroke="#1a1a1a" stroke-width="6"/>
-  </svg>`,
-  defaultWidth: 60,
-  defaultHeight: 60,
-};
+export interface EmojiCategory {
+  id: string;
+  label: string;
+  emojis: EmojiDef[];
+}
 
-const STICKER_HEART: DecorationDef = {
-  id: 'heart',
-  category: 'sticker',
-  label: 'Heart',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <path d="M50,85 C50,85 15,60 15,40 C15,25 25,15 35,15 C42,15 47,20 50,25 C53,20 58,15 65,15 C75,15 85,25 85,40 C85,60 50,85 50,85 Z"
-          fill="#dc2626" stroke="#1a1a1a" stroke-width="3"/>
-  </svg>`,
-  defaultWidth: 50,
-  defaultHeight: 50,
-};
-
-const STICKER_STAR: DecorationDef = {
-  id: 'star',
-  category: 'sticker',
-  label: 'Star',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <path d="M50,10 L60,40 L90,40 L65,60 L75,90 L50,70 L25,90 L35,60 L10,40 L40,40 Z"
-          fill="#ca8a04" stroke="#1a1a1a" stroke-width="3"/>
-  </svg>`,
-  defaultWidth: 55,
-  defaultHeight: 55,
-};
-
-const STICKER_FIST: DecorationDef = {
-  id: 'fist',
-  category: 'sticker',
-  label: 'Raised Fist',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <rect x="30" y="50" width="40" height="35" rx="5" fill="#1a1a1a"/>
-    <rect x="25" y="35" width="10" height="20" rx="3" fill="#1a1a1a"/>
-    <rect x="35" y="30" width="10" height="25" rx="3" fill="#1a1a1a"/>
-    <rect x="45" y="28" width="10" height="27" rx="3" fill="#1a1a1a"/>
-    <rect x="55" y="30" width="10" height="25" rx="3" fill="#1a1a1a"/>
-    <rect x="65" y="35" width="10" height="20" rx="3" fill="#1a1a1a"/>
-    <ellipse cx="50" cy="85" rx="22" ry="12" fill="#1a1a1a"/>
-  </svg>`,
-  defaultWidth: 50,
-  defaultHeight: 70,
-};
-
-const STICKER_MEGAPHONE: DecorationDef = {
-  id: 'megaphone',
-  category: 'sticker',
-  label: 'Megaphone',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <path d="M20,40 L60,20 L60,80 L20,60 Z" fill="#2563eb" stroke="#1a1a1a" stroke-width="3"/>
-    <ellipse cx="20" cy="50" rx="8" ry="15" fill="#2563eb" stroke="#1a1a1a" stroke-width="3"/>
-    <path d="M60,30 L75,25 L75,75 L60,70" fill="#e0e0e0" stroke="#1a1a1a" stroke-width="2"/>
-    <circle cx="80" cy="50" r="12" fill="none" stroke="#1a1a1a" stroke-width="2"/>
-    <circle cx="90" cy="50" r="8" fill="none" stroke="#1a1a1a" stroke-width="2"/>
-  </svg>`,
-  defaultWidth: 65,
-  defaultHeight: 50,
-};
-
-const STICKER_SMILEY: DecorationDef = {
-  id: 'smiley',
-  category: 'sticker',
-  label: 'Smiley Face',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <circle cx="50" cy="50" r="45" fill="#ca8a04" stroke="#1a1a1a" stroke-width="4"/>
-    <circle cx="35" cy="40" r="5" fill="#1a1a1a"/>
-    <circle cx="65" cy="40" r="5" fill="#1a1a1a"/>
-    <path d="M30,60 Q50,75 70,60" fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
-  </svg>`,
-  defaultWidth: 50,
-  defaultHeight: 50,
-};
+export const EMOJI_CATEGORIES: EmojiCategory[] = [
+  {
+    id: 'protest',
+    label: 'Protest',
+    emojis: [
+      { emoji: '\u270A', label: 'Raised Fist' },
+      { emoji: '\u2764\uFE0F', label: 'Red Heart' },
+      { emoji: '\u262E\uFE0F', label: 'Peace' },
+      { emoji: '\u2728', label: 'Sparkles' },
+      { emoji: '\uD83D\uDCE2', label: 'Loudspeaker' },
+      { emoji: '\uD83D\uDCAA', label: 'Flexed Bicep' },
+      { emoji: '\uD83C\uDF1F', label: 'Glowing Star' },
+      { emoji: '\uD83D\uDD25', label: 'Fire' },
+      { emoji: '\uD83D\uDCAF', label: '100' },
+      { emoji: '\uD83C\uDDF8', label: 'Flag S' },
+      { emoji: '\uD83D\uDDE3\uFE0F', label: 'Speaking Head' },
+      { emoji: '\uD83E\uDD1D', label: 'Handshake' },
+      { emoji: '\uD83C\uDF0D', label: 'Globe' },
+      { emoji: '\uD83D\uDCCC', label: 'Pushpin' },
+      { emoji: '\uD83C\uDFC6', label: 'Trophy' },
+    ],
+  },
+  {
+    id: 'faces',
+    label: 'Faces',
+    emojis: [
+      { emoji: '\uD83D\uDE00', label: 'Grinning' },
+      { emoji: '\uD83D\uDE02', label: 'Tears of Joy' },
+      { emoji: '\uD83D\uDE0D', label: 'Heart Eyes' },
+      { emoji: '\uD83E\uDD29', label: 'Star Struck' },
+      { emoji: '\uD83E\uDD2F', label: 'Mind Blown' },
+      { emoji: '\uD83D\uDE0E', label: 'Sunglasses' },
+      { emoji: '\uD83E\uDD14', label: 'Thinking' },
+      { emoji: '\uD83D\uDE21', label: 'Angry' },
+      { emoji: '\uD83D\uDE31', label: 'Screaming' },
+      { emoji: '\uD83E\uDD7A', label: 'Pleading' },
+      { emoji: '\uD83E\uDD73', label: 'Partying' },
+      { emoji: '\uD83E\uDEE1', label: 'Salute' },
+      { emoji: '\uD83D\uDE09', label: 'Winking' },
+      { emoji: '\uD83D\uDE4F', label: 'Folded Hands' },
+      { emoji: '\uD83D\uDE4C', label: 'Raising Hands' },
+    ],
+  },
+  {
+    id: 'symbols',
+    label: 'Symbols',
+    emojis: [
+      { emoji: '\u2B50', label: 'Star' },
+      { emoji: '\u26A1', label: 'Lightning' },
+      { emoji: '\uD83C\uDF08', label: 'Rainbow' },
+      { emoji: '\u2705', label: 'Check Mark' },
+      { emoji: '\u274C', label: 'Cross Mark' },
+      { emoji: '\u2757', label: 'Exclamation' },
+      { emoji: '\u2753', label: 'Question' },
+      { emoji: '\u267B\uFE0F', label: 'Recycle' },
+      { emoji: '\uD83D\uDCA5', label: 'Boom' },
+      { emoji: '\uD83D\uDCAB', label: 'Dizzy' },
+      { emoji: '\uD83C\uDF1E', label: 'Sun Face' },
+      { emoji: '\uD83C\uDF3B', label: 'Sunflower' },
+      { emoji: '\uD83C\uDF3A', label: 'Hibiscus' },
+      { emoji: '\uD83C\uDF40', label: 'Four Leaf Clover' },
+      { emoji: '\uD83E\uDD8B', label: 'Butterfly' },
+    ],
+  },
+  {
+    id: 'animals',
+    label: 'Animals',
+    emojis: [
+      { emoji: '\uD83E\uDD86', label: 'Duck' },
+      { emoji: '\uD83D\uDC25', label: 'Baby Chick' },
+      { emoji: '\uD83D\uDC1D', label: 'Bee' },
+      { emoji: '\uD83E\uDD85', label: 'Eagle' },
+      { emoji: '\uD83E\uDD81', label: 'Lion' },
+      { emoji: '\uD83D\uDC3B', label: 'Bear' },
+      { emoji: '\uD83D\uDC36', label: 'Dog' },
+      { emoji: '\uD83D\uDC31', label: 'Cat' },
+      { emoji: '\uD83E\uDD8A', label: 'Fox' },
+      { emoji: '\uD83E\uDD89', label: 'Owl' },
+      { emoji: '\uD83D\uDC22', label: 'Turtle' },
+      { emoji: '\uD83D\uDC0D', label: 'Snake' },
+    ],
+  },
+  {
+    id: 'objects',
+    label: 'Things',
+    emojis: [
+      { emoji: '\uD83D\uDE97', label: 'Car' },
+      { emoji: '\uD83D\uDEA8', label: 'Police Light' },
+      { emoji: '\uD83C\uDFB5', label: 'Musical Note' },
+      { emoji: '\uD83C\uDFA4', label: 'Microphone' },
+      { emoji: '\uD83D\uDCF7', label: 'Camera' },
+      { emoji: '\uD83D\uDCFA', label: 'Television' },
+      { emoji: '\uD83D\uDCF0', label: 'Newspaper' },
+      { emoji: '\uD83C\uDFAC', label: 'Clapper Board' },
+      { emoji: '\uD83D\uDD14', label: 'Bell' },
+      { emoji: '\uD83C\uDF89', label: 'Party Popper' },
+      { emoji: '\uD83C\uDF88', label: 'Balloon' },
+      { emoji: '\uD83C\uDF86', label: 'Fireworks' },
+    ],
+  },
+];
 
 // ============================================================
 // TAPE ACCENTS — Rectangular strips that look like tape
@@ -156,103 +188,14 @@ const TAPE_MASKING: DecorationDef = {
 };
 
 // ============================================================
-// DRAWN ACCENTS — Hand-drawn SVG flourishes
-// ============================================================
-
-const DRAWN_STARS: DecorationDef = {
-  id: 'drawn-stars',
-  category: 'drawn',
-  label: 'Drawn Stars',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">
-    <path d="M15,20 L17,25 L23,25 L18,29 L20,35 L15,31 L10,35 L12,29 L7,25 L13,25 Z"
-          fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M50,15 L52,21 L58,21 L53,25 L55,31 L50,27 L45,31 L47,25 L42,21 L48,21 Z"
-          fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M85,18 L87,23 L93,23 L88,27 L90,33 L85,29 L80,33 L82,27 L77,23 L83,23 Z"
-          fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`,
-  defaultWidth: 80,
-  defaultHeight: 32,
-};
-
-const DRAWN_HEARTS: DecorationDef = {
-  id: 'drawn-hearts',
-  category: 'drawn',
-  label: 'Drawn Hearts',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50">
-    <path d="M20,25 C20,18 25,15 28,15 C30,15 32,17 33,20 C34,17 36,15 38,15 C41,15 46,18 46,25 C46,32 33,42 33,42 C33,42 20,32 20,25 Z"
-          fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M54,20 C54,14 58,12 61,12 C63,12 64,14 65,16 C66,14 67,12 69,12 C72,12 76,14 76,20 C76,26 65,35 65,35 C65,35 54,26 54,20 Z"
-          fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`,
-  defaultWidth: 70,
-  defaultHeight: 40,
-};
-
-const DRAWN_ARROW: DecorationDef = {
-  id: 'drawn-arrow',
-  category: 'drawn',
-  label: 'Drawn Arrow',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">
-    <path d="M5,20 Q30,18 50,20 T95,20"
-          fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
-    <path d="M85,10 L95,20 L85,30"
-          fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`,
-  defaultWidth: 80,
-  defaultHeight: 32,
-};
-
-const DRAWN_UNDERLINE: DecorationDef = {
-  id: 'drawn-underline',
-  category: 'drawn',
-  label: 'Wavy Underline',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 20">
-    <path d="M5,10 Q15,5 25,10 T45,10 T65,10 T85,10 T105,10 L115,10"
-          fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
-  </svg>`,
-  defaultWidth: 100,
-  defaultHeight: 16,
-};
-
-const DRAWN_EXCLAMATIONS: DecorationDef = {
-  id: 'drawn-exclamations',
-  category: 'drawn',
-  label: 'Exclamation Marks',
-  svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60">
-    <line x1="20" y1="10" x2="20" y2="35" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
-    <circle cx="20" cy="45" r="3" fill="#1a1a1a"/>
-    <line x1="40" y1="15" x2="40" y2="38" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
-    <circle cx="40" cy="48" r="3" fill="#1a1a1a"/>
-    <line x1="60" y1="12" x2="60" y2="37" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
-    <circle cx="60" cy="47" r="3" fill="#1a1a1a"/>
-  </svg>`,
-  defaultWidth: 65,
-  defaultHeight: 50,
-};
-
-// ============================================================
 // EXPORTS
 // ============================================================
 
 export const DECORATIONS: DecorationDef[] = [
-  // Stickers
-  STICKER_PEACE,
-  STICKER_HEART,
-  STICKER_STAR,
-  STICKER_FIST,
-  STICKER_MEGAPHONE,
-  STICKER_SMILEY,
   // Tape accents
   TAPE_DUCT,
   TAPE_WASHI,
   TAPE_MASKING,
-  // Drawn accents
-  DRAWN_STARS,
-  DRAWN_HEARTS,
-  DRAWN_ARROW,
-  DRAWN_UNDERLINE,
-  DRAWN_EXCLAMATIONS,
 ];
 
 /**

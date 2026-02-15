@@ -14,7 +14,7 @@
 
 import { Canvas, FabricText, FabricImage, FabricObject } from 'fabric';
 import { generateMaterialTexture } from './signMaterials';
-import type { DecorationDef } from './signDecorations';
+import type { DecorationDef, EmojiDef } from './signDecorations';
 
 export interface SignEditorOptions {
   container: HTMLElement;
@@ -278,6 +278,45 @@ export class SignEditor {
         resolve();
       });
     });
+  }
+
+  /**
+   * Add an emoji sticker to the canvas as a FabricText object.
+   * Emoji renders natively (no SVG needed), fully draggable/scalable.
+   */
+  public addEmoji(emojiDef: EmojiDef): void {
+    const centerX = this.canvas.width! / 2;
+    const centerY = this.canvas.height! / 2;
+
+    // Offset slightly so multiple emojis don't stack exactly
+    const offsetX = (Math.random() - 0.5) * 60;
+    const offsetY = (Math.random() - 0.5) * 40;
+
+    const emojiText = new FabricText(emojiDef.emoji, {
+      left: centerX + offsetX,
+      top: centerY + offsetY,
+      fontSize: 48,
+      originX: 'center',
+      originY: 'center',
+      selectable: true,
+      hasControls: true,
+      hasBorders: true,
+      lockRotation: true,
+      data: {
+        decorationId: `emoji-${emojiDef.emoji}`,
+        isEmoji: true,
+      },
+    });
+
+    this.canvas.add(emojiText);
+    this.canvas.setActiveObject(emojiText);
+
+    // Track as decoration
+    const objId = String(Date.now()) + Math.random();
+    this.decorations.set(objId, `emoji-${emojiDef.emoji}`);
+
+    this.canvas.renderAll();
+    this.notifyChange();
   }
 
   /**

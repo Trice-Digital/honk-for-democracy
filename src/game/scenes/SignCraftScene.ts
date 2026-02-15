@@ -10,7 +10,7 @@ import {
 } from '../config/signConfig';
 import { SignEditor } from '../../lib/signEditor';
 import { generateMaterialTexture } from '../../lib/signMaterials';
-import { DECORATIONS, getDecorationsByCategory } from '../../lib/signDecorations';
+import { DECORATIONS, getDecorationsByCategory, EMOJI_CATEGORIES, type EmojiDef } from '../../lib/signDecorations';
 
 /**
  * SignCraftScene — Fabric.js sign creator (M2 Phase 8).
@@ -40,7 +40,8 @@ export class SignCraftScene extends Phaser.Scene {
   private selectedFont: string = SIGN_FONTS[0];
   private selectedColor: string = SIGN_COLORS[0];
   private signMessage: string = '';
-  private selectedDecorationCategory: string = 'sticker';
+  private selectedDecorationTab: 'stickers' | 'tape' = 'stickers';
+  private selectedEmojiCategory: string = 'protest';
 
   constructor() {
     super({ key: 'SignCraftScene' });
@@ -493,49 +494,82 @@ export class SignCraftScene extends Phaser.Scene {
     label.style.textAlign = 'center';
     section.appendChild(label);
 
-    // Category tabs
+    // Main tabs: Stickers | Tape
     const tabRow = document.createElement('div');
     tabRow.style.display = 'flex';
     tabRow.style.gap = '4px';
     tabRow.style.justifyContent = 'center';
     tabRow.style.marginBottom = '12px';
 
-    const categories = [
-      { id: 'sticker', label: 'Stickers' },
-      { id: 'tape', label: 'Tape' },
-      { id: 'drawn', label: 'Drawn' },
+    const tabs = [
+      { id: 'stickers' as const, label: 'Stickers' },
+      { id: 'tape' as const, label: 'Tape' },
     ];
 
-    categories.forEach((cat, index) => {
-      const tab = document.createElement('button');
-      tab.type = 'button';
-      tab.textContent = cat.label;
-      tab.style.padding = '8px 16px';
-      tab.style.fontSize = '14px';
-      tab.style.fontWeight = 'bold';
-      tab.style.border = 'none';
-      tab.style.borderBottom = index === 0 ? '3px solid #3b82f6' : '2px solid transparent';
-      tab.style.backgroundColor = 'transparent';
-      tab.style.color = index === 0 ? '#3b82f6' : '#9ca3af';
-      tab.style.cursor = 'pointer';
-      tab.style.transition = 'all 0.2s';
-      tab.dataset.category = cat.id;
+    tabs.forEach((tab, index) => {
+      const tabBtn = document.createElement('button');
+      tabBtn.type = 'button';
+      tabBtn.textContent = tab.label;
+      tabBtn.style.padding = '8px 20px';
+      tabBtn.style.fontSize = '14px';
+      tabBtn.style.fontWeight = 'bold';
+      tabBtn.style.border = 'none';
+      tabBtn.style.borderBottom = index === 0 ? '3px solid #3b82f6' : '2px solid transparent';
+      tabBtn.style.backgroundColor = 'transparent';
+      tabBtn.style.color = index === 0 ? '#3b82f6' : '#9ca3af';
+      tabBtn.style.cursor = 'pointer';
+      tabBtn.style.transition = 'all 0.2s';
+      tabBtn.dataset.mainTab = tab.id;
 
-      tab.addEventListener('click', () => this.selectDecorationCategory(cat.id));
-      tabRow.appendChild(tab);
+      tabBtn.addEventListener('click', () => this.selectDecorationTab(tab.id));
+      tabRow.appendChild(tabBtn);
     });
 
     section.appendChild(tabRow);
 
+    // Emoji sub-category pills (only visible when Stickers tab active)
+    const emojiCatRow = document.createElement('div');
+    emojiCatRow.id = 'emoji-category-row';
+    emojiCatRow.style.display = 'flex';
+    emojiCatRow.style.gap = '6px';
+    emojiCatRow.style.justifyContent = 'center';
+    emojiCatRow.style.flexWrap = 'wrap';
+    emojiCatRow.style.marginBottom = '10px';
+
+    EMOJI_CATEGORIES.forEach((cat, index) => {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.textContent = cat.label;
+      pill.style.padding = '4px 12px';
+      pill.style.fontSize = '12px';
+      pill.style.fontWeight = 'bold';
+      pill.style.border = 'none';
+      pill.style.borderRadius = '12px';
+      pill.style.backgroundColor = index === 0 ? '#3b82f6' : '#374151';
+      pill.style.color = index === 0 ? '#ffffff' : '#9ca3af';
+      pill.style.cursor = 'pointer';
+      pill.style.transition = 'all 0.2s';
+      pill.dataset.emojiCat = cat.id;
+
+      pill.addEventListener('click', () => this.selectEmojiCategory(cat.id));
+      emojiCatRow.appendChild(pill);
+    });
+
+    section.appendChild(emojiCatRow);
+
     // Decoration grid container
     const gridContainer = document.createElement('div');
     gridContainer.id = 'decoration-grid';
-    gridContainer.style.display = 'flex';
-    gridContainer.style.gap = '8px';
+    gridContainer.style.display = 'grid';
+    gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, 44px)';
+    gridContainer.style.gap = '4px';
     gridContainer.style.justifyContent = 'center';
-    gridContainer.style.flexWrap = 'wrap';
-    gridContainer.style.maxWidth = '100%';
-    gridContainer.style.overflowX = 'auto';
+    gridContainer.style.maxHeight = '160px';
+    gridContainer.style.overflowY = 'auto';
+    gridContainer.style.padding = '8px';
+    gridContainer.style.backgroundColor = '#1e1e3a';
+    gridContainer.style.borderRadius = '8px';
+    gridContainer.style.border = '1px solid #374151';
     section.appendChild(gridContainer);
 
     // Remove Selected button
@@ -565,7 +599,8 @@ export class SignCraftScene extends Phaser.Scene {
     if (this.signEditor) {
       this.signEditor.canvas.on('selection:created', () => {
         const activeObj = this.signEditor!.canvas.getActiveObject();
-        const isDecoration = activeObj?.data && (activeObj.data as any).decorationId;
+        const objData = (activeObj as any)?.data;
+        const isDecoration = objData && (objData.decorationId || objData.isEmoji);
         removeBtn.disabled = !isDecoration;
         removeBtn.style.opacity = isDecoration ? '1' : '0.5';
         removeBtn.style.cursor = isDecoration ? 'pointer' : 'not-allowed';
@@ -573,7 +608,8 @@ export class SignCraftScene extends Phaser.Scene {
 
       this.signEditor.canvas.on('selection:updated', () => {
         const activeObj = this.signEditor!.canvas.getActiveObject();
-        const isDecoration = activeObj?.data && (activeObj.data as any).decorationId;
+        const objData = (activeObj as any)?.data;
+        const isDecoration = objData && (objData.decorationId || objData.isEmoji);
         removeBtn.disabled = !isDecoration;
         removeBtn.style.opacity = isDecoration ? '1' : '0.5';
         removeBtn.style.cursor = isDecoration ? 'pointer' : 'not-allowed';
@@ -589,80 +625,146 @@ export class SignCraftScene extends Phaser.Scene {
     this.removeButton = removeBtn;
     section.appendChild(removeBtn);
 
-    // Populate initial category
+    // Populate initial content
     this.updateDecorationGrid();
 
     return section;
   }
 
-  private selectDecorationCategory(categoryId: string): void {
-    this.selectedDecorationCategory = categoryId;
+  private selectDecorationTab(tabId: 'stickers' | 'tape'): void {
+    this.selectedDecorationTab = tabId;
 
-    // Update tab styles
-    const tabs = this.overlayContainer?.querySelectorAll('[data-category]');
-    tabs?.forEach((tab) => {
-      const isSelected = (tab as HTMLElement).dataset.category === categoryId;
+    // Update main tab styles
+    const mainTabs = this.overlayContainer?.querySelectorAll('[data-main-tab]');
+    mainTabs?.forEach((tab) => {
+      const isSelected = (tab as HTMLElement).dataset.mainTab === tabId;
       (tab as HTMLElement).style.borderBottom = isSelected ? '3px solid #3b82f6' : '2px solid transparent';
       (tab as HTMLElement).style.color = isSelected ? '#3b82f6' : '#9ca3af';
     });
 
-    // Update grid
+    // Show/hide emoji category pills
+    const emojiCatRow = this.overlayContainer?.querySelector('#emoji-category-row') as HTMLElement;
+    if (emojiCatRow) {
+      emojiCatRow.style.display = tabId === 'stickers' ? 'flex' : 'none';
+    }
+
+    this.updateDecorationGrid();
+  }
+
+  private selectEmojiCategory(categoryId: string): void {
+    this.selectedEmojiCategory = categoryId;
+
+    // Update pill styles
+    const pills = this.overlayContainer?.querySelectorAll('[data-emoji-cat]');
+    pills?.forEach((pill) => {
+      const isSelected = (pill as HTMLElement).dataset.emojiCat === categoryId;
+      (pill as HTMLElement).style.backgroundColor = isSelected ? '#3b82f6' : '#374151';
+      (pill as HTMLElement).style.color = isSelected ? '#ffffff' : '#9ca3af';
+    });
+
     this.updateDecorationGrid();
   }
 
   private updateDecorationGrid(): void {
-    const gridContainer = this.overlayContainer?.querySelector('#decoration-grid');
+    const gridContainer = this.overlayContainer?.querySelector('#decoration-grid') as HTMLElement;
     if (!gridContainer) return;
 
-    // Clear grid
     gridContainer.innerHTML = '';
 
-    // Get decorations for selected category
-    const decorations = getDecorationsByCategory(this.selectedDecorationCategory);
+    if (this.selectedDecorationTab === 'stickers') {
+      // Emoji picker grid
+      const category = EMOJI_CATEGORIES.find((c) => c.id === this.selectedEmojiCategory);
+      if (!category) return;
 
-    // Create thumbnail buttons
-    decorations.forEach((decoration) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.style.width = '48px';
-      btn.style.height = '48px';
-      btn.style.border = '2px solid #4b5563';
-      btn.style.borderRadius = '8px';
-      btn.style.backgroundColor = '#2a2a4a';
-      btn.style.cursor = 'pointer';
-      btn.style.padding = '4px';
-      btn.style.display = 'flex';
-      btn.style.alignItems = 'center';
-      btn.style.justifyContent = 'center';
-      btn.style.transition = 'all 0.2s';
-      btn.title = decoration.label;
+      // Use grid layout for emojis
+      gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, 44px)';
 
-      // Create SVG preview (scaled down)
-      const svg = document.createElement('div');
-      svg.innerHTML = decoration.svgString;
-      svg.style.width = '40px';
-      svg.style.height = '40px';
-      svg.style.pointerEvents = 'none';
-      btn.appendChild(svg);
+      category.emojis.forEach((emojiDef) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = emojiDef.emoji;
+        btn.style.width = '44px';
+        btn.style.height = '44px';
+        btn.style.border = '1px solid transparent';
+        btn.style.borderRadius = '8px';
+        btn.style.backgroundColor = 'transparent';
+        btn.style.cursor = 'pointer';
+        btn.style.fontSize = '28px';
+        btn.style.lineHeight = '1';
+        btn.style.display = 'flex';
+        btn.style.alignItems = 'center';
+        btn.style.justifyContent = 'center';
+        btn.style.transition = 'all 0.15s';
+        btn.style.padding = '0';
+        btn.title = emojiDef.label;
 
-      btn.addEventListener('click', () => {
-        if (this.signEditor) {
-          this.signEditor.addDecoration(decoration);
-        }
+        btn.addEventListener('click', () => {
+          if (this.signEditor) {
+            this.signEditor.addEmoji(emojiDef);
+          }
+        });
+
+        btn.addEventListener('mouseenter', () => {
+          btn.style.backgroundColor = '#374151';
+          btn.style.borderColor = '#3b82f6';
+          btn.style.transform = 'scale(1.15)';
+        });
+
+        btn.addEventListener('mouseleave', () => {
+          btn.style.backgroundColor = 'transparent';
+          btn.style.borderColor = 'transparent';
+          btn.style.transform = 'scale(1)';
+        });
+
+        gridContainer.appendChild(btn);
       });
+    } else {
+      // Tape decorations (SVG-based)
+      gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, 100px)';
 
-      btn.addEventListener('mouseenter', () => {
-        btn.style.borderColor = '#3b82f6';
-        btn.style.transform = 'scale(1.05)';
+      const tapeDecorations = getDecorationsByCategory('tape');
+      tapeDecorations.forEach((decoration) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.style.width = '100px';
+        btn.style.height = '44px';
+        btn.style.border = '2px solid #4b5563';
+        btn.style.borderRadius = '8px';
+        btn.style.backgroundColor = '#2a2a4a';
+        btn.style.cursor = 'pointer';
+        btn.style.padding = '4px';
+        btn.style.display = 'flex';
+        btn.style.alignItems = 'center';
+        btn.style.justifyContent = 'center';
+        btn.style.transition = 'all 0.2s';
+        btn.title = decoration.label;
+
+        const svg = document.createElement('div');
+        svg.innerHTML = decoration.svgString;
+        svg.style.width = '90px';
+        svg.style.height = '24px';
+        svg.style.pointerEvents = 'none';
+        btn.appendChild(svg);
+
+        btn.addEventListener('click', () => {
+          if (this.signEditor) {
+            this.signEditor.addDecoration(decoration);
+          }
+        });
+
+        btn.addEventListener('mouseenter', () => {
+          btn.style.borderColor = '#3b82f6';
+          btn.style.transform = 'scale(1.05)';
+        });
+
+        btn.addEventListener('mouseleave', () => {
+          btn.style.borderColor = '#4b5563';
+          btn.style.transform = 'scale(1)';
+        });
+
+        gridContainer.appendChild(btn);
       });
-
-      btn.addEventListener('mouseleave', () => {
-        btn.style.borderColor = '#4b5563';
-        btn.style.transform = 'scale(1)';
-      });
-
-      gridContainer.appendChild(btn);
-    });
+    }
   }
 
   // ============================================================
