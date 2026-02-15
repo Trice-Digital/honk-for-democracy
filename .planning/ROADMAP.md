@@ -109,7 +109,11 @@ Plans:
   5. START PROTESTING and RANDOMIZE buttons are visible without scrolling
   6. Layout matches the mockup on both mobile (375px) and desktop (1200px+)
   7. Existing PNG export pipeline still works — crafted signs appear in-game and on score screen
-**Plans:** 0 plans (run /gsd:plan-phase 13)
+**Plans:** 3 plans
+Plans:
+- [ ] 13-01-PLAN.md — Expand config data layer (13 materials, 8 fonts, 9 colors, preset messages, tape removal, font loading)
+- [ ] 13-02-PLAN.md — Rewrite SignCraftScene with responsive layout, tabbed controls, all features
+- [ ] 13-03-PLAN.md — Polish pass and human visual verification
 
 ## Progress
 
@@ -120,4 +124,4 @@ Plans:
 | 10. Audio Polish | 4/4 | Complete | 2026-02-15 |
 | 11. Social Share | 3/3 | Complete | 2026-02-15 |
 | 12. Debug & Tuning | 6 quick | Partial | 2026-02-15 |
-| 13. Sign Craft UX Redesign | 0/? | Pending | -- |
+| 13. Sign Craft UX Redesign | 0/3 | Planned | -- |
