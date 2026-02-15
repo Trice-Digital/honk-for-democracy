@@ -22,6 +22,7 @@ import { FatigueSystem } from '../systems/FatigueSystem';
 import { EventSystem } from '../systems/EventSystem';
 import { WeatherSystem } from '../systems/WeatherSystem';
 import { AudioSystem } from '../systems/AudioSystem';
+import { AudioMixerSystem } from '../systems/AudioMixerSystem';
 import { DebugOverlay } from '../systems/DebugOverlay';
 import { Car } from '../entities/Car';
 import { Player } from '../entities/Player';
@@ -45,6 +46,7 @@ export class IntersectionScene extends Phaser.Scene {
   private eventSystem!: EventSystem;
   private weatherSystem!: WeatherSystem;
   private audioSystem!: AudioSystem;
+  private mixerSystem!: AudioMixerSystem;
 
   // Entities
   private player!: Player;
@@ -150,6 +152,15 @@ export class IntersectionScene extends Phaser.Scene {
       AudioSystem.register(this, this.audioSystem);
     }
 
+    // Reuse existing AudioMixerSystem from registry if available (persists across scenes)
+    const existingMixer = AudioMixerSystem.get(this);
+    if (existingMixer) {
+      this.mixerSystem = existingMixer;
+    } else {
+      this.mixerSystem = new AudioMixerSystem();
+      AudioMixerSystem.register(this, this.mixerSystem);
+    }
+
     // --- Apply sign quality multiplier to reaction weights ---
     this.applySignQualityMultiplier();
 
@@ -241,6 +252,8 @@ export class IntersectionScene extends Phaser.Scene {
       // Init audio on first touch gesture (mobile requirement)
       if (!this.audioSystem['initialized']) {
         this.audioSystem.init();
+        // Start Tone.js context from same user gesture
+        this.mixerSystem.init();
         this.audioSystem.playSessionStart();
       }
 
@@ -1305,6 +1318,7 @@ export class IntersectionScene extends Phaser.Scene {
       this.muteBtnBg.setPosition(0, 0);
       this.muteBtn.setPosition(36, 36);
       const muted = this.audioSystem.toggleMute();
+      this.mixerSystem.setMasterMute(muted);
       this.muteBtn.setText(muted ? '\uD83D\uDD07' : '\uD83D\uDD0A');
     });
     this.muteBtn.on('pointerout', () => {

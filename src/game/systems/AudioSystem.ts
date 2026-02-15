@@ -11,6 +11,7 @@ export class AudioSystem {
   private muted: boolean = false;
   private masterGain: GainNode | null = null;
   private initialized: boolean = false;
+  private baseVolume: number = 0.3;
 
   /**
    * Initialize AudioContext. Must be called from a user gesture handler.
@@ -20,7 +21,7 @@ export class AudioSystem {
     try {
       this.ctx = new AudioContext();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.3;
+      this.masterGain.gain.value = this.baseVolume;
       this.masterGain.connect(this.ctx.destination);
       this.initialized = true;
     } catch {
@@ -44,9 +45,27 @@ export class AudioSystem {
   toggleMute(): boolean {
     this.muted = !this.muted;
     if (this.masterGain) {
-      this.masterGain.gain.value = this.muted ? 0 : 0.3;
+      this.masterGain.gain.value = this.muted ? 0 : this.baseVolume;
     }
     return this.muted;
+  }
+
+  /**
+   * Set master volume level (0-1 range). Used by AudioMixerSystem to
+   * coordinate volume across systems without sharing AudioContext.
+   */
+  setVolume(level: number): void {
+    this.baseVolume = Math.max(0, Math.min(1, level));
+    if (this.masterGain && !this.muted) {
+      this.masterGain.gain.value = this.baseVolume;
+    }
+  }
+
+  /**
+   * Get current base volume level (0-1 range).
+   */
+  getVolume(): number {
+    return this.baseVolume;
   }
 
   // ============================================================
