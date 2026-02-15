@@ -166,6 +166,10 @@ export class IntersectionScene extends Phaser.Scene {
     // --- Apply sign data to player character ---
     // Check if we have a crafted sign PNG (M2 sign creator) or fallback to M1 rectangle rendering
     if (this.signData.signImageDataUrl) {
+      // Remove stale texture from previous session (addBase64 silently fails if key exists)
+      if (this.textures.exists('craftedSign')) {
+        this.textures.remove('craftedSign');
+      }
       // Load PNG as Phaser texture
       this.textures.once('addtexture', (key: string) => {
         if (key === 'craftedSign') {

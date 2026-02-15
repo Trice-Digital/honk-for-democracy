@@ -86,10 +86,18 @@ export class ScoreScene extends Phaser.Scene {
       // Stick
       this.add.rectangle(cx, y + signDisplayHeight / 2 + 30, 5, 40, 0x92400e);
 
+      // Remove stale texture from previous session (addBase64 silently fails if key exists)
+      if (this.textures.exists('scoreSign')) {
+        this.textures.remove('scoreSign');
+      }
+
+      // Capture y in closure for async callback
+      const signY = y;
+
       // Load PNG as texture
       this.textures.once('addtexture', (key: string) => {
         if (key === 'scoreSign') {
-          const signImg = this.add.image(cx, y + signDisplayHeight / 2, 'scoreSign');
+          const signImg = this.add.image(cx, signY + signDisplayHeight / 2, 'scoreSign');
           signImg.setOrigin(0.5);
 
           // Scale to fit display area, maintaining aspect ratio
@@ -102,7 +110,7 @@ export class ScoreScene extends Phaser.Scene {
           const borderPadding = 8;
           const borderRect = this.add.rectangle(
             cx,
-            y + signDisplayHeight / 2,
+            signY + signDisplayHeight / 2,
             signImg.displayWidth + borderPadding * 2,
             signImg.displayHeight + borderPadding * 2,
             0x1a1a1a,
