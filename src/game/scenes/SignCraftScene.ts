@@ -122,7 +122,14 @@ export class SignCraftScene extends Phaser.Scene {
     const randomizeBtn = document.createElement('button');
     randomizeBtn.className = 'randomize-btn';
     randomizeBtn.innerHTML = '<span class="dice">🎲</span> RANDOMIZE!';
-    randomizeBtn.addEventListener('click', () => this.randomizeSign());
+    randomizeBtn.addEventListener('click', () => {
+      // Visual feedback
+      randomizeBtn.disabled = true;
+      setTimeout(() => {
+        randomizeBtn.disabled = false;
+      }, 300);
+      this.randomizeSign();
+    });
     buttonRow.appendChild(randomizeBtn);
 
     const ctaBtn = document.createElement('button');
@@ -162,6 +169,9 @@ export class SignCraftScene extends Phaser.Scene {
       const btn = document.createElement('button');
       btn.className = tab.id === 'material' ? 'tab-btn active' : 'tab-btn';
       btn.dataset.tab = tab.id;
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', tab.id === 'material' ? 'true' : 'false');
+      btn.setAttribute('aria-label', `${tab.label} tab`);
       btn.innerHTML = `<span class="tab-num">${tab.num}</span> ${tab.label}`;
       btn.addEventListener('click', () => this.switchTab(tab.id));
       tabBar.appendChild(btn);
@@ -288,11 +298,20 @@ export class SignCraftScene extends Phaser.Scene {
         width: 100%;
         max-width: 320px;
         transform: rotate(-1.5deg);
+        min-width: 280px;
       }
 
       @media (min-width: 768px) {
         .sign-canvas {
           max-width: 520px;
+        }
+      }
+
+      /* Extra small screens */
+      @media (max-width: 374px) {
+        .sign-canvas {
+          max-width: calc(100vw - 2rem);
+          min-width: 260px;
         }
       }
 
@@ -342,6 +361,11 @@ export class SignCraftScene extends Phaser.Scene {
       .randomize-btn:active {
         transform: translate(3px, 3px);
         box-shadow: 0 0 0 var(--black);
+      }
+
+      .randomize-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
       }
 
       @keyframes dice-shake {
@@ -417,6 +441,13 @@ export class SignCraftScene extends Phaser.Scene {
         display: flex;
         gap: 0.4rem;
         margin-bottom: 1rem;
+        flex-wrap: nowrap;
+      }
+
+      @media (max-width: 374px) {
+        .tab-bar {
+          gap: 0.3rem;
+        }
       }
 
       @media (min-width: 768px) {
@@ -460,6 +491,13 @@ export class SignCraftScene extends Phaser.Scene {
         font-size: 0.7rem;
         opacity: 0.5;
         font-family: 'Patrick Hand', cursive;
+      }
+
+      @media (max-width: 374px) {
+        .tab-btn {
+          font-size: 0.9rem;
+          padding: 0.5rem 0.4rem;
+        }
       }
 
       /* Tab content */
@@ -546,6 +584,13 @@ export class SignCraftScene extends Phaser.Scene {
         font-size: 0.7rem;
         color: var(--black);
         font-weight: bold;
+      }
+
+      .swatch:focus-visible,
+      .color-dot:focus-visible,
+      .font-card:focus-visible {
+        outline: 2px solid var(--yellow);
+        outline-offset: 2px;
       }
 
       /* Text input */
@@ -786,6 +831,9 @@ export class SignCraftScene extends Phaser.Scene {
         swatch.className = material.id === this.selectedMaterial.id ? 'swatch selected' : 'swatch';
         swatch.dataset.materialId = material.id;
         swatch.title = material.label;
+        swatch.setAttribute('role', 'button');
+        swatch.setAttribute('aria-label', `Material: ${material.label}`);
+        swatch.setAttribute('tabindex', '0');
 
         // Set background (handle gradients)
         if (material.baseColor.startsWith('linear-gradient')) {
@@ -795,6 +843,13 @@ export class SignCraftScene extends Phaser.Scene {
         }
 
         swatch.addEventListener('click', () => this.selectMaterial(material));
+        // Keyboard accessibility
+        swatch.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.selectMaterial(material);
+          }
+        });
         row.appendChild(swatch);
       });
 
@@ -847,13 +902,36 @@ export class SignCraftScene extends Phaser.Scene {
     const colorRow = document.createElement('div');
     colorRow.className = 'color-row';
 
+    const colorNames: Record<string, string> = {
+      '#1a1a1a': 'Black',
+      '#DC143C': 'Crimson Red',
+      '#1E90FF': 'Dodger Blue',
+      '#FFFFFF': 'White',
+      '#228B22': 'Forest Green',
+      '#8B008B': 'Dark Magenta',
+      '#FFD700': 'Gold',
+      '#fbbf24': 'Yellow',
+      '#FF8C00': 'Dark Orange',
+      '#FF1493': 'Hot Pink',
+    };
+
     SIGN_COLORS.forEach((color, index) => {
       const dot = document.createElement('div');
       dot.className = index === 0 ? 'color-dot selected' : 'color-dot';
       dot.style.backgroundColor = color;
       dot.dataset.color = color;
-      dot.title = color;
+      dot.title = colorNames[color] || color;
+      dot.setAttribute('role', 'button');
+      dot.setAttribute('aria-label', `Text color: ${colorNames[color] || color}`);
+      dot.setAttribute('tabindex', '0');
       dot.addEventListener('click', () => this.selectColor(color));
+      // Keyboard accessibility
+      dot.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.selectColor(color);
+        }
+      });
       colorRow.appendChild(dot);
     });
 
@@ -898,6 +976,9 @@ export class SignCraftScene extends Phaser.Scene {
       const card = document.createElement('div');
       card.className = index === 0 ? 'font-card selected' : 'font-card';
       card.dataset.font = font;
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', `Font: ${fontLabelMap[font] || font}`);
+      card.setAttribute('tabindex', '0');
 
       const preview = document.createElement('div');
       preview.className = fontClassMap[font] || '';
@@ -910,6 +991,13 @@ export class SignCraftScene extends Phaser.Scene {
       card.appendChild(name);
 
       card.addEventListener('click', () => this.selectFont(font));
+      // Keyboard accessibility
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.selectFont(font);
+        }
+      });
       fontGrid.appendChild(card);
     });
 
@@ -985,8 +1073,10 @@ export class SignCraftScene extends Phaser.Scene {
       const isActive = (btn as HTMLElement).dataset.tab === tabId;
       if (isActive) {
         btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
       } else {
         btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false');
       }
     });
 
@@ -999,6 +1089,14 @@ export class SignCraftScene extends Phaser.Scene {
         tab.classList.remove('active');
       }
     });
+
+    // Auto-focus textarea when switching to Message tab (iOS-friendly)
+    if (tabId === 'message' && this.textInput) {
+      // Delay to ensure tab transition completes
+      setTimeout(() => {
+        this.textInput?.focus();
+      }, 100);
+    }
   }
 
   // ============================================================
