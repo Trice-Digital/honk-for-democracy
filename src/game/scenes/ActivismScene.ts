@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PALETTE, FONTS } from '../config/paletteConfig';
+import { PALETTE, FONTS, PALETTE_HEX } from '../config/paletteConfig';
 import { drawScissorCutRect, drawPaperShadow, applyPaperGrain } from '../utils/paperArt';
 
 /**
@@ -174,7 +174,7 @@ export class ActivismScene extends Phaser.Scene {
       fontFamily: FONTS.ui,
       fontSize: '22px',
       fontStyle: 'bold',
-      color: '#1a1a1a',
+      color: PALETTE_HEX.markerBlack,
     });
     playAgainText.setOrigin(0.5);
     playAgainText.setAlpha(0);
@@ -240,7 +240,7 @@ export class ActivismScene extends Phaser.Scene {
       fontFamily: FONTS.ui,
       fontSize: '18px',
       fontStyle: 'bold',
-      color: '#1a1a1a',
+      color: PALETTE_HEX.markerBlack,
     });
     labelText.setOrigin(0, 0);
     labelText.setAlpha(0);

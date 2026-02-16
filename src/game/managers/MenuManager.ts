@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { AudioSystem } from '../systems/AudioSystem';
 import { AudioMixerSystem } from '../systems/AudioMixerSystem';
-import { PALETTE } from '../config/paletteConfig';
+import { PALETTE, PALETTE_HEX } from '../config/paletteConfig';
 import { drawPaperShadow, drawScissorCutRect } from '../utils/paperArt';
 
 /**
@@ -157,8 +157,8 @@ export class MenuManager {
     const titleText = this.scene.add.text(viewW / 2, panelY + 30, 'PAUSED', {
       fontFamily: "'Bangers', cursive",
       fontSize: '32px',
-      color: '#fbbf24',
-      stroke: '#1a1a1a',
+      color: PALETTE_HEX.safetyYellow,
+      stroke: PALETTE_HEX.markerBlack,
       strokeThickness: 4,
       letterSpacing: 3,
     });
@@ -185,7 +185,7 @@ export class MenuManager {
       const text = this.scene.add.text(0, 0, label, {
         fontFamily: "'Bangers', cursive",
         fontSize: '20px',
-        color: '#f5f0e8',
+        color: PALETTE_HEX.paperWhite,
         letterSpacing: 2,
       });
       text.setOrigin(0.5);

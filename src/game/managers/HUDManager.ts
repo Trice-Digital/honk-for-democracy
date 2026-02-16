@@ -3,7 +3,7 @@ import type { IntersectionMapConfig } from '../config/intersectionConfig';
 import { GameStateManager } from '../systems/GameStateManager';
 import { FatigueSystem } from '../systems/FatigueSystem';
 import { TrafficLightSystem } from '../systems/TrafficLightSystem';
-import { PALETTE } from '../config/paletteConfig';
+import { PALETTE, PALETTE_HEX } from '../config/paletteConfig';
 import { CONFIDENCE_DEFAULTS } from '../config/confidenceConfig';
 import { drawPaperShadowCircle, drawPopsicleStick } from '../utils/paperArt';
 
@@ -178,8 +178,8 @@ export class HUDManager {
     this.scoreText = this.scene.add.text(0, 0, '0 HONKS', {
       fontFamily: "'Bangers', cursive",
       fontSize: '32px',
-      color: '#fbbf24',
-      stroke: '#1a1a1a',
+      color: PALETTE_HEX.safetyYellow,
+      stroke: PALETTE_HEX.markerBlack,
       strokeThickness: 4,
       letterSpacing: 2,
     });
@@ -213,8 +213,8 @@ export class HUDManager {
     this.timerText = this.scene.add.text(0, 0, '3:00', {
       fontFamily: "'Bangers', cursive",
       fontSize: '30px',
-      color: '#f5f0e8',
-      stroke: '#1a1a1a',
+      color: PALETTE_HEX.paperWhite,
+      stroke: PALETTE_HEX.markerBlack,
       strokeThickness: 4,
     });
     this.timerText.setScrollFactor(0);
@@ -249,7 +249,7 @@ export class HUDManager {
     this.confidenceLabel = this.scene.add.text(barX + 12, barY + 5, 'CONFIDENCE', {
       fontFamily: "'Bangers', cursive",
       fontSize: '10px',
-      color: '#3a3a3a',
+      color: PALETTE_HEX.asphalt,
       letterSpacing: 1,
     });
     this.confidenceLabel.setScrollFactor(0);
@@ -309,7 +309,7 @@ export class HUDManager {
     this.fatigueLabel = this.scene.add.text(barX + 36, barY + 5, 'ARM STRONG', {
       fontFamily: "'Bangers', cursive",
       fontSize: '10px',
-      color: '#22c55e',
+      color: PALETTE_HEX.stoplightGreen,
       letterSpacing: 1,
     });
     this.fatigueLabel.setScrollFactor(0);
@@ -411,7 +411,7 @@ export class HUDManager {
       const numText = this.scene.add.text(nx, ny, np.text, {
         fontFamily: "'Bangers', cursive",
         fontSize: '9px',
-        color: '#3a3a3a',
+        color: PALETTE_HEX.asphalt,
       });
       numText.setOrigin(0.5);
       this.clockContainer.add(numText);

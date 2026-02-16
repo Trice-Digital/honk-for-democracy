@@ -8,7 +8,7 @@ import {
   getSignRatingStars,
   formatTime,
 } from '../config/scoreConfig';
-import { PALETTE, FONTS } from '../config/paletteConfig';
+import { PALETTE, FONTS, PALETTE_HEX } from '../config/paletteConfig';
 import { drawScissorCutRect, drawPaperShadow, drawPaperShadowCircle, applyPaperGrain, drawMaskingTapeStrip } from '../utils/paperArt';
 import { AmbientSystem } from '../systems/AmbientSystem';
 import { AudioMixerSystem } from '../systems/AudioMixerSystem';
@@ -79,7 +79,7 @@ export class ScoreScene extends Phaser.Scene {
       color: titleColor,
       align: 'center',
       letterSpacing: 4,
-      stroke: '#1a1a1a',
+      stroke: PALETTE_HEX.markerBlack,
       strokeThickness: isEarlyEnd ? 3 : 2,
     });
     title.setOrigin(0.5, 0);
@@ -184,7 +184,7 @@ export class ScoreScene extends Phaser.Scene {
       fontFamily: FONTS.ui,
       fontSize: '28px',
       fontStyle: 'bold',
-      color: '#1a1a1a',
+      color: PALETTE_HEX.markerBlack,
     }).setOrigin(0.5);
 
     // Score number
@@ -247,7 +247,7 @@ export class ScoreScene extends Phaser.Scene {
         fontFamily: FONTS.ui,
         fontSize: '16px',
         fontStyle: 'bold',
-        color: '#1a1a1a',
+        color: PALETTE_HEX.markerBlack,
       }).setOrigin(1, 0);
 
       y += 26;
@@ -559,7 +559,7 @@ export class ScoreScene extends Phaser.Scene {
       fontFamily: FONTS.ui,
       fontSize: '20px',
       fontStyle: 'bold',
-      color: '#1a1a1a',
+      color: PALETTE_HEX.markerBlack,
     }).setOrigin(0.5);
 
     saveBg.on('pointerover', () => saveBg.setFillStyle(0x16a34a));

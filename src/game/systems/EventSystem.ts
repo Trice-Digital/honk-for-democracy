@@ -12,7 +12,7 @@ import {
   COP_CHECK_SCENARIOS,
   KARMA_DEFAULTS,
 } from '../config/eventConfig';
-import { PALETTE } from '../config/paletteConfig';
+import { PALETTE, PALETTE_HEX } from '../config/paletteConfig';
 import {
   drawPaperShadow,
   drawScissorCutRect,
@@ -416,7 +416,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     const badgeText = this.scene.add.text(badgeX + badgeW / 2, badgeY + badgeH / 2, 'POLICE', {
       fontFamily: "'Bangers', cursive",
       fontSize: '16px',
-      color: '#ffffff',
+      color: '#ffffff', // pure white for contrast
       letterSpacing: 3,
     });
     badgeText.setOrigin(0.5);
@@ -426,7 +426,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     const desc = this.scene.add.text(cardX, cardTop + 40, scenario.description, {
       fontFamily: "'Bangers', cursive",
       fontSize: '14px',
-      color: '#6b7280',
+      color: '#6b7280', // gray-500 for muted text
     });
     desc.setOrigin(0.5);
     this.copCheckUI.add(desc);
@@ -435,7 +435,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     const copLine = this.scene.add.text(cardX, cardTop + 80, scenario.openingLine, {
       fontFamily: "'Bangers', cursive",
       fontSize: '18px',
-      color: '#1a1a1a',
+      color: PALETTE_HEX.markerBlack,
       wordWrap: { width: cardW - 50 },
       align: 'center',
     });
@@ -476,7 +476,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
       const btnText = this.scene.add.text(cardX, btnY + btnHeight / 2, option.text, {
         fontFamily: "'Bangers', cursive",
         fontSize: '14px',
-        color: '#1a1a1a',
+        color: PALETTE_HEX.markerBlack,
         wordWrap: { width: btnWidth - 24 },
         align: 'center',
       });
@@ -510,7 +510,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
       {
         fontFamily: "'Bangers', cursive",
         fontSize: '13px',
-        color: '#6b7280',
+        color: '#6b7280', // gray-500 for muted text // gray-500 for muted text
       },
     );
     timerText.setOrigin(0.5);
@@ -593,7 +593,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
       fontFamily: "'Bangers', cursive",
       fontSize: '20px',
       color: resultColorHex,
-      stroke: '#1a1a1a',
+      stroke: PALETTE_HEX.markerBlack,
       strokeThickness: 1,
     });
     result.setOrigin(0.5);
@@ -603,7 +603,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     const reply = this.scene.add.text(cardX, cardTop + 80, option.copReply, {
       fontFamily: "'Bangers', cursive",
       fontSize: '16px',
-      color: '#1a1a1a',
+      color: PALETTE_HEX.markerBlack,
       wordWrap: { width: cardW - 50 },
       align: 'center',
     });
@@ -622,7 +622,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
         fontFamily: "'Bangers', cursive",
         fontSize: '15px',
         color: resultColorHex,
-        stroke: '#1a1a1a',
+        stroke: PALETTE_HEX.markerBlack,
         strokeThickness: 1,
       });
       changes.setOrigin(0.5);
@@ -637,7 +637,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
         {
           fontFamily: "'Bangers', cursive",
           fontSize: '13px',
-          color: '#6b7280',
+          color: '#6b7280', // gray-500 for muted text // gray-500 for muted text
           wordWrap: { width: cardW - 50 },
           align: 'center',
         },
@@ -781,10 +781,10 @@ export class EventSystem extends Phaser.Events.EventEmitter {
     const text = this.scene.add.text(viewW / 2, bannerY, phase.bannerText, {
       fontFamily: "'Bangers', cursive",
       fontSize: '16px',
-      color: '#ffffff',
+      color: '#ffffff', // pure white for contrast
       wordWrap: { width: bannerW - 30 },
       align: 'center',
-      stroke: '#1a1a1a',
+      stroke: PALETTE_HEX.markerBlack,
       strokeThickness: 2,
     });
     text.setOrigin(0.5);
@@ -800,7 +800,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
           fontFamily: "'Bangers', cursive",
           fontSize: '24px',
           color: phase.scoreChange > 0 ? '#22c55e' : '#ef4444',
-          stroke: '#1a1a1a',
+          stroke: PALETTE_HEX.markerBlack,
           strokeThickness: 3,
         },
       );
@@ -881,7 +881,7 @@ export class EventSystem extends Phaser.Events.EventEmitter {
       fontFamily: "'Bangers', cursive",
       fontSize: '18px',
       color,
-      stroke: '#1a1a1a',
+      stroke: PALETTE_HEX.markerBlack,
       strokeThickness: 2,
     });
     bannerText.setOrigin(0.5);

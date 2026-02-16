@@ -53,3 +53,23 @@ export const FONTS = {
   ui: "'Bangers', cursive",
   signCreator: "'Permanent Marker', cursive",
 } as const;
+
+/**
+ * Convert PALETTE hex number to CSS hex string for Phaser text configs.
+ * Example: toHex(PALETTE.markerBlack) => '#1a1a1a'
+ */
+export function toHex(color: number): string {
+  return '#' + color.toString(16).padStart(6, '0');
+}
+
+/** CSS hex strings for commonly used PALETTE colors (for Phaser text configs) */
+export const PALETTE_HEX = {
+  markerBlack: toHex(PALETTE.markerBlack),      // '#1a1a1a'
+  asphalt: toHex(PALETTE.asphalt),              // '#3a3a3a'
+  paperWhite: toHex(PALETTE.paperWhite),        // '#f5f0e8'
+  safetyYellow: toHex(PALETTE.safetyYellow),    // '#fbbf24'
+  stoplightRed: toHex(PALETTE.stoplightRed),    // '#ef4444'
+  stoplightGreen: toHex(PALETTE.stoplightGreen),// '#22c55e'
+  actionBlue: toHex(PALETTE.actionBlue),        // '#3b82f6'
+  craftBrown: toHex(PALETTE.craftBrown),        // '#92400e'
+} as const;

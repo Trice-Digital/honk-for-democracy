@@ -8,7 +8,7 @@ import { VisibilityCone } from '../entities/VisibilityCone';
 import type { Car } from '../entities/Car';
 import { ReactionFeedbackManager } from './ReactionFeedbackManager';
 import { MenuManager } from './MenuManager';
-import { PALETTE } from '../config/paletteConfig';
+import { PALETTE, PALETTE_HEX } from '../config/paletteConfig';
 
 /**
  * PlayerController — Handles player input and action buttons.
@@ -103,7 +103,7 @@ export class PlayerController {
     const raiseText = this.scene.add.text(0, 0, 'RAISE', {
       fontFamily: "'Bangers', cursive",
       fontSize: '24px',
-      color: '#1a1a1a',
+      color: PALETTE_HEX.markerBlack,
       letterSpacing: 3,
     });
     raiseText.setOrigin(0.5);
@@ -183,7 +183,7 @@ export class PlayerController {
     const switchText = this.scene.add.text(0, 0, 'SWITCH\nARMS', {
       fontFamily: "'Bangers', cursive",
       fontSize: '14px',
-      color: '#f5f0e8',
+      color: PALETTE_HEX.paperWhite,
       align: 'center',
       letterSpacing: 1,
     });
@@ -238,7 +238,7 @@ export class PlayerController {
     const restText = this.scene.add.text(0, 0, 'REST', {
       fontFamily: "'Bangers', cursive",
       fontSize: '18px',
-      color: '#f5f0e8',
+      color: PALETTE_HEX.paperWhite,
       letterSpacing: 2,
     });
     restText.setOrigin(0.5);

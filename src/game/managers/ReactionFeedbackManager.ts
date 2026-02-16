@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PALETTE } from '../config/paletteConfig';
+import { PALETTE, PALETTE_HEX } from '../config/paletteConfig';
 import { drawScissorCutRect } from '../utils/paperArt';
 import type { Car } from '../entities/Car';
 
@@ -181,7 +181,7 @@ export class ReactionFeedbackManager {
         fontFamily: BANGERS_FONT,
         fontSize: `${scoreFontPx}px`,
         color,
-        stroke: '#1a1a1a',
+        stroke: PALETTE_HEX.markerBlack,
         strokeThickness: 3,
         letterSpacing: 1,
       });
