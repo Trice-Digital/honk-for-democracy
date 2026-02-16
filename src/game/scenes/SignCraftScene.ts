@@ -305,12 +305,6 @@ export class SignCraftScene extends Phaser.Scene {
         width: 100%;
         aspect-ratio: 4 / 3;
         max-width: 320px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 1.5rem;
         border-radius: 4px;
         position: relative;
         overflow: hidden;
@@ -319,10 +313,10 @@ export class SignCraftScene extends Phaser.Scene {
       @media (min-width: 768px) {
         ${S} .sign-canvas {
           max-width: 520px;
-          padding: 2.5rem;
         }
       }
-      ${S} .sign-canvas .canvas-container {
+      ${S} .sign-canvas .canvas-container,
+      ${S} .sign-canvas .canvas-container canvas {
         width: 100% !important;
         height: 100% !important;
       }
