@@ -63,8 +63,7 @@ export class SignCraftScene extends Phaser.Scene {
   // ============================================================
 
   private mountFabricOverlay(): void {
-    const canvas = this.game.canvas;
-    const parent = canvas.parentElement ?? document.body;
+    const parent = document.body;
 
     // Inject CSS
     this.injectStyles();
@@ -116,11 +115,7 @@ export class SignCraftScene extends Phaser.Scene {
 
     // Buttons under sign
     const buttonRow = document.createElement('div');
-    buttonRow.style.display = 'flex';
-    buttonRow.style.gap = '0.5rem';
-    buttonRow.style.alignItems = 'center';
-    buttonRow.style.flexWrap = 'wrap';
-    buttonRow.style.justifyContent = 'center';
+    buttonRow.className = 'sign-actions';
 
     const randomizeBtn = document.createElement('button');
     randomizeBtn.className = 'randomize-btn';
@@ -191,6 +186,13 @@ export class SignCraftScene extends Phaser.Scene {
     controlsArea.appendChild(tabMessage);
     controlsArea.appendChild(tabDecorate);
 
+    // Full-width CTA at bottom of controls (matches mockup)
+    const bottomCta = document.createElement('button');
+    bottomCta.className = 'cta-btn-full';
+    bottomCta.innerHTML = '🪧 START PROTESTING!';
+    bottomCta.addEventListener('click', () => this.launchGame());
+    controlsArea.appendChild(bottomCta);
+
     craftLayout.appendChild(controlsArea);
     container.appendChild(craftLayout);
 
@@ -209,37 +211,55 @@ export class SignCraftScene extends Phaser.Scene {
   private injectStyles(): void {
     const style = document.createElement('style');
     style.id = 'sign-craft-styles';
+    const S = '#sign-editor-overlay';
     style.textContent = `
-      /* Reset for overlay */
-      #sign-editor-overlay * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      /* Reset — ID specificity beats all global classes */
+      ${S} * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-      /* Overlay container */
-      .craft-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+      /* Overlay — fixed full viewport */
+      ${S} {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        min-height: 100dvh;
+        min-height: 100vh;
         z-index: 1000;
-        font-family: var(--font-body), system-ui, sans-serif;
-        color: var(--black);
-        background: var(--kraft);
-        background-image: var(--kraft-bg);
-        background-size: var(--kraft-bg-size);
+        font-family: 'Patrick Hand', cursive;
+        color: #1a1a1a;
+        background: #c5a059;
+        background-image:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
+          linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
+        background-size: 300px 300px, 100% 100%;
         overflow-x: hidden;
         overflow-y: auto;
       }
 
-      /* Main layout */
-      .craft-layout {
+      /* ======= PRIMITIVES ======= */
+      ${S} .paper-cut {
+        border: 3px solid #1a1a1a;
+        box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+      }
+      ${S} .paper-cut-sm {
+        border: 2px solid #1a1a1a;
+        box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+      }
+      ${S} .tape-strip {
+        background: rgba(245, 240, 232, 0.75);
+        border: 1px solid rgba(26, 26, 26, 0.15);
+        box-shadow: 1px 1px 0 rgba(26, 26, 26, 0.15);
+        padding: 0.3rem 1rem;
+      }
+
+      /* ======= LAYOUT ======= */
+      ${S} .craft-layout {
         max-width: 1100px;
         margin: 0 auto;
         padding: 1rem;
         padding-bottom: 2rem;
       }
-
       @media (min-width: 768px) {
-        .craft-layout {
+        ${S} .craft-layout {
           display: grid;
           grid-template-columns: 1fr 360px;
           gap: 24px;
@@ -249,168 +269,172 @@ export class SignCraftScene extends Phaser.Scene {
         }
       }
 
-      /* Sign area */
-      .sign-area {
+      /* ======= SIGN AREA ======= */
+      ${S} .sign-area {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 12px;
       }
-
       @media (max-width: 767px) {
-        .sign-area {
+        ${S} .sign-area {
           position: sticky;
           top: 0;
           z-index: 10;
-          background: var(--kraft);
-          background-image: var(--kraft-bg);
-          background-size: var(--kraft-bg-size);
+          background: #c5a059;
+          background-image:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
+            linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
+          background-size: 300px 300px, 100% 100%;
           padding: 0.75rem 0 0.5rem;
           margin: 0 -1rem;
           padding-left: 1rem;
           padding-right: 1rem;
-          border-bottom: var(--border);
+          border-bottom: 3px solid #1a1a1a;
         }
       }
-
       @media (min-width: 768px) {
-        .sign-area {
+        ${S} .sign-area {
           position: sticky;
           top: 1.5rem;
         }
       }
 
       /* Sign canvas */
-      .sign-canvas {
-        border-radius: var(--radius);
+      ${S} .sign-canvas {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        max-width: 320px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 4px;
         position: relative;
         overflow: hidden;
         transform: rotate(-1.5deg);
       }
-
-      /* Neobrutalist primitives */
-      .paper-cut {
-        border: var(--border);
-        box-shadow: var(--shadow);
-        border-radius: var(--radius);
+      @media (min-width: 768px) {
+        ${S} .sign-canvas {
+          max-width: 520px;
+          padding: 2.5rem;
+        }
+      }
+      ${S} .sign-canvas .canvas-container {
+        width: 100% !important;
+        height: 100% !important;
       }
 
-      .paper-cut-sm {
-        border: var(--border-sm);
-        box-shadow: var(--shadow-sm);
-        border-radius: var(--radius);
+      /* ======= BUTTONS ======= */
+      ${S} .sign-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
       }
-
-      .tape-strip {
-        background: var(--paper);
-        border: var(--border-subtle);
-        box-shadow: var(--shadow-subtle);
-        padding: 0.3rem 1rem;
-      }
-
-      /* Randomize button */
-      .randomize-btn {
-        font-family: var(--font-ui);
+      ${S} .randomize-btn {
+        font-family: 'Bangers', cursive;
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
         padding: 0.6rem 1.8rem;
         font-size: 1.1rem;
         letter-spacing: 0.08em;
-        color: var(--black);
-        background: var(--yellow);
-        border: var(--border);
-        border-radius: var(--radius);
+        color: #1a1a1a;
+        background: #fbbf24;
+        border: 3px solid #1a1a1a;
+        border-radius: 4px;
         cursor: pointer;
-        transition: var(--transition-press);
-        box-shadow: var(--shadow-hard);
+        transition: transform 0.1s, box-shadow 0.1s;
+        box-shadow: 3px 3px 0 #1a1a1a;
       }
-
-      .randomize-btn:hover {
+      ${S} .randomize-btn:hover {
         transform: translate(1px, 1px);
-        box-shadow: 2px 2px 0 var(--black);
+        box-shadow: 2px 2px 0 #1a1a1a;
       }
-
-      .randomize-btn:active {
+      ${S} .randomize-btn:active {
         transform: translate(3px, 3px);
-        box-shadow: 0 0 0 var(--black);
+        box-shadow: 0 0 0 #1a1a1a;
       }
-
-      .randomize-btn:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-      }
-
+      ${S} .randomize-btn:disabled { opacity: 0.7; cursor: not-allowed; }
       @keyframes dice-shake {
         0%, 100% { transform: rotate(0deg); }
         25% { transform: rotate(-12deg); }
         75% { transform: rotate(12deg); }
       }
+      ${S} .randomize-btn:hover .dice { animation: dice-shake 0.3s ease-in-out infinite; }
 
-      .randomize-btn:hover .dice {
-        animation: dice-shake 0.3s ease-in-out infinite;
-      }
-
-      /* CTA button */
-      .cta-btn {
-        font-family: var(--font-ui);
-        display: flex;
+      ${S} .cta-btn {
+        font-family: 'Bangers', cursive;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 0.6rem;
         padding: 0.6rem 1.8rem;
         font-size: 1.1rem;
         letter-spacing: 0.08em;
-        color: var(--black);
-        background: var(--yellow);
-        border: var(--border);
-        border-radius: var(--radius);
+        color: #1a1a1a;
+        background: #fbbf24;
+        border: 3px solid #1a1a1a;
+        border-radius: 4px;
         cursor: pointer;
-        transition: var(--transition-press);
-        box-shadow: var(--shadow-hard);
+        transition: transform 0.1s, box-shadow 0.1s;
+        box-shadow: 3px 3px 0 #1a1a1a;
       }
+      ${S} .cta-btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #1a1a1a; }
+      ${S} .cta-btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 #1a1a1a; }
 
-      .cta-btn:hover {
-        transform: translate(2px, 2px);
-        box-shadow: 2px 2px 0 var(--black);
+      ${S} .cta-btn-full {
+        font-family: 'Bangers', cursive;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        width: 100%;
+        padding: 1rem 2rem;
+        font-size: 1.6rem;
+        letter-spacing: 0.08em;
+        color: #1a1a1a;
+        background: #fbbf24;
+        border: 3px solid #1a1a1a;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+        box-shadow: 4px 4px 0 #1a1a1a;
       }
+      ${S} .cta-btn-full:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #1a1a1a; }
+      ${S} .cta-btn-full:active { transform: translate(4px, 4px); box-shadow: 0 0 0 #1a1a1a; }
 
-      .cta-btn:active {
-        transform: translate(3px, 3px);
-        box-shadow: 0 0 0 var(--black);
-      }
-
-      /* Orientation hint */
-      .orient-hint {
-        font-family: var(--font-body);
+      /* ======= HINT ======= */
+      ${S} .orient-hint {
+        font-family: 'Patrick Hand', cursive;
         text-align: center;
         font-size: 0.9rem;
-        color: var(--asphalt);
+        color: #3a3a3a;
         line-height: 1.4;
         padding: 0.4rem 0.8rem;
       }
 
-      /* Controls area */
-      .controls-area {
-        margin-top: 1rem;
-      }
-
+      /* ======= CONTROLS ======= */
+      ${S} .controls-area { margin-top: 1rem; }
       @media (min-width: 768px) {
-        .controls-area {
+        ${S} .controls-area {
           margin-top: 0;
           max-height: calc(100vh - 3rem);
           overflow-y: auto;
           scrollbar-width: thin;
-          scrollbar-color: var(--kraft-dark) transparent;
+          scrollbar-color: #a3824f transparent;
         }
-
-        .controls-area::-webkit-scrollbar { width: 6px; }
-        .controls-area::-webkit-scrollbar-track { background: transparent; }
-        .controls-area::-webkit-scrollbar-thumb { background: var(--kraft-dark); border-radius: 3px; }
+        ${S} .controls-area::-webkit-scrollbar { width: 6px; }
+        ${S} .controls-area::-webkit-scrollbar-track { background: transparent; }
+        ${S} .controls-area::-webkit-scrollbar-thumb { background: #a3824f; border-radius: 3px; }
       }
 
-      /* Tab bar */
-      .tab-bar {
+      /* ======= TABS ======= */
+      ${S} .tab-bar {
         display: flex;
         gap: 0.4rem;
         margin-bottom: 1rem;
@@ -419,363 +443,236 @@ export class SignCraftScene extends Phaser.Scene {
         z-index: 5;
         padding: 0.5rem 0;
       }
-
       @media (max-width: 767px) {
-        .tab-bar {
-          position: relative;
-        }
+        ${S} .tab-bar { position: relative; }
       }
-
-      @media (max-width: 374px) {
-        .tab-bar {
-          gap: 0.3rem;
-        }
-      }
-
-      .tab-btn {
-        font-family: var(--font-ui);
+      ${S} .tab-btn {
+        font-family: 'Bangers', cursive;
         flex: 1;
         padding: 0.6rem 0.5rem;
         font-size: 1rem;
         letter-spacing: 0.1em;
-        color: var(--asphalt);
-        background: var(--kraft-dark);
-        border: var(--border-sm);
-        border-radius: var(--radius);
+        color: #3a3a3a;
+        background: #a3824f;
+        border: 2px solid #1a1a1a;
+        border-radius: 4px;
         cursor: pointer;
-        transition: var(--transition-press);
-        box-shadow: var(--shadow-sm);
+        transition: transform 0.1s, box-shadow 0.1s;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 0.4rem;
       }
+      ${S} .tab-btn:hover { background: #d4b06a; }
+      ${S} .tab-btn.active { background: #fbbf24; color: #1a1a1a; font-weight: 400; }
+      ${S} .tab-num { font-size: 0.7rem; opacity: 0.5; font-family: 'Patrick Hand', cursive; }
 
-      .tab-btn:hover {
-        background: var(--kraft-light);
-      }
+      ${S} .tab-content { display: none; }
+      ${S} .tab-content.active { display: block; }
 
-      .tab-btn.active {
-        background: var(--yellow);
-        color: var(--black);
-      }
-
-      .tab-num {
-        font-size: 0.7rem;
-        opacity: 0.5;
-        font-family: var(--font-body);
-      }
-
-      @media (max-width: 374px) {
-        .tab-btn {
-          font-size: 0.9rem;
-          padding: 0.5rem 0.4rem;
-        }
-      }
-
-      /* Tab content */
-      .tab-content {
-        display: none;
-      }
-
-      .tab-content.active {
-        display: block;
-      }
-
-      /* Panel */
-      .panel {
+      /* ======= PANELS ======= */
+      ${S} .panel {
         background: rgba(163, 130, 79, 0.5);
-        border: var(--border);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
+        border: 3px solid #1a1a1a;
+        border-radius: 4px;
+        box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
         padding: 1.2rem;
         margin-bottom: 1rem;
       }
-
-      .panel-title {
-        font-family: var(--font-ui);
+      ${S} .panel-title {
+        font-family: 'Bangers', cursive;
         font-size: 1.15rem;
         letter-spacing: 0.12em;
-        color: var(--black);
+        color: #1a1a1a;
         margin-bottom: 0.8rem;
         display: flex;
         align-items: center;
         gap: 0.4rem;
       }
+      ${S} .panel-title .tape-label { display: inline-block; transform: rotate(-1deg); }
 
-      .panel-title .tape-label {
-        display: inline-block;
-        transform: rotate(-1deg);
-      }
-
-      .section-label {
-        font-family: var(--font-body);
+      ${S} .section-label {
+        font-family: 'Patrick Hand', cursive;
         font-size: 1rem;
-        color: var(--asphalt);
+        color: #3a3a3a;
         font-weight: bold;
         margin-bottom: 0.4rem;
         margin-top: 0.8rem;
       }
+      ${S} .section-label:first-of-type { margin-top: 0; }
 
-      .section-label:first-of-type {
-        margin-top: 0;
-      }
-
-      /* Material swatches */
-      .swatch-row {
+      /* ======= SWATCHES ======= */
+      ${S} .swatch-row {
         display: flex;
         gap: 0.6rem;
         flex-wrap: wrap;
         margin-bottom: 0.5rem;
       }
-
-      .swatch {
+      ${S} .swatch {
         width: 52px;
         height: 52px;
-        border: var(--border-sm);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-sm);
+        border: 2px solid #1a1a1a;
+        border-radius: 4px;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
         cursor: pointer;
         transition: transform 0.1s;
         position: relative;
       }
-
-      .swatch:hover {
-        transform: scale(1.08);
-      }
-
-      .swatch.selected {
-        outline: 3px solid var(--yellow);
-        outline-offset: 2px;
-      }
-
-      .swatch.selected::after {
-        content: '✓';
+      ${S} .swatch:hover { transform: scale(1.08); }
+      ${S} .swatch.selected { outline: 3px solid #fbbf24; outline-offset: 2px; }
+      ${S} .swatch.selected::after {
+        content: '\\2713';
         position: absolute;
         bottom: 1px;
         right: 3px;
         font-size: 0.7rem;
-        color: var(--black);
+        color: #1a1a1a;
         font-weight: bold;
       }
-
-      .swatch:focus-visible,
-      .color-dot:focus-visible,
-      .font-card:focus-visible {
-        outline: 2px solid var(--yellow);
+      ${S} .swatch:focus-visible,
+      ${S} .color-dot:focus-visible,
+      ${S} .font-card:focus-visible {
+        outline: 2px solid #fbbf24;
         outline-offset: 2px;
       }
 
-      /* Text input */
-      .text-input {
-        font-family: var(--font-body);
+      /* ======= TEXT INPUT ======= */
+      ${S} .text-input {
+        font-family: 'Patrick Hand', cursive;
         width: 100%;
         padding: 0.7rem;
         font-size: 1.1rem;
-        color: var(--black);
-        background: var(--paper);
-        border: var(--border-sm);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-sm);
+        color: #1a1a1a;
+        background: rgba(245, 240, 232, 0.75);
+        border: 2px solid #1a1a1a;
+        border-radius: 4px;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
         resize: none;
       }
-
-      .text-input:focus {
-        outline: 2px solid var(--yellow);
-        outline-offset: 1px;
-      }
-
-      .text-input::placeholder {
-        color: var(--asphalt);
-        opacity: 0.6;
-      }
-
-      .char-count {
-        font-family: var(--font-body);
+      ${S} .text-input:focus { outline: 2px solid #fbbf24; outline-offset: 1px; }
+      ${S} .text-input::placeholder { color: #999; }
+      ${S} .char-count {
+        font-family: 'Patrick Hand', cursive;
         display: flex;
         justify-content: space-between;
         font-size: 0.85rem;
-        color: var(--asphalt);
+        color: #3a3a3a;
         margin-top: 0.3rem;
       }
 
-      /* Color dots */
-      .color-row {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-
-      .color-dot {
+      /* ======= COLOR DOTS ======= */
+      ${S} .color-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      ${S} .color-dot {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        border: var(--border-sm);
+        border: 2px solid #1a1a1a;
         cursor: pointer;
         transition: transform 0.1s;
         box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
       }
+      ${S} .color-dot:hover { transform: scale(1.15); }
+      ${S} .color-dot.selected { outline: 3px solid #fbbf24; outline-offset: 2px; }
 
-      .color-dot:hover {
-        transform: scale(1.15);
-      }
-
-      .color-dot.selected {
-        outline: 3px solid var(--yellow);
-        outline-offset: 2px;
-      }
-
-      /* Font cards */
-      .font-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-      }
-
-      .font-card {
+      /* ======= FONT CARDS ======= */
+      ${S} .font-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+      ${S} .font-card {
         padding: 0.6rem 0.5rem;
         text-align: center;
-        background: var(--paper);
-        border: var(--border-sm);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-sm);
+        background: rgba(245, 240, 232, 0.75);
+        border: 2px solid #1a1a1a;
+        border-radius: 4px;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
         cursor: pointer;
-        transition: var(--transition-press);
+        transition: transform 0.1s, box-shadow 0.1s;
         line-height: 1.2;
       }
-
-      .font-card:hover {
-        transform: translate(1px, 1px);
-        box-shadow: 1px 1px 0 rgba(0,0,0,0.35);
-      }
-
-      .font-card.selected {
-        background: var(--yellow);
-      }
-
-      .font-card .font-name {
-        font-family: var(--font-body);
+      ${S} .font-card:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 rgba(0,0,0,0.35); }
+      ${S} .font-card.selected { background: #fbbf24; }
+      ${S} .font-card .font-name {
+        font-family: 'Patrick Hand', cursive;
         font-size: 0.7rem;
-        color: var(--asphalt);
+        color: #3a3a3a;
         margin-top: 0.2rem;
       }
 
-      /* Font preview text */
-      .fp-bangers { font-family: 'Bangers', cursive; font-size: 1.3rem; }
-      .fp-marker { font-family: 'Permanent Marker', cursive; font-size: 1.1rem; }
-      .fp-bungee { font-family: 'Bungee', cursive; font-size: 0.95rem; }
-      .fp-caveat { font-family: 'Caveat', cursive; font-size: 1.3rem; font-weight: 700; }
-      .fp-fredoka { font-family: 'Fredoka', sans-serif; font-size: 1.1rem; font-weight: 600; }
-      .fp-protest { font-family: 'Protest Guerrilla', cursive; font-size: 1.1rem; }
-      .fp-rubik { font-family: 'Rubik Mono One', monospace; font-size: 0.75rem; }
-      .fp-shrikhand { font-family: 'Shrikhand', serif; font-size: 1.05rem; }
+      /* Font previews */
+      ${S} .fp-bangers { font-family: 'Bangers', cursive; font-size: 1.3rem; }
+      ${S} .fp-marker { font-family: 'Permanent Marker', cursive; font-size: 1.1rem; }
+      ${S} .fp-bungee { font-family: 'Bungee', cursive; font-size: 0.95rem; }
+      ${S} .fp-caveat { font-family: 'Caveat', cursive; font-size: 1.3rem; font-weight: 700; }
+      ${S} .fp-fredoka { font-family: 'Fredoka', sans-serif; font-size: 1.1rem; font-weight: 600; }
+      ${S} .fp-protest { font-family: 'Protest Guerrilla', cursive; font-size: 1.1rem; }
+      ${S} .fp-rubik { font-family: 'Rubik Mono One', monospace; font-size: 0.75rem; }
+      ${S} .fp-shrikhand { font-family: 'Shrikhand', serif; font-size: 1.05rem; }
 
-      /* Sticker section */
-      .pill-row {
-        display: flex;
-        gap: 0.4rem;
-        flex-wrap: wrap;
-        margin-bottom: 0.8rem;
-      }
-
-      .pill {
-        font-family: var(--font-ui);
+      /* ======= STICKERS ======= */
+      ${S} .pill-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+      ${S} .pill {
+        font-family: 'Bangers', cursive;
         font-size: 0.8rem;
         letter-spacing: 0.08em;
         padding: 0.25rem 0.8rem;
-        border: var(--border-sm);
+        border: 2px solid #1a1a1a;
         border-radius: 999px;
         cursor: pointer;
-        background: var(--kraft-dark);
-        color: var(--asphalt);
+        background: #a3824f;
+        color: #3a3a3a;
         box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
         transition: transform 0.1s;
       }
+      ${S} .pill:hover { transform: scale(1.05); }
+      ${S} .pill.active { background: #fbbf24; color: #1a1a1a; }
 
-      .pill:hover {
-        transform: scale(1.05);
-      }
-
-      .pill.active {
-        background: var(--yellow);
-        color: var(--black);
-      }
-
-      .sticker-grid {
+      ${S} .sticker-grid {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
         gap: 0.5rem;
         text-align: center;
       }
-
-      .sticker-item {
+      ${S} .sticker-item {
         font-size: 1.8rem;
         cursor: pointer;
         transition: transform 0.1s;
         user-select: none;
         padding: 0.2rem;
-        border-radius: var(--radius);
+        border-radius: 4px;
       }
+      ${S} .sticker-item:hover { background: rgba(251, 191, 36, 0.3); }
+      ${S} .sticker-item:active { transform: scale(1.3); }
 
-      .sticker-item:hover {
-        background: color-mix(in srgb, var(--yellow) 30%, transparent);
-      }
-
-      .sticker-item:active {
-        transform: scale(1.3);
-      }
-
-      .placed-list {
-        margin-top: 0.8rem;
-        padding-top: 0.6rem;
-        border-top: 2px dashed var(--kraft-dark);
-      }
-
-      .placed-list-label {
-        font-size: 0.85rem;
-        color: var(--asphalt);
-        margin-bottom: 0.3rem;
-        font-weight: bold;
-      }
-
-      .placed-tags-empty {
-        font-size: 0.85rem;
-        color: var(--asphalt);
-        font-style: italic;
-      }
-
-      .placed-tag {
+      ${S} .placed-list { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 2px dashed #a3824f; }
+      ${S} .placed-list-label { font-size: 0.85rem; color: #3a3a3a; margin-bottom: 0.3rem; font-weight: bold; }
+      ${S} .placed-tags-empty { font-size: 0.85rem; color: #3a3a3a; font-style: italic; }
+      ${S} .placed-tag {
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
-        background: var(--paper);
-        border: var(--border-sm);
-        border-radius: var(--radius);
+        background: rgba(245, 240, 232, 0.75);
+        border: 2px solid #1a1a1a;
+        border-radius: 4px;
         padding: 0.2rem 0.5rem;
         margin: 0.2rem;
         font-size: 0.9rem;
         box-shadow: 1px 1px 0 rgba(0,0,0,0.25);
       }
-
-      .placed-tag button {
+      ${S} .placed-tag button {
         background: none;
         border: none;
-        color: var(--red);
+        color: #dc2626;
         cursor: pointer;
         font-size: 0.75rem;
         font-weight: bold;
         padding: 0 0.15rem;
-        font-family: var(--font-body);
+        font-family: 'Patrick Hand', cursive;
       }
+      ${S} .placed-tag button:hover { color: #b91c1c; }
 
-      .placed-tag button:hover {
-        color: color-mix(in srgb, var(--red) 80%, var(--black));
-      }
-
-      .hint {
-        font-family: var(--font-body);
+      ${S} .hint {
+        font-family: 'Patrick Hand', cursive;
         font-size: 0.85rem;
-        color: var(--asphalt);
+        color: #3a3a3a;
         text-align: center;
         margin-top: 0.5rem;
         font-style: italic;

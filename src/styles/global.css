@@ -1,8 +1,10 @@
 /* Global styles — Honk For Democracy */
 
-/* Theme system — single source of truth for all DOM overlay styling.
- * Defines: palette, typography, borders, shadows, component classes.
- * Phaser-side uses paletteConfig.ts. DOM overlays use theme.css. */
+/* Design tokens & primitives — palette, typography, borders, shadows.
+ * Phaser-side mirrors these via paletteConfig.ts (hex numbers).
+ * Scene overlays own their own component CSS — theme.css provides
+ * tokens (var(--border), var(--kraft), etc.) and primitives
+ * (.paper-cut, .tape-strip) only. No component classes. */
 @import './theme.css';
 
 /* Legacy aliases — kept for existing code that references old variable names.
