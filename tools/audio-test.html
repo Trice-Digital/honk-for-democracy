@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HFD Audio Test Harness</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Patrick+Hand&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Patrick Hand', cursive;
+    background: #c5a059;
+    color: #1a1a1a;
+    padding: 1.5rem;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-family: 'Bangers', cursive;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-family: 'Bangers', cursive;
+    font-size: 1.2rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+    color: #3a3a3a;
+    margin-bottom: 1.5rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: 960px;
+  }
+
+  @media (min-width: 768px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .card {
+    background: #f5f0e8;
+    border: 3px solid #1a1a1a;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+    border-radius: 4px;
+    padding: 1rem;
+  }
+
+  .card.active { border-color: #22c55e; }
+  .card.muted { opacity: 0.5; }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .toggle-btn {
+    font-family: 'Bangers', cursive;
+    font-size: 0.9rem;
+    padding: 0.4rem 1rem;
+    border: 2px solid #1a1a1a;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+  }
+
+  .toggle-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 rgba(0,0,0,0.35);
+  }
+
+  .toggle-btn.on { background: #22c55e; color: #fff; }
+  .toggle-btn.off { background: #ef4444; color: #fff; }
+
+  .trigger-btn {
+    font-family: 'Bangers', cursive;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.7rem;
+    border: 2px solid #1a1a1a;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #fbbf24;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+  }
+
+  .trigger-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 rgba(0,0,0,0.35);
+  }
+
+  .trigger-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+  }
+
+  .slider-row label {
+    font-size: 0.85rem;
+    min-width: 60px;
+  }
+
+  .slider-row input[type="range"] {
+    flex: 1;
+    accent-color: #fbbf24;
+  }
+
+  .slider-row .val {
+    font-size: 0.8rem;
+    min-width: 40px;
+    text-align: right;
+    color: #3a3a3a;
+  }
+
+  /* Confidence control */
+  .confidence-section {
+    grid-column: 1 / -1;
+  }
+
+  .confidence-display {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.5rem 0;
+  }
+
+  .confidence-display input[type="range"] {
+    flex: 1;
+    accent-color: #fbbf24;
+    height: 24px;
+  }
+
+  .energy-badge {
+    font-family: 'Bangers', cursive;
+    font-size: 1rem;
+    padding: 0.3rem 0.8rem;
+    border: 2px solid #1a1a1a;
+    border-radius: 4px;
+    min-width: 60px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .energy-low { background: #ef4444; color: #fff; }
+  .energy-mid { background: #fbbf24; color: #1a1a1a; }
+  .energy-high { background: #22c55e; color: #fff; }
+
+  .status {
+    font-size: 0.8rem;
+    color: #3a3a3a;
+    margin-top: 0.25rem;
+  }
+
+  .init-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+
+  .init-btn {
+    font-family: 'Bangers', cursive;
+    font-size: 1.5rem;
+    padding: 1rem 2.5rem;
+    background: #fbbf24;
+    border: 3px solid #1a1a1a;
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 #1a1a1a;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .init-btn:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 #1a1a1a;
+  }
+
+  #log {
+    grid-column: 1 / -1;
+    background: #1a1a1a;
+    color: #22c55e;
+    font-family: monospace;
+    font-size: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 2px solid #1a1a1a;
+  }
+</style>
+</head>
+<body>
+
+<!-- User gesture gate -->
+<div class="init-overlay" id="initOverlay">
+  <button class="init-btn" id="initBtn">Start Audio Engine</button>
+</div>
+
+<h1>HFD Audio Test Harness</h1>
+<p class="subtitle">Toggle layers, adjust volumes, trigger sounds. Confidence slider controls music energy + reactive cues.</p>
+
+<div class="grid">
+
+  <!-- AMBIENT -->
+  <div class="card" id="ambientCard">
+    <div class="layer-header">
+      <h2>Ambient</h2>
+      <button class="toggle-btn off" id="ambientToggle">OFF</button>
+    </div>
+    <p class="status">Brown noise + lowpass filter + slow sweep. Street traffic feel.</p>
+    <div class="slider-row">
+      <label>Volume</label>
+      <input type="range" id="ambientVol" min="-30" max="0" value="-16" step="1">
+      <span class="val" id="ambientVolVal">-16dB</span>
+    </div>
+  </div>
+
+  <!-- MUSIC -->
+  <div class="card" id="musicCard">
+    <div class="layer-header">
+      <h2>Music (Organ)</h2>
+      <button class="toggle-btn off" id="musicToggle">OFF</button>
+    </div>
+    <p class="status">FM synth stadium organ. Chord progressions shift with confidence.</p>
+    <div class="slider-row">
+      <label>Volume</label>
+      <input type="range" id="musicVol" min="-30" max="0" value="-14" step="1">
+      <span class="val" id="musicVolVal">-14dB</span>
+    </div>
+    <div class="slider-row">
+      <label>BPM</label>
+      <input type="range" id="musicBpm" min="60" max="160" value="110" step="5">
+      <span class="val" id="musicBpmVal">110</span>
+    </div>
+  </div>
+
+  <!-- REACTIVE CUES -->
+  <div class="card" id="cuesCard">
+    <div class="layer-header">
+      <h2>Reactive Cues</h2>
+      <button class="toggle-btn off" id="cuesToggle">OFF</button>
+    </div>
+    <p class="status">Triggered by confidence thresholds. Manual triggers below.</p>
+    <div class="slider-row">
+      <label>Volume</label>
+      <input type="range" id="cuesVol" min="-30" max="0" value="-12" step="1">
+      <span class="val" id="cuesVolVal">-12dB</span>
+    </div>
+    <div class="btn-row">
+      <button class="trigger-btn" onclick="triggerCue('organ')">Organ Stinger</button>
+      <button class="trigger-btn" onclick="triggerCue('stomp')">Stomp-Clap</button>
+      <button class="trigger-btn" onclick="triggerCue('cowbell')">Cowbell</button>
+      <button class="trigger-btn" onclick="triggerCue('snare')">Snare Roll</button>
+      <button class="trigger-btn" onclick="triggerCue('drone')">Tension Drone</button>
+      <button class="trigger-btn" onclick="triggerCue('droneStop')">Stop Drone</button>
+    </div>
+  </div>
+
+  <!-- SFX -->
+  <div class="card" id="sfxCard">
+    <div class="layer-header">
+      <h2>SFX</h2>
+      <button class="toggle-btn on" id="sfxToggle">ON</button>
+    </div>
+    <p class="status">Web Audio API procedural. Honks, reactions, game events.</p>
+    <div class="slider-row">
+      <label>Volume</label>
+      <input type="range" id="sfxVol" min="0" max="100" value="30" step="1">
+      <span class="val" id="sfxVolVal">30%</span>
+    </div>
+    <div class="btn-row">
+      <button class="trigger-btn" onclick="triggerSfx('honkShort')">Honk Short</button>
+      <button class="trigger-btn" onclick="triggerSfx('honkLong')">Honk Long</button>
+      <button class="trigger-btn" onclick="triggerSfx('honkDeep')">Honk Deep</button>
+      <button class="trigger-btn" onclick="triggerSfx('honkCheerful')">Honk Cheerful</button>
+      <button class="trigger-btn" onclick="triggerSfx('diesel')">Coal Roller</button>
+      <button class="trigger-btn" onclick="triggerSfx('clunk')">Traffic Clunk</button>
+    </div>
+    <div class="btn-row" style="margin-top: 0.25rem;">
+      <button class="trigger-btn" onclick="triggerSfx('chime')">Thumbs Up</button>
+      <button class="trigger-btn" onclick="triggerSfx('cheer')">Crowd Cheer</button>
+      <button class="trigger-btn" onclick="triggerSfx('buzz')">Thumbs Down</button>
+      <button class="trigger-btn" onclick="triggerSfx('angryHorn')">Middle Finger</button>
+      <button class="trigger-btn" onclick="triggerSfx('yell')">Yell</button>
+      <button class="trigger-btn" onclick="triggerSfx('fanfare')">Session Start</button>
+      <button class="trigger-btn" onclick="triggerSfx('windDown')">Session End</button>
+      <button class="trigger-btn" onclick="triggerSfx('sadTrombone')">Game Over</button>
+      <button class="trigger-btn" onclick="triggerSfx('whoosh')">Raise Sign</button>
+      <button class="trigger-btn" onclick="triggerSfx('clang')">Deflect</button>
+    </div>
+  </div>
+
+  <!-- CONFIDENCE -->
+  <div class="card confidence-section">
+    <div class="layer-header">
+      <h2>Confidence Level</h2>
+      <span class="energy-badge energy-mid" id="energyBadge">MID</span>
+    </div>
+    <div class="confidence-display">
+      <span>0</span>
+      <input type="range" id="confidenceSlider" min="0" max="100" value="50" step="1">
+      <span>100</span>
+      <span class="val" id="confidenceVal" style="font-size: 1.2rem; font-family: 'Bangers', cursive; min-width: 50px;">50</span>
+    </div>
+    <p class="status">LOW &lt;30 | MID 30-80 | HIGH &gt;80 — Controls music energy + cue triggers</p>
+    <div class="btn-row" style="margin-top: 0.5rem;">
+      <button class="trigger-btn" onclick="setConfidence(10)">Crash to 10</button>
+      <button class="trigger-btn" onclick="setConfidence(50)">Reset to 50</button>
+      <button class="trigger-btn" onclick="setConfidence(90)">Spike to 90</button>
+      <button class="trigger-btn" onclick="animateConfidence()">Simulate Game</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="log"></div>
+</div>
+
+<script type="module">
+import * as Tone from 'https://cdn.skypack.dev/tone@15.0.4';
+
+window.Tone = Tone;
+
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  initialized: false,
+  confidence: 50,
+  previousConfidence: 50,
+  layers: {
+    ambient: { on: false, vol: -16 },
+    music: { on: false, vol: -14 },
+    cues: { on: false, vol: -12 },
+    sfx: { on: true, vol: 0.3 },
+  },
+  musicEnergy: 'mid',
+  pendingEnergy: null,
+  phraseIndex: 0,
+  isDroning: false,
+  simInterval: null,
+};
+
+function log(msg) {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ============================================================
+// MIXER (Tone.js gain nodes)
+// ============================================================
+const masterGain = new Tone.Gain(1).toDestination();
+const ambientGain = new Tone.Gain(Tone.dbToGain(-16)).connect(masterGain);
+const musicGain = new Tone.Gain(Tone.dbToGain(-14)).connect(masterGain);
+const cuesGain = new Tone.Gain(Tone.dbToGain(-12)).connect(masterGain);
+
+// SFX uses raw Web Audio API — separate AudioContext
+let sfxCtx = null;
+let sfxMasterGain = null;
+
+// ============================================================
+// AMBIENT SYSTEM (Tone.js)
+// ============================================================
+const ambientNoise = new Tone.Noise('brown');
+const ambientFilter = new Tone.Filter({ frequency: 250, type: 'lowpass', Q: 1.5 });
+const ambientAutoFilter = new Tone.AutoFilter({ frequency: 0.08, baseFrequency: 150, octaves: 1.5 });
+const ambientOut = new Tone.Gain(0);
+
+ambientNoise.connect(ambientFilter);
+ambientFilter.connect(ambientAutoFilter);
+ambientAutoFilter.connect(ambientOut);
+ambientOut.connect(ambientGain);
+
+function startAmbient() {
+  ambientNoise.start();
+  ambientAutoFilter.start();
+  ambientOut.gain.rampTo(1, 2);
+  log('Ambient: started (2s fade-in)');
+}
+
+function stopAmbient() {
+  ambientOut.gain.rampTo(0, 1.5);
+  setTimeout(() => { ambientNoise.stop(); ambientAutoFilter.stop(); }, 1500);
+  log('Ambient: stopped (1.5s fade-out)');
+}
+
+// ============================================================
+// MUSIC SYSTEM (Tone.js — FM Synth Stadium Organ)
+// ============================================================
+const PHRASES = {
+  low: [['C3','Eb3','G3'],['F3','Ab3','C4'],['Ab3','C4','Eb4'],['G3','Bb3','D4']],
+  mid: [['C3','E3','G3'],['F3','A3','C4'],['G3','B3','D4'],['C3','E3','G3']],
+  high: [['C4','E4','G4'],['F4','A4','C5'],['G4','B4','D5'],['A3','C4','E4'],['F4','A4','C5'],['G4','B4','D5'],['C4','E4','G4','C5'],['C4','E4','G4','C5']],
+};
+const RHYTHM = { low: '2n', mid: '4n', high: '8n' };
+const VELOCITY = { low: 0.3, mid: 0.5, high: 0.75 };
+const HARMONICITY = { low: 2, mid: 3, high: 4 };
+
+const organSynth = new Tone.PolySynth(Tone.FMSynth, {
+  maxPolyphony: 8,
+  voice: {
+    harmonicity: 3,
+    modulationIndex: 10,
+    envelope: { attack: 0.02, decay: 0.3, sustain: 0.4, release: 0.8 },
+    modulation: { type: 'square' },
+    modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.5 },
+  },
+});
+organSynth.connect(musicGain);
+
+let musicLoop = null;
+
+function startMusic() {
+  const transport = Tone.getTransport();
+  transport.bpm.value = parseInt(document.getElementById('musicBpm').value);
+  state.phraseIndex = 0;
+
+  musicLoop = new Tone.Loop((time) => {
+    const phrases = PHRASES[state.musicEnergy];
+    if (state.phraseIndex >= phrases.length) {
+      state.phraseIndex = 0;
+      if (state.pendingEnergy) {
+        state.musicEnergy = state.pendingEnergy;
+        state.pendingEnergy = null;
+        organSynth.set({ harmonicity: HARMONICITY[state.musicEnergy] });
+        musicLoop.interval = RHYTHM[state.musicEnergy];
+        updateEnergyBadge();
+        log(`Music: energy -> ${state.musicEnergy.toUpperCase()}`);
+      }
+    }
+    const chord = PHRASES[state.musicEnergy][state.phraseIndex];
+    const vel = VELOCITY[state.musicEnergy];
+    const dur = RHYTHM[state.musicEnergy];
+    organSynth.releaseAll(time);
+    organSynth.triggerAttackRelease(chord, dur, time, vel);
+    state.phraseIndex++;
+  }, RHYTHM[state.musicEnergy]);
+
+  musicLoop.start(0);
+  if (transport.state !== 'started') transport.start();
+  log('Music: started');
+}
+
+function stopMusic() {
+  if (musicLoop) { musicLoop.stop(); musicLoop.dispose(); musicLoop = null; }
+  organSynth.releaseAll();
+  log('Music: stopped');
+}
+
+// ============================================================
+// REACTIVE CUES (Tone.js)
+// ============================================================
+const cueOrgan = new Tone.FMSynth({
+  harmonicity: 4, modulationIndex: 12,
+  envelope: { attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.6 },
+  modulation: { type: 'square' },
+  modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.3 },
+}).connect(cuesGain);
+
+const cueStomp = new Tone.NoiseSynth({
+  noise: { type: 'brown' },
+  envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.05 },
+}).connect(cuesGain);
+
+const cueClap = new Tone.NoiseSynth({
+  noise: { type: 'white' },
+  envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.03 },
+}).connect(cuesGain);
+
+const cueCowbell = new Tone.MetalSynth({
+  frequency: 800,
+  envelope: { attack: 0.001, decay: 0.1, release: 0.05 },
+  harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5,
+}).connect(cuesGain);
+
+const cueSnare = new Tone.NoiseSynth({
+  noise: { type: 'white' },
+  envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.05 },
+}).connect(cuesGain);
+
+const cueDrone = new Tone.FMSynth({
+  harmonicity: 1.5, modulationIndex: 5,
+  envelope: { attack: 1.0, decay: 0.5, sustain: 0.8, release: 2.0 },
+  modulation: { type: 'sine' },
+  modulationEnvelope: { attack: 0.5, decay: 0.3, sustain: 0.6, release: 1.0 },
+}).connect(cuesGain);
+
+window.triggerCue = function(type) {
+  if (!state.initialized) return;
+  const now = Tone.getTransport().immediate();
+  switch (type) {
+    case 'organ':
+      cueOrgan.triggerAttackRelease('C5', '8n', now, 0.7);
+      setTimeout(() => cueOrgan.triggerAttackRelease('E5', '8n', undefined, 0.7), 50);
+      setTimeout(() => cueOrgan.triggerAttackRelease('G5', '8n', undefined, 0.8), 100);
+      log('Cue: organ stinger');
+      break;
+    case 'stomp': {
+      const beat = 60 / 110;
+      cueStomp.triggerAttackRelease('8n', now, 0.6);
+      cueStomp.triggerAttackRelease('8n', now + beat, 0.6);
+      cueClap.triggerAttackRelease('8n', now + beat * 2, 0.7);
+      log('Cue: stomp-stomp-clap');
+      break;
+    }
+    case 'cowbell':
+      for (let i = 0; i < 4; i++) {
+        cueCowbell.triggerAttackRelease('16n', now + i * 0.25, 0.4 + i * 0.1);
+      }
+      log('Cue: cowbell burst');
+      break;
+    case 'snare':
+      for (let i = 0; i < 8; i++) {
+        const vel = 0.2 + (i / 8) * 0.6;
+        cueSnare.triggerAttackRelease('32n', now + i * 0.1, vel);
+      }
+      log('Cue: snare roll');
+      break;
+    case 'drone':
+      if (!state.isDroning) {
+        cueDrone.triggerAttack('C2', undefined, 0.3);
+        state.isDroning = true;
+        log('Cue: tension drone ON');
+      }
+      break;
+    case 'droneStop':
+      if (state.isDroning) {
+        cueDrone.triggerRelease();
+        state.isDroning = false;
+        log('Cue: tension drone OFF');
+      }
+      break;
+  }
+};
+
+// ============================================================
+// SFX SYSTEM (raw Web Audio API — mirrors AudioSystem.ts)
+// ============================================================
+function ensureSfx() {
+  if (!sfxCtx) {
+    sfxCtx = new AudioContext();
+    sfxMasterGain = sfxCtx.createGain();
+    sfxMasterGain.gain.value = state.layers.sfx.vol;
+    sfxMasterGain.connect(sfxCtx.destination);
+  }
+  if (sfxCtx.state === 'suspended') sfxCtx.resume();
+}
+
+window.triggerSfx = function(type) {
+  if (!state.initialized) return;
+  ensureSfx();
+  const ctx = sfxCtx;
+  const now = ctx.currentTime;
+  const out = sfxMasterGain;
+  const dopMax = 1.3, dopMin = 0.8;
+
+  switch (type) {
+    case 'honkShort': {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(400*dopMax, now);
+      o.frequency.exponentialRampToValueAtTime(400*dopMin, now+0.08);
+      g.gain.setValueAtTime(0.22, now); g.gain.exponentialRampToValueAtTime(0.01, now+0.08);
+      o.connect(g); g.connect(out); o.start(now); o.stop(now+0.08);
+      log('SFX: honk short'); break;
+    }
+    case 'honkLong': {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(350*dopMax, now);
+      o.frequency.exponentialRampToValueAtTime(350*dopMin, now+0.25);
+      g.gain.setValueAtTime(0.20, now); g.gain.setValueAtTime(0.22, now+0.05);
+      g.gain.exponentialRampToValueAtTime(0.01, now+0.25);
+      o.connect(g); g.connect(out); o.start(now); o.stop(now+0.25);
+      log('SFX: honk long'); break;
+    }
+    case 'honkDeep': {
+      const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain();
+      o1.type = o2.type = 'square';
+      o1.frequency.setValueAtTime(200*dopMax, now); o1.frequency.exponentialRampToValueAtTime(200*dopMin, now+0.3);
+      o2.frequency.setValueAtTime(220*dopMax, now); o2.frequency.exponentialRampToValueAtTime(220*dopMin, now+0.3);
+      g.gain.setValueAtTime(0.18, now); g.gain.exponentialRampToValueAtTime(0.01, now+0.3);
+      o1.connect(g); o2.connect(g); g.connect(out);
+      o1.start(now); o2.start(now); o1.stop(now+0.3); o2.stop(now+0.3);
+      log('SFX: honk deep'); break;
+    }
+    case 'honkCheerful': {
+      const dur = 0.08, gap = 0.06;
+      const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+      o1.type = 'square'; o1.frequency.setValueAtTime(500*dopMax, now);
+      o1.frequency.exponentialRampToValueAtTime(500*dopMin, now+dur);
+      g1.gain.setValueAtTime(0.20, now); g1.gain.exponentialRampToValueAtTime(0.01, now+dur);
+      o1.connect(g1); g1.connect(out); o1.start(now); o1.stop(now+dur);
+      const t2 = now+dur+gap;
+      const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+      o2.type = 'square'; o2.frequency.setValueAtTime(600*dopMax, t2);
+      o2.frequency.exponentialRampToValueAtTime(600*dopMin, t2+dur);
+      g2.gain.setValueAtTime(0.20, t2); g2.gain.exponentialRampToValueAtTime(0.01, t2+dur);
+      o2.connect(g2); g2.connect(out); o2.start(t2); o2.stop(t2+dur);
+      log('SFX: honk cheerful'); break;
+    }
+    case 'diesel': {
+      // Cloud puff
+      const ps = ctx.sampleRate*0.1, pb = ctx.createBuffer(1,ps,ctx.sampleRate);
+      const pd = pb.getChannelData(0); for(let i=0;i<ps;i++) pd[i]=(Math.random()*2-1)*0.3;
+      const pn = ctx.createBufferSource(); pn.buffer = pb;
+      const pf = ctx.createBiquadFilter(); pf.type='bandpass'; pf.frequency.value=1500; pf.Q.value=0.8;
+      const pg = ctx.createGain(); pg.gain.setValueAtTime(0.15,now); pg.gain.exponentialRampToValueAtTime(0.01,now+0.1);
+      pn.connect(pf); pf.connect(pg); pg.connect(out); pn.start(now); pn.stop(now+0.1);
+      // Main rumble
+      const bs = ctx.sampleRate*0.8, bb = ctx.createBuffer(1,bs,ctx.sampleRate);
+      const bd = bb.getChannelData(0); for(let i=0;i<bs;i++) bd[i]=(Math.random()*2-1)*0.5;
+      const bn = ctx.createBufferSource(); bn.buffer = bb;
+      const f1 = ctx.createBiquadFilter(); f1.type='lowpass'; f1.frequency.value=200; f1.Q.value=2;
+      const f2 = ctx.createBiquadFilter(); f2.type='lowpass'; f2.frequency.setValueAtTime(300,now);
+      f2.frequency.exponentialRampToValueAtTime(100,now+0.8); f2.Q.value=3;
+      const bg = ctx.createGain(); bg.gain.setValueAtTime(0.22,now); bg.gain.setValueAtTime(0.28,now+0.15);
+      bg.gain.exponentialRampToValueAtTime(0.01,now+0.8);
+      bn.connect(f1); f1.connect(f2); f2.connect(bg); bg.connect(out); bn.start(now); bn.stop(now+0.8);
+      // Sub bass
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(80,now); o.frequency.linearRampToValueAtTime(60,now+0.64);
+      og.gain.setValueAtTime(0.20,now); og.gain.exponentialRampToValueAtTime(0.01,now+0.64);
+      o.connect(og); og.connect(out); o.start(now); o.stop(now+0.64);
+      log('SFX: coal roller'); break;
+    }
+    case 'clunk': {
+      const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+      o1.type='sine'; o1.frequency.setValueAtTime(1500,now); o1.frequency.exponentialRampToValueAtTime(800,now+0.04);
+      g1.gain.setValueAtTime(0.12,now); g1.gain.exponentialRampToValueAtTime(0.01,now+0.04);
+      o1.connect(g1); g1.connect(out); o1.start(now); o1.stop(now+0.04);
+      const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+      o2.type='sine'; o2.frequency.setValueAtTime(200,now);
+      g2.gain.setValueAtTime(0.10,now); g2.gain.exponentialRampToValueAtTime(0.01,now+0.06);
+      o2.connect(g2); g2.connect(out); o2.start(now); o2.stop(now+0.06);
+      log('SFX: traffic light clunk'); break;
+    }
+    case 'chime': {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(800,now); o.frequency.exponentialRampToValueAtTime(960,now+0.1);
+      g.gain.setValueAtTime(0.15,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.1);
+      o.connect(g); g.connect(out); o.start(now); o.stop(now+0.1);
+      log('SFX: thumbs up chime'); break;
+    }
+    case 'cheer': {
+      const bs = ctx.sampleRate*0.3, bb = ctx.createBuffer(1,bs,ctx.sampleRate);
+      const bd = bb.getChannelData(0); for(let i=0;i<bs;i++) bd[i]=(Math.random()*2-1)*0.3;
+      const bn = ctx.createBufferSource(); bn.buffer = bb;
+      const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1200; f.Q.value=0.8;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.2,now); g.gain.linearRampToValueAtTime(0.35,now+0.1);
+      g.gain.exponentialRampToValueAtTime(0.01,now+0.3);
+      bn.connect(f); f.connect(g); g.connect(out); bn.start(now); bn.stop(now+0.3);
+      log('SFX: crowd cheer'); break;
+    }
+    case 'buzz': {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type='sawtooth'; o.frequency.setValueAtTime(150,now); o.frequency.linearRampToValueAtTime(120,now+0.2);
+      g.gain.setValueAtTime(0.12,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.2);
+      o.connect(g); g.connect(out); o.start(now); o.stop(now+0.2);
+      log('SFX: thumbs down buzz'); break;
+    }
+    case 'angryHorn': {
+      const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain();
+      o1.type=o2.type='square'; o1.frequency.setValueAtTime(200,now); o2.frequency.setValueAtTime(210,now);
+      g.gain.setValueAtTime(0.18,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.3);
+      o1.connect(g); o2.connect(g); g.connect(out);
+      o1.start(now); o2.start(now); o1.stop(now+0.3); o2.stop(now+0.3);
+      log('SFX: angry horn'); break;
+    }
+    case 'yell': {
+      const bs = ctx.sampleRate*0.25, bb = ctx.createBuffer(1,bs,ctx.sampleRate);
+      const bd = bb.getChannelData(0); for(let i=0;i<bs;i++) bd[i]=(Math.random()*2-1)*0.4;
+      const bn = ctx.createBufferSource(); bn.buffer = bb;
+      const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=800;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.15,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.25);
+      bn.connect(f); f.connect(g); g.connect(out); bn.start(now); bn.stop(now+0.25);
+      log('SFX: yell'); break;
+    }
+    case 'fanfare': {
+      [523,659,784].forEach((freq,i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(freq,now+i*0.12);
+        g.gain.setValueAtTime(0.15,now+i*0.12); g.gain.exponentialRampToValueAtTime(0.01,now+i*0.12+0.2);
+        o.connect(g); g.connect(out); o.start(now+i*0.12); o.stop(now+i*0.12+0.2);
+      });
+      log('SFX: fanfare'); break;
+    }
+    case 'windDown': {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(600,now); o.frequency.exponentialRampToValueAtTime(200,now+0.6);
+      g.gain.setValueAtTime(0.12,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.6);
+      o.connect(g); g.connect(out); o.start(now); o.stop(now+0.6);
+      log('SFX: wind down'); break;
+    }
+    case 'sadTrombone': {
+      [494,466,440,415].forEach((freq,i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type='sawtooth'; o.frequency.setValueAtTime(freq,now+i*0.3);
+        g.gain.setValueAtTime(0.1,now+i*0.3); g.gain.exponentialRampToValueAtTime(0.01,now+i*0.3+0.28);
+        const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1500;
+        o.connect(f); f.connect(g); g.connect(out); o.start(now+i*0.3); o.stop(now+i*0.3+0.28);
+      });
+      log('SFX: sad trombone'); break;
+    }
+    case 'whoosh': {
+      const bs = ctx.sampleRate*0.15, bb = ctx.createBuffer(1,bs,ctx.sampleRate);
+      const bd = bb.getChannelData(0); for(let i=0;i<bs;i++) bd[i]=(Math.random()*2-1)*0.3;
+      const bn = ctx.createBufferSource(); bn.buffer = bb;
+      const f = ctx.createBiquadFilter(); f.type='bandpass';
+      f.frequency.setValueAtTime(500,now); f.frequency.exponentialRampToValueAtTime(3000,now+0.1); f.Q.value=1;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.15,now); g.gain.exponentialRampToValueAtTime(0.01,now+0.15);
+      bn.connect(f); f.connect(g); g.connect(out); bn.start(now); bn.stop(now+0.15);
+      log('SFX: whoosh'); break;
+    }
+    case 'clang': {
+      const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+      o1.type='sine'; o1.frequency.setValueAtTime(2000,now); o1.frequency.exponentialRampToValueAtTime(800,now+0.15);
+      g1.gain.setValueAtTime(0.2,now); g1.gain.exponentialRampToValueAtTime(0.01,now+0.15);
+      o1.connect(g1); g1.connect(out); o1.start(now); o1.stop(now+0.15);
+      const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+      o2.type='sine'; o2.frequency.setValueAtTime(3200,now); o2.frequency.exponentialRampToValueAtTime(1200,now+0.1);
+      g2.gain.setValueAtTime(0.08,now); g2.gain.exponentialRampToValueAtTime(0.01,now+0.1);
+      o2.connect(g2); g2.connect(out); o2.start(now); o2.stop(now+0.1);
+      log('SFX: shield clang'); break;
+    }
+  }
+};
+
+// ============================================================
+// CONFIDENCE + ENERGY
+// ============================================================
+function getEnergy(c) {
+  if (c < 30) return 'low';
+  if (c >= 80) return 'high';
+  return 'mid';
+}
+
+function updateEnergyBadge() {
+  const badge = document.getElementById('energyBadge');
+  badge.textContent = state.musicEnergy.toUpperCase();
+  badge.className = `energy-badge energy-${state.musicEnergy}`;
+}
+
+function updateConfidence(val) {
+  state.previousConfidence = state.confidence;
+  state.confidence = val;
+  document.getElementById('confidenceVal').textContent = val;
+  document.getElementById('confidenceSlider').value = val;
+
+  const newEnergy = getEnergy(val);
+  if (newEnergy !== state.musicEnergy) {
+    if (state.layers.music.on) {
+      state.pendingEnergy = newEnergy;
+      log(`Confidence ${val} -> energy pending: ${newEnergy.toUpperCase()}`);
+    } else {
+      state.musicEnergy = newEnergy;
+      updateEnergyBadge();
+    }
+  }
+}
+
+window.setConfidence = function(val) {
+  updateConfidence(val);
+};
+
+window.animateConfidence = function() {
+  if (state.simInterval) { clearInterval(state.simInterval); state.simInterval = null; log('Simulation stopped'); return; }
+  let c = 50, dir = 1;
+  log('Simulating game: confidence will bounce 10-95');
+  state.simInterval = setInterval(() => {
+    c += dir * (Math.random() * 8 - 2);
+    if (c > 95) { c = 95; dir = -1; }
+    if (c < 10) { c = 10; dir = 1; }
+    c = Math.round(c);
+    updateConfidence(c);
+  }, 500);
+};
+
+// ============================================================
+// UI WIRING
+// ============================================================
+document.getElementById('initBtn').addEventListener('click', async () => {
+  await Tone.start();
+  ensureSfx();
+  state.initialized = true;
+  document.getElementById('initOverlay').style.display = 'none';
+  log('Audio engine initialized. Tone.js + Web Audio API ready.');
+});
+
+// Layer toggles
+['ambient', 'music', 'cues'].forEach(layer => {
+  const btn = document.getElementById(`${layer}Toggle`);
+  btn.addEventListener('click', () => {
+    if (!state.initialized) return;
+    state.layers[layer].on = !state.layers[layer].on;
+    btn.textContent = state.layers[layer].on ? 'ON' : 'OFF';
+    btn.className = `toggle-btn ${state.layers[layer].on ? 'on' : 'off'}`;
+
+    if (layer === 'ambient') { state.layers[layer].on ? startAmbient() : stopAmbient(); }
+    if (layer === 'music') { state.layers[layer].on ? startMusic() : stopMusic(); }
+    if (layer === 'cues') { log(`Cues: ${state.layers[layer].on ? 'enabled' : 'disabled'} — use trigger buttons`); }
+  });
+});
+
+// SFX toggle
+document.getElementById('sfxToggle').addEventListener('click', () => {
+  state.layers.sfx.on = !state.layers.sfx.on;
+  const btn = document.getElementById('sfxToggle');
+  btn.textContent = state.layers.sfx.on ? 'ON' : 'OFF';
+  btn.className = `toggle-btn ${state.layers.sfx.on ? 'on' : 'off'}`;
+  if (sfxMasterGain) sfxMasterGain.gain.value = state.layers.sfx.on ? state.layers.sfx.vol : 0;
+  log(`SFX: ${state.layers.sfx.on ? 'on' : 'off'}`);
+});
+
+// Volume sliders
+document.getElementById('ambientVol').addEventListener('input', (e) => {
+  const v = parseInt(e.target.value);
+  ambientGain.gain.rampTo(Tone.dbToGain(v), 0.05);
+  document.getElementById('ambientVolVal').textContent = `${v}dB`;
+});
+document.getElementById('musicVol').addEventListener('input', (e) => {
+  const v = parseInt(e.target.value);
+  musicGain.gain.rampTo(Tone.dbToGain(v), 0.05);
+  document.getElementById('musicVolVal').textContent = `${v}dB`;
+});
+document.getElementById('cuesVol').addEventListener('input', (e) => {
+  const v = parseInt(e.target.value);
+  cuesGain.gain.rampTo(Tone.dbToGain(v), 0.05);
+  document.getElementById('cuesVolVal').textContent = `${v}dB`;
+});
+document.getElementById('sfxVol').addEventListener('input', (e) => {
+  const v = parseInt(e.target.value) / 100;
+  state.layers.sfx.vol = v;
+  if (sfxMasterGain && state.layers.sfx.on) sfxMasterGain.gain.value = v;
+  document.getElementById('sfxVolVal').textContent = `${Math.round(v*100)}%`;
+});
+
+// BPM slider
+document.getElementById('musicBpm').addEventListener('input', (e) => {
+  const bpm = parseInt(e.target.value);
+  Tone.getTransport().bpm.value = bpm;
+  document.getElementById('musicBpmVal').textContent = bpm;
+});
+
+// Confidence slider
+document.getElementById('confidenceSlider').addEventListener('input', (e) => {
+  updateConfidence(parseInt(e.target.value));
+});
+
+log('UI ready. Click "Start Audio Engine" to begin.');
+</script>
+</body>
+</html>
