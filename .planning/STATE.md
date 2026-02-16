@@ -41,7 +41,7 @@ Last activity: 2026-02-15 - Phase 13 Plan 03 Task 1 complete (polish pass with a
 | 9. Visual & UI Polish | 8/8 | Complete (02-15, ~229 tool calls) |
 | 10. Audio Polish | 4/4 | Complete (02-15, ~126 tool calls) |
 | 11. Social Share | 3/3 | Complete (02-15, ~47 tool calls) |
-| 12. Debug & Tuning | 6 quick tasks | Partial (refactor, car fix, readability, emoji fix, dev tools) |
+| 12. Debug & Tuning | 7 quick tasks | Partial (refactor, car fix, readability, emoji fix, dev tools, theme unification) |
 | 13. Sign Craft UX Redesign | 2/3 | In Progress (P01: expanded config, P02: responsive tabbed UI) |
 
 *Plan execution times (M2):*
@@ -94,6 +94,8 @@ Recent decisions affecting current work:
 - [M2-P13-02]: Randomize feature with contrast-aware color selection
 - [M2-P13-02]: Per-sticker removal via placed list (no global remove button)
 - [M2-P13-02]: Material swatches use baseColor from config (handles CSS gradients for wood)
+- [M2-Quick-07]: Theme system unified — DOM uses theme.css variables, Phaser uses PALETTE_HEX constants
+- [M2-Quick-07]: toHex() utility bridges PALETTE numbers to Phaser text color strings
 
 ### Pending Todos
 
@@ -119,10 +121,11 @@ None.
 | 4 | AI readability + consistency cleanup pass | 2026-02-15 | 5f046b2 | [4-ai-readability-consistency-cleanup-pass](./quick/4-ai-readability-consistency-cleanup-pass/) |
 | 5 | Fix dialogue reaction speech bubbles emoji | 2026-02-15 | 17c5c1c | [5-fix-dialogue-reaction-speech-bubbles-emo](./quick/5-fix-dialogue-reaction-speech-bubbles-emo/) |
 | 6 | Add dev-only testing tools for gameplay tuning | 2026-02-15 | 66dd487 | [6-add-dev-testing-tools-for-gameplay-tunin](./quick/6-add-dev-testing-tools-for-gameplay-tunin/) |
+| 7 | Apply theme CSS classes to all DOM overlays | 2026-02-16 | 813a3b7 | [7-apply-theme-css-classes-to-all-dom-overl](./quick/7-apply-theme-css-classes-to-all-dom-overl/) |
 
 ## Session Continuity
 
-Last session: 2026-02-15
-Stopped at: Phase 13 Plan 02 complete (responsive tabbed sign craft UI)
+Last session: 2026-02-16
+Stopped at: Quick Task 7 complete (unified theme system for DOM and Phaser rendering)
 Resume file: None
 Next action: /gsd:execute-phase 13 03 (final plan: integration testing and polish)
