@@ -213,18 +213,6 @@ export class SignCraftScene extends Phaser.Scene {
       /* Reset for overlay */
       #sign-editor-overlay * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-      /* Root variables */
-      #sign-editor-overlay {
-        --black: #1a1a1a;
-        --yellow: #fbbf24;
-        --kraft: #c5a059;
-        --kraft-light: #d4b06a;
-        --kraft-dark: #a3824f;
-        --text: #1a1a1a;
-        --text-muted: #3a3a3a;
-        --paper: rgba(245, 240, 232, 0.75);
-      }
-
       /* Overlay container */
       .craft-overlay {
         position: absolute;
@@ -233,13 +221,11 @@ export class SignCraftScene extends Phaser.Scene {
         width: 100%;
         height: 100%;
         z-index: 1000;
-        font-family: 'Patrick Hand', cursive, system-ui, sans-serif;
-        color: var(--text);
+        font-family: var(--font-body), system-ui, sans-serif;
+        color: var(--black);
         background: var(--kraft);
-        background-image:
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
-          linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
-        background-size: 300px 300px, 100% 100%;
+        background-image: var(--kraft-bg);
+        background-size: var(--kraft-bg-size);
         overflow-x: hidden;
         overflow-y: auto;
       }
@@ -277,15 +263,13 @@ export class SignCraftScene extends Phaser.Scene {
           top: 0;
           z-index: 10;
           background: var(--kraft);
-          background-image:
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.12'/%3E%3C/svg%3E"),
-            linear-gradient(135deg, #b8956a 0%, #a3824f 30%, #c5a059 60%, #b8956a 100%);
-          background-size: 300px 300px, 100% 100%;
+          background-image: var(--kraft-bg);
+          background-size: var(--kraft-bg-size);
           padding: 0.75rem 0 0.5rem;
           margin: 0 -1rem;
           padding-left: 1rem;
           padding-right: 1rem;
-          border-bottom: 3px solid var(--black);
+          border-bottom: var(--border);
         }
       }
 
@@ -298,7 +282,7 @@ export class SignCraftScene extends Phaser.Scene {
 
       /* Sign canvas */
       .sign-canvas {
-        border-radius: 4px;
+        border-radius: var(--radius);
         position: relative;
         overflow: hidden;
         transform: rotate(-1.5deg);
@@ -306,27 +290,27 @@ export class SignCraftScene extends Phaser.Scene {
 
       /* Neobrutalist primitives */
       .paper-cut {
-        border: 3px solid var(--black);
-        box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
-        border-radius: 4px;
+        border: var(--border);
+        box-shadow: var(--shadow);
+        border-radius: var(--radius);
       }
 
       .paper-cut-sm {
-        border: 2px solid var(--black);
-        box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
-        border-radius: 4px;
+        border: var(--border-sm);
+        box-shadow: var(--shadow-sm);
+        border-radius: var(--radius);
       }
 
       .tape-strip {
         background: var(--paper);
-        border: 1px solid rgba(26, 26, 26, 0.15);
-        box-shadow: 1px 1px 0 rgba(26, 26, 26, 0.15);
+        border: var(--border-subtle);
+        box-shadow: var(--shadow-subtle);
         padding: 0.3rem 1rem;
       }
 
       /* Randomize button */
       .randomize-btn {
-        font-family: 'Bangers', cursive;
+        font-family: var(--font-ui);
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
@@ -335,11 +319,11 @@ export class SignCraftScene extends Phaser.Scene {
         letter-spacing: 0.08em;
         color: var(--black);
         background: var(--yellow);
-        border: 3px solid var(--black);
-        border-radius: 4px;
+        border: var(--border);
+        border-radius: var(--radius);
         cursor: pointer;
-        transition: transform 0.1s, box-shadow 0.1s;
-        box-shadow: 3px 3px 0 var(--black);
+        transition: var(--transition-press);
+        box-shadow: var(--shadow-hard);
       }
 
       .randomize-btn:hover {
@@ -369,7 +353,7 @@ export class SignCraftScene extends Phaser.Scene {
 
       /* CTA button */
       .cta-btn {
-        font-family: 'Bangers', cursive;
+        font-family: var(--font-ui);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -379,11 +363,11 @@ export class SignCraftScene extends Phaser.Scene {
         letter-spacing: 0.08em;
         color: var(--black);
         background: var(--yellow);
-        border: 3px solid var(--black);
-        border-radius: 4px;
+        border: var(--border);
+        border-radius: var(--radius);
         cursor: pointer;
-        transition: transform 0.1s, box-shadow 0.1s;
-        box-shadow: 3px 3px 0 var(--black);
+        transition: var(--transition-press);
+        box-shadow: var(--shadow-hard);
       }
 
       .cta-btn:hover {
@@ -398,10 +382,10 @@ export class SignCraftScene extends Phaser.Scene {
 
       /* Orientation hint */
       .orient-hint {
-        font-family: 'Patrick Hand', cursive;
+        font-family: var(--font-body);
         text-align: center;
         font-size: 0.9rem;
-        color: var(--text-muted);
+        color: var(--asphalt);
         line-height: 1.4;
         padding: 0.4rem 0.8rem;
       }
@@ -449,18 +433,18 @@ export class SignCraftScene extends Phaser.Scene {
       }
 
       .tab-btn {
-        font-family: 'Bangers', cursive;
+        font-family: var(--font-ui);
         flex: 1;
         padding: 0.6rem 0.5rem;
         font-size: 1rem;
         letter-spacing: 0.1em;
-        color: var(--text-muted);
+        color: var(--asphalt);
         background: var(--kraft-dark);
-        border: 2px solid var(--black);
-        border-radius: 4px;
+        border: var(--border-sm);
+        border-radius: var(--radius);
         cursor: pointer;
-        transition: transform 0.1s, box-shadow 0.1s;
-        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+        transition: var(--transition-press);
+        box-shadow: var(--shadow-sm);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -479,7 +463,7 @@ export class SignCraftScene extends Phaser.Scene {
       .tab-num {
         font-size: 0.7rem;
         opacity: 0.5;
-        font-family: 'Patrick Hand', cursive;
+        font-family: var(--font-body);
       }
 
       @media (max-width: 374px) {
@@ -501,15 +485,15 @@ export class SignCraftScene extends Phaser.Scene {
       /* Panel */
       .panel {
         background: rgba(163, 130, 79, 0.5);
-        border: 3px solid var(--black);
-        border-radius: 4px;
-        box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+        border: var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
         padding: 1.2rem;
         margin-bottom: 1rem;
       }
 
       .panel-title {
-        font-family: 'Bangers', cursive;
+        font-family: var(--font-ui);
         font-size: 1.15rem;
         letter-spacing: 0.12em;
         color: var(--black);
@@ -525,9 +509,9 @@ export class SignCraftScene extends Phaser.Scene {
       }
 
       .section-label {
-        font-family: 'Patrick Hand', cursive;
+        font-family: var(--font-body);
         font-size: 1rem;
-        color: var(--text-muted);
+        color: var(--asphalt);
         font-weight: bold;
         margin-bottom: 0.4rem;
         margin-top: 0.8rem;
@@ -548,9 +532,9 @@ export class SignCraftScene extends Phaser.Scene {
       .swatch {
         width: 52px;
         height: 52px;
-        border: 2px solid var(--black);
-        border-radius: 4px;
-        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+        border: var(--border-sm);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
         cursor: pointer;
         transition: transform 0.1s;
         position: relative;
@@ -584,15 +568,15 @@ export class SignCraftScene extends Phaser.Scene {
 
       /* Text input */
       .text-input {
-        font-family: 'Patrick Hand', cursive;
+        font-family: var(--font-body);
         width: 100%;
         padding: 0.7rem;
         font-size: 1.1rem;
-        color: var(--text);
+        color: var(--black);
         background: var(--paper);
-        border: 2px solid var(--black);
-        border-radius: 4px;
-        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+        border: var(--border-sm);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
         resize: none;
       }
 
@@ -602,15 +586,16 @@ export class SignCraftScene extends Phaser.Scene {
       }
 
       .text-input::placeholder {
-        color: #999;
+        color: var(--asphalt);
+        opacity: 0.6;
       }
 
       .char-count {
-        font-family: 'Patrick Hand', cursive;
+        font-family: var(--font-body);
         display: flex;
         justify-content: space-between;
         font-size: 0.85rem;
-        color: var(--text-muted);
+        color: var(--asphalt);
         margin-top: 0.3rem;
       }
 
@@ -625,7 +610,7 @@ export class SignCraftScene extends Phaser.Scene {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        border: 2px solid var(--black);
+        border: var(--border-sm);
         cursor: pointer;
         transition: transform 0.1s;
         box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
@@ -651,11 +636,11 @@ export class SignCraftScene extends Phaser.Scene {
         padding: 0.6rem 0.5rem;
         text-align: center;
         background: var(--paper);
-        border: 2px solid var(--black);
-        border-radius: 4px;
-        box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+        border: var(--border-sm);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
         cursor: pointer;
-        transition: transform 0.1s, box-shadow 0.1s;
+        transition: var(--transition-press);
         line-height: 1.2;
       }
 
@@ -669,9 +654,9 @@ export class SignCraftScene extends Phaser.Scene {
       }
 
       .font-card .font-name {
-        font-family: 'Patrick Hand', cursive;
+        font-family: var(--font-body);
         font-size: 0.7rem;
-        color: var(--text-muted);
+        color: var(--asphalt);
         margin-top: 0.2rem;
       }
 
@@ -694,15 +679,15 @@ export class SignCraftScene extends Phaser.Scene {
       }
 
       .pill {
-        font-family: 'Bangers', cursive;
+        font-family: var(--font-ui);
         font-size: 0.8rem;
         letter-spacing: 0.08em;
         padding: 0.25rem 0.8rem;
-        border: 2px solid var(--black);
+        border: var(--border-sm);
         border-radius: 999px;
         cursor: pointer;
         background: var(--kraft-dark);
-        color: var(--text-muted);
+        color: var(--asphalt);
         box-shadow: 1px 1px 0 rgba(0,0,0,0.3);
         transition: transform 0.1s;
       }
@@ -729,11 +714,11 @@ export class SignCraftScene extends Phaser.Scene {
         transition: transform 0.1s;
         user-select: none;
         padding: 0.2rem;
-        border-radius: 4px;
+        border-radius: var(--radius);
       }
 
       .sticker-item:hover {
-        background: rgba(251, 191, 36, 0.3);
+        background: color-mix(in srgb, var(--yellow) 30%, transparent);
       }
 
       .sticker-item:active {
@@ -746,13 +731,26 @@ export class SignCraftScene extends Phaser.Scene {
         border-top: 2px dashed var(--kraft-dark);
       }
 
+      .placed-list-label {
+        font-size: 0.85rem;
+        color: var(--asphalt);
+        margin-bottom: 0.3rem;
+        font-weight: bold;
+      }
+
+      .placed-tags-empty {
+        font-size: 0.85rem;
+        color: var(--asphalt);
+        font-style: italic;
+      }
+
       .placed-tag {
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
         background: var(--paper);
-        border: 2px solid var(--black);
-        border-radius: 4px;
+        border: var(--border-sm);
+        border-radius: var(--radius);
         padding: 0.2rem 0.5rem;
         margin: 0.2rem;
         font-size: 0.9rem;
@@ -762,22 +760,22 @@ export class SignCraftScene extends Phaser.Scene {
       .placed-tag button {
         background: none;
         border: none;
-        color: #dc2626;
+        color: var(--red);
         cursor: pointer;
         font-size: 0.75rem;
         font-weight: bold;
         padding: 0 0.15rem;
-        font-family: 'Patrick Hand', cursive;
+        font-family: var(--font-body);
       }
 
       .placed-tag button:hover {
-        color: #b91c1c;
+        color: color-mix(in srgb, var(--red) 80%, var(--black));
       }
 
       .hint {
-        font-family: 'Patrick Hand', cursive;
+        font-family: var(--font-body);
         font-size: 0.85rem;
-        color: var(--text-muted);
+        color: var(--asphalt);
         text-align: center;
         margin-top: 0.5rem;
         font-style: italic;
@@ -1052,7 +1050,7 @@ export class SignCraftScene extends Phaser.Scene {
     const placedList = document.createElement('div');
     placedList.className = 'placed-list';
     placedList.id = 'placed-list';
-    placedList.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem; font-weight: bold;">On your sign:</div><div id="placed-tags"></div>';
+    placedList.innerHTML = '<div class="placed-list-label">On your sign:</div><div id="placed-tags"></div>';
     panel.appendChild(placedList);
 
     tab.appendChild(panel);
@@ -1265,7 +1263,7 @@ export class SignCraftScene extends Phaser.Scene {
     tagsContainer.innerHTML = '';
 
     if (this.placedStickers.length === 0) {
-      tagsContainer.innerHTML = '<span style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No stickers yet</span>';
+      tagsContainer.innerHTML = '<span class="placed-tags-empty">No stickers yet</span>';
       return;
     }
 
