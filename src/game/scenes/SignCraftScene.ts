@@ -89,8 +89,10 @@ export class SignCraftScene extends Phaser.Scene {
     signArea.appendChild(signCanvas);
 
     // Create SignEditor instance (Fabric.js canvas)
-    const containerWidth = Math.min(520, window.innerWidth - 40);
-    const editorWidth = containerWidth;
+    // Desktop: max 520px, Mobile: max 320px (matching mockup breakpoints)
+    const isMobile = window.innerWidth < 768;
+    const maxWidth = isMobile ? 320 : 520;
+    const editorWidth = Math.min(maxWidth, window.innerWidth - 40);
     const editorHeight = Math.floor(editorWidth * 0.75); // 4:3 aspect ratio
 
     this.signEditor = new SignEditor({
@@ -102,13 +104,14 @@ export class SignCraftScene extends Phaser.Scene {
     // Set initial material and ghost text
     this.signEditor.setMaterialById(this.selectedMaterial.id);
     this.signEditor.setText('HONK FOR DEMOCRACY');
-    // Set ghost text opacity (need to access text object directly)
+    // Set ghost text opacity and deselect so handles aren't visible
     if (this.signEditor.canvas) {
       const textObj = this.signEditor.canvas.getObjects().find((o: any) => o.data?.isTextObject);
       if (textObj) {
         textObj.set('opacity', 0.3);
-        this.signEditor.canvas.renderAll();
       }
+      this.signEditor.canvas.discardActiveObject();
+      this.signEditor.canvas.renderAll();
     }
 
     // Buttons under sign
@@ -295,24 +298,10 @@ export class SignCraftScene extends Phaser.Scene {
 
       /* Sign canvas */
       .sign-canvas {
-        width: 100%;
-        max-width: 320px;
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
         transform: rotate(-1.5deg);
-        min-width: 280px;
-      }
-
-      @media (min-width: 768px) {
-        .sign-canvas {
-          max-width: 520px;
-        }
-      }
-
-      /* Extra small screens */
-      @media (max-width: 374px) {
-        .sign-canvas {
-          max-width: calc(100vw - 2rem);
-          min-width: 260px;
-        }
       }
 
       /* Neobrutalist primitives */
@@ -441,21 +430,21 @@ export class SignCraftScene extends Phaser.Scene {
         display: flex;
         gap: 0.4rem;
         margin-bottom: 1rem;
-        flex-wrap: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        padding: 0.5rem 0;
+      }
+
+      @media (max-width: 767px) {
+        .tab-bar {
+          position: relative;
+        }
       }
 
       @media (max-width: 374px) {
         .tab-bar {
           gap: 0.3rem;
-        }
-      }
-
-      @media (min-width: 768px) {
-        .tab-bar {
-          position: sticky;
-          top: 0;
-          z-index: 5;
-          padding: 0.5rem 0;
         }
       }
 
@@ -1041,8 +1030,18 @@ export class SignCraftScene extends Phaser.Scene {
     grid.id = 'sticker-grid';
     panel.appendChild(grid);
 
-    // Update grid with initial category
-    this.updateStickerGrid();
+    // Populate grid with initial category (Protest) directly since overlayContainer isn't set yet
+    const initialCategory = EMOJI_CATEGORIES.find((c) => c.id === this.selectedEmojiCategory);
+    if (initialCategory) {
+      initialCategory.emojis.forEach((emojiDef) => {
+        const item = document.createElement('div');
+        item.className = 'sticker-item';
+        item.textContent = emojiDef.emoji;
+        item.title = emojiDef.label;
+        item.addEventListener('click', () => this.addSticker(emojiDef));
+        grid.appendChild(item);
+      });
+    }
 
     const hint = document.createElement('p');
     hint.className = 'hint';
